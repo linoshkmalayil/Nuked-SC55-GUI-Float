@@ -103,7 +103,7 @@ void LCD_ButtonEnable(lcd_t& lcd, uint8_t enable)
 
 void LCD_SetContrast(lcd_t& lcd, uint8_t contrast)
 {
-    if (lcd->mcu.is_jv880)
+    if (lcd.mcu->is_jv880)
     {
         if (contrast > 10)
             contrast = 10;
