@@ -902,8 +902,6 @@ ROM management options:
     FE_PrintAudioDevices();
 }
 
-#undef main
-
 int main(int argc, char *argv[])
 {
     FE_Parameters params;

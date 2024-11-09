@@ -103,7 +103,7 @@ void LCD_ButtonEnable(lcd_t& lcd, uint8_t enable)
 
 void LCD_SetContrast(lcd_t& lcd, uint8_t contrast)
 {
-    if (lcd.mcu.is_jv880)
+    if (lcd->mcu.is_jv880)
     {
         if (contrast > 10)
             contrast = 10;
@@ -562,7 +562,7 @@ void LCD_Update(lcd_t& lcd)
                     for (int j = 0; j < 24; j++)
                     {
                         uint8_t ch = lcd.LCD_Data[i * 40 + j];
-                        LCD_FontRenderStandard(ldc, 10 + i * 50, 4 + j * 34, ' ');
+                        LCD_FontRenderStandard(lcd, 10 + i * 50, 4 + j * 34, ' ');
                         LCD_FontRenderStandard(lcd, 4 + i * 50, 4 + j * 34, ch);
                     }
                 }
