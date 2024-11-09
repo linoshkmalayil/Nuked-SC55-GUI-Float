@@ -216,7 +216,14 @@ void MCU_DeviceWrite(mcu_t& mcu, uint32_t address, uint8_t data)
     case DEV_IPRD:
         break;
     case DEV_PWM1_DTR:
-        LCD_SetContrast(*mcu.lcd, 16 - (data >> 4));
+        if (mcu.is_jv880)
+        {
+            LCD_SetContrast(*mcu.lcd, 10 - (data / 11));
+        }
+        else
+        {
+            LCD_SetContrast(*mcu.lcd, 16 - (data >> 4));
+        }
         break;
     case DEV_PWM1_TCR:
         break;
@@ -770,6 +777,12 @@ void MCU_DefaultSampleCallback(void* userdata, const AudioFrame<int32_t>& frame)
     (void)frame;
 }
 
+void MCU_DefaultMidiCallback(void* userdata, uint8_t* message, int len)
+{
+    (void)userdata;
+    (void)message;
+}
+
 bool MCU_Init(mcu_t& mcu, submcu_t& sm, pcm_t& pcm, mcu_timer_t& timer, lcd_t& lcd)
 {
     mcu.sm = &sm;
@@ -860,7 +873,7 @@ void MCU_UpdateUART_TX(mcu_t& mcu)
     MCU_Interrupt_SetRequest(mcu, INTERRUPT_SOURCE_UART_TX, (mcu.dev_register[DEV_SCR] & 0x80) != 0);
 
     if (mcu.uart_tx_ptr - mcu.uart_tx_buffer >= uart_buffer_size)   {
-        printf("MIDI TX OVERFLOW\n");
+        printf("MIDI TX OVERFLOW, THIS IS A BUG\n");
         return;
     }
 
@@ -893,7 +906,7 @@ void MCU_UpdateUART(mcu_t& mcu)
         if (*(mcu.uart_tx_ptr - 1) == 0xF7) 
         {
             len = mcu.uart_tx_ptr - tx_buffer;
-            MIDI_PostSysExMessage(tx_buffer, len);
+            mcu.midi_callback(mcu.callback_userdata, tx_buffer, len);
             mcu.uart_tx_ptr = mcu.uart_tx_buffer;
         }
     } 
@@ -918,7 +931,7 @@ void MCU_UpdateUART(mcu_t& mcu)
         }
         if (mcu.uart_tx_ptr - tx_buffer >= len) 
         {
-            MIDI_PostShortMessage(tx_buffer, len);
+            mcu.midi_callback(mcu.callback_userdata, tx_buffer, len);
             mcu.uart_tx_ptr = mcu.uart_tx_buffer;
         }
     }

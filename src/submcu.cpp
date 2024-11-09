@@ -163,7 +163,7 @@ void SM_Write(submcu_t& sm, uint16_t address, uint8_t data)
             case SM_DEV_UART2_DATA: // MIDI Out
                 if(sm.mcu->uart_tx_ptr - sm.mcu->uart_tx_buffer >= uart_buffer_size)
                 {
-                    printf("MIDI TX OVERFLOW\n");
+                    printf("MIDI TX OVERFLOW, THIS IS A BUG\n");
                     break;
                 }
                 if(data == 0xFE)
