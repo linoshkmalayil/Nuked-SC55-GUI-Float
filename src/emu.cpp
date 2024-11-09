@@ -78,6 +78,11 @@ void Emulator::SetSampleCallback(mcu_sample_callback callback, void* userdata)
     m_mcu->sample_callback = callback;
 }
 
+void Emulator::SetMidiCallback(mcu_midi_callback callback)
+{
+    m_mcu->midi_callback = callback;
+}
+
 const char* rs_name[(size_t)ROMSET_COUNT] = {
     "SC-55mk2",
     "SC-55st",

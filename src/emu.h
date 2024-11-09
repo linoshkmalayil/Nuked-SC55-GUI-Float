@@ -64,6 +64,7 @@ public:
     void Reset();
 
     void SetSampleCallback(mcu_sample_callback callback, void* userdata);
+    void SetMidiCallback(mcu_midi_callback callback);
 
     bool LoadRoms(Romset romset, const std::filesystem::path& base_path);
 

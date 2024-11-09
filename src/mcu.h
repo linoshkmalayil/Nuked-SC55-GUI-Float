@@ -206,8 +206,10 @@ enum class Romset {
 constexpr size_t ROMSET_COUNT = 9;
 
 typedef void(*mcu_sample_callback)(void* userdata, const AudioFrame<int32_t>& frame);
+typedef void (*mcu_midi_callback)(void* userdata, uint8_t* message, int len);
 
 void MCU_DefaultSampleCallback(void* userdata, const AudioFrame<int32_t>& frame);
+void MCU_DefaultMidiCallback(void* userdata, uint8_t* message, int len);
 
 struct mcu_t {
     uint16_t r[8]{};
@@ -290,6 +292,7 @@ struct mcu_t {
 
     void* callback_userdata = nullptr;
     mcu_sample_callback sample_callback = MCU_DefaultSampleCallback;
+    mcu_midi_callback midi_callback = MCU_DefaultMidiCallback;
 
     std::mutex work_thread_lock;
 };

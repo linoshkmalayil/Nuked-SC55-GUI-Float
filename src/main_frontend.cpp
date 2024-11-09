@@ -180,6 +180,18 @@ void FE_RouteMIDI(FE_Application& fe, std::span<const uint8_t> bytes)
     }
 }
 
+void FE_MidiOutCallback(void* user, uint8_t* message, int len)
+{
+    if (*message == 0xF0)
+    {
+        MIDI_PostSysExMessage(message, len);
+    }
+    else
+    {
+        MIDI_PostShortMessage(message, len);
+    }
+}
+
 template <typename SampleT>
 void FE_ReceiveSample(void* userdata, const AudioFrame<int32_t>& in)
 {
@@ -570,6 +582,8 @@ bool FE_CreateInstance(FE_Application& container, const std::filesystem::path& b
             break;
     }
 
+    fe->emu.SetMidiCallback(FE_MidiOutCallback);
+
     LCD_LoadBack(fe->emu.GetLCD(), base_path / "back.data");
 
     if (!fe->emu.LoadRoms(params.romset, *params.rom_directory))
@@ -888,6 +902,8 @@ ROM management options:
     FE_PrintAudioDevices();
 }
 
+#undef main
+
 int main(int argc, char *argv[])
 {
     FE_Parameters params;
@@ -973,6 +989,8 @@ int main(int argc, char *argv[])
         fprintf(stderr, "ERROR: Failed to initialize the MIDI Ports.\nWARNING: Continuing without MIDI Ports...\n");
         fflush(stderr);
     }
+
+    
 
     for (size_t i = 0; i < frontend.instances_in_use; ++i)
     {
