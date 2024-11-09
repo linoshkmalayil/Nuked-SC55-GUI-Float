@@ -103,10 +103,18 @@ void LCD_ButtonEnable(lcd_t& lcd, uint8_t enable)
 
 void LCD_SetContrast(lcd_t& lcd, uint8_t contrast)
 {
-    if (contrast > 16)
-        contrast = 16;
-    else if(contrast < 1)
-        contrast = 1;
+    if (lcd.mcu.is_jv880)
+    {
+        if (contrast > 10)
+            contrast = 10;
+    }
+    else
+    {
+        if (contrast > 16)
+            contrast = 16;
+        else if(contrast < 1)
+            contrast = 1;
+    }
 
     lcd.contrast = contrast;
 }
@@ -519,7 +527,7 @@ void LCD_Update(lcd_t& lcd)
             {
                 for (size_t j = 0; j < lcd.width; j++) 
                 {
-                    lcd.buffer[i][j] = (lcd.background[i][j] & 0xF0F000) >> 2;
+                    lcd.buffer[i][j] = (lcd.background[i][j] & 0xFCFC0C) >> 2;
                 }
             }
         }
@@ -554,6 +562,7 @@ void LCD_Update(lcd_t& lcd)
                     for (int j = 0; j < 24; j++)
                     {
                         uint8_t ch = lcd.LCD_Data[i * 40 + j];
+                        LCD_FontRenderStandard(ldc, 10 + i * 50, 4 + j * 34, ' ');
                         LCD_FontRenderStandard(lcd, 4 + i * 50, 4 + j * 34, ch);
                     }
                 }
@@ -562,7 +571,7 @@ void LCD_Update(lcd_t& lcd)
                 int j = lcd.LCD_DD_RAM % 0x40;
                 int i = lcd.LCD_DD_RAM / 0x40;
                 if (i < 2 && j < 24 && lcd.LCD_C)
-                    LCD_FontRenderStandard(lcd, 4 + i * 50, 4 + j * 34, '_', true);
+                    LCD_FontRenderStandard(lcd, 10 + i * 50, 4 + j * 34, '_', true);
             }
             else
             {

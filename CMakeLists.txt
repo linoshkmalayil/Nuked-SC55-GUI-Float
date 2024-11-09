@@ -123,7 +123,6 @@ endif()
 add_executable(nuked-sc55-render)
 target_sources(nuked-sc55-render
     PRIVATE
-    src/mcu_renderer.cpp
     src/render_frontend.cpp
     src/smf.cpp src/smf.h
     src/wav.cpp src/wav.h
