@@ -740,7 +740,7 @@ void LCD_HandleEvent(lcd_t& lcd, const SDL_Event& sdl_event)
                 if (relval < -50) {
                     relval = -50;
                 }
-                lcd.volume += relval / (lcd.volume > 0.775f ? 10000.0f : 400.0f); // Prevent someone make sound too loud (like me)
+                lcd.volume += relval / (lcd.volume > 0.8f ? 10000.0f : 400.0f); // Prevent someone make sound too loud (like me)
                 if (lcd.volume > 1.0f) {
                     lcd.volume = 1.0f;
                 }

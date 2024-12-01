@@ -73,7 +73,7 @@ struct lcd_t {
     uint32_t drag_volume_knob = 0;
     uint32_t background_enabled = 0;
 
-    float volume = 0.775f;
+    float volume = 0.8f;
 
     SDL_Window *window = nullptr;
     SDL_Renderer *renderer = nullptr;

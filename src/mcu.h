@@ -300,7 +300,7 @@ struct mcu_t {
     uint16_t operand_data = 0;
     uint8_t opcode_extended = 0;
 
-    uint16_t volume = 8250;
+    uint16_t volume = 10386;
 
     void* callback_userdata = nullptr;
     mcu_sample_callback sample_callback = MCU_DefaultSampleCallback;
