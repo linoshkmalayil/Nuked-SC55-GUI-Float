@@ -90,6 +90,7 @@ add_executable(nuked-sc55)
 target_sources(nuked-sc55
     PRIVATE
     src/midi.h
+    src/serial.h
     src/main_frontend.cpp # main() is here!
 )
 
@@ -97,6 +98,12 @@ if(USE_RTMIDI)
     target_sources(nuked-sc55 PRIVATE src/midi_rtmidi.cpp)
 elseif(WIN32)
     target_sources(nuked-sc55 PRIVATE src/midi_win32.cpp)
+endif()
+
+if(UNIX)
+    target_sources(nuked-sc55 PRIVATE src/serial_posix.cpp)
+elseif(WIN32)
+    target_sources(nuked-sc55 PRIVATE src/serial_win32.cpp)
 endif()
 
 target_link_libraries(nuked-sc55 PRIVATE SDL2::SDL2 SDL2::SDL2main nuked-sc55-backend)
@@ -123,6 +130,7 @@ endif()
 add_executable(nuked-sc55-render)
 target_sources(nuked-sc55-render
     PRIVATE
+    src/serial.h src/serial_dummy.cpp
     src/render_frontend.cpp
     src/smf.cpp src/smf.h
     src/wav.cpp src/wav.h
