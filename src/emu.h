@@ -91,3 +91,4 @@ private:
 Romset EMU_DetectRomset(const std::filesystem::path& base_path);
 const char* EMU_RomsetName(Romset romset);
 bool EMU_ParseRomsetName(std::string_view name, Romset& romset);
+std::span<const char*> EMU_GetParsableRomsetNames();
