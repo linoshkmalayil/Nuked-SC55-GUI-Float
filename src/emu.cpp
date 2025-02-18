@@ -469,6 +469,11 @@ bool EMU_ParseRomsetName(std::string_view name, Romset& romset)
     return false;
 }
 
+std::span<const char*> EMU_GetParsableRomsetNames()
+{
+    return rs_name_simple;
+}
+
 void Emulator::PostMIDI(uint8_t byte)
 {
     MCU_PostUART(*m_mcu, byte);
