@@ -130,24 +130,42 @@ void CALLBACK MIDIIN_Callback(
 
 void MIDI_PrintDevices()
 {
-    const UINT num_devices = midiInGetNumDevs();
+    const UINT num_devices_in = midiInGetNumDevs();
+    const UINT num_devices_out = midiOutGetNumDevs();
 
-    if (num_devices == 0)
+    if (num_devices_in == 0)
     {
-        fprintf(stderr, "No midi devices found.\n");
+        fprintf(stderr, "No midi input devices found.\n");
+    }
+
+    if (num_devices_out == 0)
+    {
+        fprintf(stderr, "No midi output devices found.\n");
     }
 
     MMRESULT result;
-    MIDIINCAPSA device_caps;
+    MIDIINCAPSA device_in_caps;
+    MIDIOUTCAPSA device_out_caps;
 
-    fprintf(stderr, "Known midi devices:\n\n");
+    fprintf(stderr, "Known midi input devices:\n\n");
 
-    for (UINT i = 0; i < num_devices; ++i)
+    for (UINT i = 0; i < num_devices_in; ++i)
     {
-        result = midiInGetDevCapsA(i, &device_caps, sizeof(MIDIINCAPSA));
+        result = midiInGetDevCapsA(i, &device_in_caps, sizeof(MIDIINCAPSA));
         if (result == MMSYSERR_NOERROR)
         {
-            fprintf(stderr, "  %d: %s\n", i, device_caps.szPname);
+            fprintf(stderr, "  %d: %s\n", i, device_in_caps.szPname);
+        }
+    }
+
+    fprintf(stderr, "\nKnown midi output devices:\n\n");
+
+    for (UINT i = 0; i < num_devices_out; ++i)
+    {
+        result = midiOutGetDevCapsA(i, &device_out_caps, sizeof(MIDIOUTCAPSA));
+        if (result == MMSYSERR_NOERROR)
+        {
+            fprintf(stderr, "  %d: %s\n", i, device_out_caps.szPname);
         }
     }
 }
@@ -162,10 +180,10 @@ struct MIDI_PickedDevice
 
 bool MIDI_PickDevice(std::string_view preferred_in_name, std::string_view preferred_out_name, MIDI_PickedDevice& out_picked)
 {
-    const UINT num_devices = midiInGetNumDevs();
+    const UINT num_in_devices = midiInGetNumDevs();
     const UINT num_out_devices = midiOutGetNumDevs();
 
-    if (num_devices == 0)
+    if (num_in_devices == 0)
     {
         fprintf(stderr, "No midi input\n");
         return false;
@@ -204,7 +222,7 @@ bool MIDI_PickDevice(std::string_view preferred_in_name, std::string_view prefer
         }
     }
 
-    for (UINT i = 0; i < num_devices; ++i)
+    for (UINT i = 0; i < num_in_devices; ++i)
     {
         result = midiInGetDevCapsA(i, &out_picked.device_in_caps, sizeof(MIDIINCAPSA));
         if (result != MMSYSERR_NOERROR)
@@ -238,7 +256,7 @@ bool MIDI_PickDevice(std::string_view preferred_in_name, std::string_view prefer
     {
         if (UINT device_in_id; TryParse(preferred_in_name, device_in_id))
         {
-            if (device_in_id < num_devices)
+            if (device_in_id < num_in_devices)
             {
                 result = midiInGetDevCaps(device_in_id, &out_picked.device_in_caps, sizeof(MIDIINCAPSA));
                 if (result != MMSYSERR_NOERROR)
@@ -290,7 +308,7 @@ bool MIDI_Init(FE_Application& fe, std::string_view in_port_name_or_id, std::str
         return false;
     }
 
-    if (picked_device.device_out_id > 0)
+    if (picked_device.device_in_id > -1)
     {
         MMRESULT resultin = midiInOpen(&midi_in_handle, picked_device.device_in_id, (DWORD_PTR)MIDIIN_Callback, 0, CALLBACK_FUNCTION);
         if (resultin != MMSYSERR_NOERROR)
@@ -326,7 +344,7 @@ bool MIDI_Init(FE_Application& fe, std::string_view in_port_name_or_id, std::str
         }
     }
 
-    if (picked_device.device_out_id > 0)
+    if (out_port_name_or_id.size() && picked_device.device_out_id > -1)
     {
         MMRESULT resultout = midiOutOpen(&midi_out_handle, picked_device.device_out_id, (DWORD_PTR)NULL, 0, CALLBACK_NULL);
         if (resultout == MMSYSERR_NOERROR)

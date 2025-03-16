@@ -29,9 +29,14 @@ def main():
     with subprocess.Popen(cmd, stdout=subprocess.PIPE) as proc:
         digest = hashlib.file_digest(proc.stdout, "sha256")
 
-    if digest.hexdigest().casefold() != args.sha256.casefold():
-        print("hash mismatch")
-        sys.exit(1)
+    expected = args.sha256.casefold()
+    actual = digest.hexdigest().casefold()
+ 
+    if expected != actual:
+        print("hash mismatch:")
+        print(f"expected: {expected}")
+        print(f"actual:   {actual}")
+    sys.exit(1)
 
     sys.exit(proc.wait())
 

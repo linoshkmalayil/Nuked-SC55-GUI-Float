@@ -40,7 +40,6 @@
 #include "cast.h"
 #include "pcm.h"
 #include <SDL.h>
-#include <cinttypes>
 #include <optional>
 
 #ifdef _WIN32
@@ -421,22 +420,15 @@ bool FE_IsBufferFull(FE_Instance& instance)
 template <typename SampleT>
 void FE_RunInstance(FE_Instance& instance)
 {
-    MCU_WorkThread_Lock(instance.emu.GetMCU());
     while (instance.running)
     {
-        if (FE_IsBufferFull<SampleT>(instance))
+        while (FE_IsBufferFull<SampleT>(instance))
         {
-            MCU_WorkThread_Unlock(instance.emu.GetMCU());
-            while (FE_IsBufferFull<SampleT>(instance))
-            {
-                SDL_Delay(1);
-            }
-            MCU_WorkThread_Lock(instance.emu.GetMCU());
+            SDL_Delay(1);
         }
 
         MCU_Step(instance.emu.GetMCU());
     }
-    MCU_WorkThread_Unlock(instance.emu.GetMCU());
 }
 
 bool FE_HandleGlobalEvent(FE_Application& fe, const SDL_Event& ev)
@@ -950,7 +942,7 @@ int main(int argc, char *argv[])
     {
         if (!FE_CreateInstance(frontend, base_path, params))
         {
-            fprintf(stderr, "FATAL ERROR: Failed to create instance %" PRIu64 "\n", i);
+            fprintf(stderr, "FATAL ERROR: Failed to create instance %zu\n", i);
             return 1;
         }
     }

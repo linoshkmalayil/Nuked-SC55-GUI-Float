@@ -13,7 +13,6 @@
 #include <mutex>
 #include <string>
 #include <cstdio>
-#include <cinttypes>
 #include <source_location>
 #include <thread>
 #include <condition_variable>
@@ -627,12 +626,6 @@ public:
             if (m_queue_complete[queue_id] && cc == 0)
             {
                 // See comment in GetReadyChunkCount.
-                fprintf(stderr,
-                        "R_Mixer::MixFrames tried to mix a queue that is complete with no data.\n"
-                        "Please submit a bug report and attach the midi file that caused this:\n"
-                        "\n"
-                        "    https://github.com/jcmoyer/Nuked-SC55");
-                DebugPrintQueues();
                 continue;
             }
             m_queues[queue_id].Dequeue(chunks[queue_id]);
@@ -679,7 +672,7 @@ private:
     {
         for (size_t i = 0; i < m_queues_in_use; ++i)
         {
-            fprintf(stderr, "Queue %" PRIu64 " has %" PRIu64 " chunks\n", i, m_queues[i].ChunkCount());
+            fprintf(stderr, "Queue %zu has %zu chunks\n", i, m_queues[i].ChunkCount());
         }
     }
 
@@ -750,11 +743,6 @@ void R_ReceiveSample(void* userdata, const AudioFrame<int32_t>& in)
 
 void R_RunReset(Emulator& emu, EMU_SystemReset reset)
 {
-    if (reset == EMU_SystemReset::NONE)
-    {
-        return;
-    }
-
     emu.PostSystemReset(reset);
 
     for (size_t i = 0; i < 24'000'000; ++i)
@@ -983,7 +971,7 @@ bool R_RenderTrack(const SMF_Data& data, const R_Parameters& params)
         render_states[i].emu.Reset();
         render_states[i].emu.GetPCM().disable_oversampling = params.disable_oversampling;
 
-        fprintf(stderr, "Running system reset for #%02" PRIu64 "...\n", i);
+        fprintf(stderr, "Initializing emulator #%02zu...\n", i);
         R_RunReset(render_states[i].emu, params.reset);
 
         switch (params.output_format)
@@ -1046,7 +1034,7 @@ bool R_RenderTrack(const SMF_Data& data, const R_Parameters& params)
     {
         all_done = true;
 
-        fprintf(stderr, "Rendered %" PRIu64 " frames\n", mix_out_state.frames_mixed.load());
+        fprintf(stderr, "Rendered %zu frames\n", mix_out_state.frames_mixed.load());
 
         for (size_t i = 0; i < instances; ++i)
         {
@@ -1059,7 +1047,7 @@ bool R_RenderTrack(const SMF_Data& data, const R_Parameters& params)
             const size_t total        = render_states[i].track->events.size();
             const float  percent_done = 100.f * (float)processed / (float)total;
 
-            fprintf(stderr, "#%02" PRIu64 " %6.2f%% [%" PRIu64 " / %" PRIu64 "]\n", i, percent_done, processed, total);
+            fprintf(stderr, "#%02zu %6.2f%% [%zu / %zu]\n", i, percent_done, processed, total);
         }
 
         if (!all_done)
@@ -1082,7 +1070,7 @@ bool R_RenderTrack(const SMF_Data& data, const R_Parameters& params)
         for (size_t i = 0; i < instances; ++i)
         {
             auto t_instance_sec = (double)render_states[i].elapsed.count() / 1e9;
-            fprintf(stderr, "#%02" PRIu64 " took %.2fs\n", i, t_instance_sec);
+            fprintf(stderr, "#%02zu took %.2fs\n", i, t_instance_sec);
         }
     }
 

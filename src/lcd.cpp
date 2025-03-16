@@ -372,13 +372,13 @@ void LCD_UnInit(lcd_t& lcd)
     }
 }
 
-void LCD_FontRenderStandard(lcd_t& lcd, int32_t x, int32_t y, uint8_t ch, bool overlay = false)
+void LCD_FontRenderStandard(lcd_t& lcd, uint8_t* LCD_CG, int32_t x, int32_t y, uint8_t ch, bool overlay = false)
 {
     uint8_t* f;
     if (ch >= 16)
         f = &lcd_font[ch - 16][0];
     else
-        f = &lcd.LCD_CG[(ch & 7) * 8];
+        f = &LCD_CG[(ch & 7) * 8];
     for (int i = 0; i < 7; i++)
     {
         for (int j = 0; j < 5; j++)
@@ -411,13 +411,13 @@ void LCD_FontRenderStandard(lcd_t& lcd, int32_t x, int32_t y, uint8_t ch, bool o
     }
 }
 
-void LCD_FontRenderLevel(lcd_t& lcd, int32_t x, int32_t y, uint8_t ch, uint8_t width = 5)
+void LCD_FontRenderLevel(lcd_t& lcd, uint8_t* LCD_CG, int32_t x, int32_t y, uint8_t ch, uint8_t width = 5)
 {
     uint8_t* f;
     if (ch >= 16)
         f = &lcd_font[ch - 16][0];
     else
-        f = &lcd.LCD_CG[(ch & 7) * 8];
+        f = &LCD_CG[(ch & 7) * 8];
     for (int i = 0; i < 8; i++)
     {
         for (int j = 0; j < width; j++)
@@ -482,13 +482,13 @@ static const int LR_xy[2][2] = {
 };
 
 
-void LCD_FontRenderLR(lcd_t& lcd, uint8_t ch)
+void LCD_FontRenderLR(lcd_t& lcd, uint8_t* LCD_CG, uint8_t ch)
 {
     uint8_t* f;
     if (ch >= 16)
         f = &lcd_font[ch - 16][0];
     else
-        f = &lcd.LCD_CG[(ch & 7) * 8];
+        f = &LCD_CG[(ch & 7) * 8];
     int col;
     if (f[0] & 1)
     {
@@ -515,7 +515,24 @@ void LCD_Update(lcd_t& lcd)
 {
     if (!lcd.mcu->is_cm300 && !lcd.mcu->is_st && !lcd.mcu->is_scb55)
     {
-        MCU_WorkThread_Lock(*lcd.mcu);
+        if (!lcd.mutex.try_lock())
+        {
+            // if the MCU is currently updating something, just drop the frame
+            return;
+        }
+
+        // This is the only shared mutable state we need to complete rendering. Since rendering is relatively expensive,
+        // we'll quickly take a copy, release the lock, and use it for this frame.
+        uint32_t LCD_C      = lcd.LCD_C;
+        uint32_t LCD_DD_RAM = lcd.LCD_DD_RAM;
+
+        uint8_t LCD_CG[sizeof(lcd.LCD_CG)];
+        memcpy(LCD_CG, lcd.LCD_CG, sizeof(LCD_CG));
+
+        uint8_t LCD_Data[sizeof(lcd.LCD_Data)];
+        memcpy(LCD_Data, lcd.LCD_Data, sizeof(LCD_Data));
+
+        lcd.mutex.unlock();
 
         uint8_t contrast = lcd.contrast;
 
@@ -561,75 +578,73 @@ void LCD_Update(lcd_t& lcd)
                 {
                     for (int j = 0; j < 24; j++)
                     {
-                        uint8_t ch = lcd.LCD_Data[i * 40 + j];
-                        LCD_FontRenderStandard(lcd, 10 + i * 50, 4 + j * 34, ' ');
-                        LCD_FontRenderStandard(lcd, 4 + i * 50, 4 + j * 34, ch);
+                        uint8_t ch = LCD_Data[i * 40 + j];
+                        LCD_FontRenderStandard(lcd, LCD_CG, 10 + i * 50, 4 + j * 34, ' ');
+                        LCD_FontRenderStandard(lcd, LCD_CG, 4 + i * 50, 4 + j * 34, ch);
                     }
                 }
                 
                 // cursor
-                int j = lcd.LCD_DD_RAM % 0x40;
-                int i = lcd.LCD_DD_RAM / 0x40;
-                if (i < 2 && j < 24 && lcd.LCD_C)
-                    LCD_FontRenderStandard(lcd, 10 + i * 50, 4 + j * 34, '_', true);
+                int j = LCD_DD_RAM % 0x40;
+                int i = LCD_DD_RAM / 0x40;
+                if (i < 2 && j < 24 && LCD_C)
+                    LCD_FontRenderStandard(lcd, LCD_CG, 10 + i * 50, 4 + j * 34, '_', true);
             }
             else
             {
                 for (int i = 0; i < 3; i++)
                 {
-                    uint8_t ch = lcd.LCD_Data[0 + i];
-                    LCD_FontRenderStandard(lcd, 11, 34 + i * 35, ch);
+                    uint8_t ch = LCD_Data[0 + i];
+                    LCD_FontRenderStandard(lcd, LCD_CG, 11, 34 + i * 35, ch);
                 }
                 for (int i = 0; i < 16; i++)
                 {
-                    uint8_t ch = lcd.LCD_Data[3 + i];
-                    LCD_FontRenderStandard(lcd, 11, 153 + i * 35, ch);
+                    uint8_t ch = LCD_Data[3 + i];
+                    LCD_FontRenderStandard(lcd, LCD_CG, 11, 153 + i * 35, ch);
                 }
                 for (int i = 0; i < 3; i++)
                 {
-                    uint8_t ch = lcd.LCD_Data[40 + i];
-                    LCD_FontRenderStandard(lcd, 75, 34 + i * 35, ch);
+                    uint8_t ch = LCD_Data[40 + i];
+                    LCD_FontRenderStandard(lcd, LCD_CG, 75, 34 + i * 35, ch);
                 }
                 for (int i = 0; i < 3; i++)
                 {
-                    uint8_t ch = lcd.LCD_Data[43 + i];
-                    LCD_FontRenderStandard(lcd, 75, 153 + i * 35, ch);
+                    uint8_t ch = LCD_Data[43 + i];
+                    LCD_FontRenderStandard(lcd, LCD_CG, 75, 153 + i * 35, ch);
                 }
                 for (int i = 0; i < 3; i++)
                 {
-                    uint8_t ch = lcd.LCD_Data[49 + i];
-                    LCD_FontRenderStandard(lcd, 139, 34 + i * 35, ch);
+                    uint8_t ch = LCD_Data[49 + i];
+                    LCD_FontRenderStandard(lcd, LCD_CG, 139, 34 + i * 35, ch);
                 }
                 for (int i = 0; i < 3; i++)
                 {
-                    uint8_t ch = lcd.LCD_Data[46 + i];
-                    LCD_FontRenderStandard(lcd, 139, 153 + i * 35, ch);
+                    uint8_t ch = LCD_Data[46 + i];
+                    LCD_FontRenderStandard(lcd, LCD_CG, 139, 153 + i * 35, ch);
                 }
                 for (int i = 0; i < 3; i++)
                 {
-                    uint8_t ch = lcd.LCD_Data[52 + i];
-                    LCD_FontRenderStandard(lcd, 203, 34 + i * 35, ch);
+                    uint8_t ch = LCD_Data[52 + i];
+                    LCD_FontRenderStandard(lcd, LCD_CG, 203, 34 + i * 35, ch);
                 }
                 for (int i = 0; i < 3; i++)
                 {
-                    uint8_t ch = lcd.LCD_Data[55 + i];
-                    LCD_FontRenderStandard(lcd, 203, 153 + i * 35, ch);
+                    uint8_t ch = LCD_Data[55 + i];
+                    LCD_FontRenderStandard(lcd, LCD_CG, 203, 153 + i * 35, ch);
                 }
 
-                LCD_FontRenderLR(lcd, lcd.LCD_Data[58]);
+                LCD_FontRenderLR(lcd, LCD_CG, LCD_Data[58]);
 
                 for (int i = 0; i < 2; i++)
                 {
                     for (int j = 0; j < 4; j++)
                     {
                         uint8_t ch = lcd.LCD_Data[20 + j + i * 40];
-                        LCD_FontRenderLevel(lcd, 71 + i * 88, 293 + j * 130, ch, j == 3 ? 1 : 5);
+                        LCD_FontRenderLevel(lcd, LCD_CG, 71 + i * 88, 293 + j * 130, ch, j == 3 ? 1 : 5);
                     }
                 }
             }
         }
-
-        MCU_WorkThread_Unlock(*lcd.mcu);
 
         SDL_Rect rect;
         rect.x = 0;
