@@ -6,7 +6,6 @@
 #include <string>
 #include <fstream>
 #include <cstring>
-#include <cinttypes>
 
 // security: do not call without verifying [ptr,ptr+1] is a readable range
 // performance: 16 bit load + rol in clang and gcc, worse in MSVC
@@ -115,6 +114,20 @@ public:
         memcpy(destination, &m_bytes[m_offset], count);
         m_offset += count;
         return true;
+    }
+
+    [[nodiscard]]
+    bool Seek(size_t new_offset)
+    {
+        if (m_offset <= m_bytes.size())
+        {
+            m_offset = new_offset;
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 
     size_t GetOffset() const
@@ -276,11 +289,18 @@ bool SMF_ReadTrack(SMF_Reader& reader, SMF_Data& result, uint64_t expected_end)
                         // Meta events
                         uint32_t meta_len;
                         new_event.data_first = reader.GetOffset();
-                        // Skip type byte
-                        CHECK(reader.Skip(1));
+                        uint8_t meta_type;
+                        CHECK(reader.ReadU8(meta_type));
                         CHECK(SMF_ReadVarint(reader, meta_len));
                         CHECK(reader.Skip(meta_len));
                         new_event.data_last = reader.GetOffset();
+
+                        // End of track: stop reading events and skip to where the next track would be
+                        if (meta_type == 0x2F)
+                        {
+                            CHECK(reader.Seek(expected_end));
+                            return true;
+                        }
                     }
                     else
                     {
@@ -305,7 +325,7 @@ void SMF_PrintStats(const SMF_Data& data)
 {
     for (size_t i = 0; i < data.tracks.size(); ++i)
     {
-        fprintf(stderr, "Track %02" PRIu64 ": %" PRIu64 " events\n", i, data.tracks[i].events.size());
+        fprintf(stderr, "Track %02zu: %zu events\n", i, data.tracks[i].events.size());
     }
 }
 
@@ -351,7 +371,7 @@ bool SMF_ReadChunk(SMF_Reader& reader, SMF_Data& data)
     }
     else
     {
-        fprintf(stderr, "Unexpected chunk type at %" PRIu64 "\n", chunk_start);
+        fprintf(stderr, "Unexpected chunk type at %zu\n", (size_t)chunk_start);
         return false;
     }
 
