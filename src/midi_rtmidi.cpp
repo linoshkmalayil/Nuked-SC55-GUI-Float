@@ -48,20 +48,37 @@ void MIDI_PrintDevices()
 {
     try
     {
-        std::unique_ptr<RtMidiIn> midi = std::make_unique<RtMidiIn>();
+        std::unique_ptr<RtMidiIn> midiin = std::make_unique<RtMidiIn>();
+        std::unique_ptr<RtMidiOut> midiout = std::make_unique<RtMidiOut>();
 
-        const unsigned int num_devices = midi->getPortCount();
+        const unsigned int num_devices_in = midiin->getPortCount();
+        const unsigned int num_devices_out = midiout->getPortCount();
 
-        if (num_devices == 0)
+        if (num_devices_in == 0)
         {
-            fprintf(stderr, "No midi devices found.\n");
+            fprintf(stderr, "No MIDI Input devices found.\n");
         }
 
-        fprintf(stderr, "Known midi devices:\n\n");
-
-        for (unsigned int i = 0; i < num_devices; ++i)
+        if (num_devices_out == 0)
         {
-            std::string friendly_name = midi->getPortName(i);
+            fprintf(stderr, "No MIDI Output devices found.\n");
+        }
+
+        fprintf(stderr, "Known MIDI Input devices:\n\n");
+
+        for (unsigned int i = 0; i < num_devices_in; ++i)
+        {
+            std::string friendly_name = midiin->getPortName(i);
+            MIDI_StripRtmidiPortNumber(friendly_name);
+
+            fprintf(stderr, "  %d: %s\n", i, friendly_name.c_str());
+        }
+
+        fprintf(stderr, "\nKnown MIDI Output devices:\n\n");
+
+        for (unsigned int i = 0; i < num_devices_out; ++i)
+        {
+            std::string friendly_name = midiout->getPortName(i);
             MIDI_StripRtmidiPortNumber(friendly_name);
 
             fprintf(stderr, "  %d: %s\n", i, friendly_name.c_str());
@@ -81,88 +98,106 @@ struct MIDI_PickedDevices
 };
 
 // throws RtMidiError
-bool MIDI_PickDevice(RtMidiIn& midi, std::string_view preferred_in_name, std::string_view preferred_out_name, MIDI_PickedDevices& out_picked)
+bool MIDI_PickDevice(RtMidiIn& midi_in, RtMidiOut& midi_out, std::string_view preferred_in_name, std::string_view preferred_out_name, MIDI_PickedDevices& out_picked)
 {
-    const unsigned int num_devices = midi.getPortCount();
+    const unsigned int num_devices_in = midi_in.getPortCount();
+    const unsigned int num_devices_out = midi_out.getPortCount();
 
-    if (num_devices == 0)
+    if (num_devices_in == 0)
     {
         fprintf(stderr, "No midi input\n");
         return false;
+    }
+
+    if (num_devices_out == 0)
+    {
+        fprintf(stderr, "No midi output\n");
+    }
+
+    if (preferred_out_name.size() == 0)
+    {
+        // default to first device
+        out_picked.out_device_id   = 0;
+        out_picked.out_device_name = midi_out.getPortName(0);
     }
 
     if (preferred_in_name.size() == 0)
     {
         // default to first device
         out_picked.in_device_id   = 0;
-        out_picked.in_device_name = midi.getPortName(0);
-        out_picked.out_device_id   = 0;
-        out_picked.out_device_name = midi.getPortName(0);
+        out_picked.in_device_name = midi_in.getPortName(0);
         return true;
     }
 
-    for (unsigned int i = 0; i < num_devices; ++i)
+    bool output_set = false;
+
+    for (unsigned int i= 0; i < num_devices_out; i++)
     {
-        std::string name = midi.getPortName(i);
-        if (preferred_in_name == name)
+        std::string midi_out_name = midi_out.getPortName(i);
+        if(preferred_out_name == midi_out_name)
         {
-            out_picked.in_device_id   = i;
-            out_picked.in_device_name = std::move(name);
-            for (unsigned int j = 0; j < num_devices; ++j)
-            {
-                std::string out_name = midi.getPortName(j);
-                if (preferred_in_name == out_name)
-                {
-                    out_picked.out_device_id   = j;
-                    out_picked.out_device_name = std::move(out_name);
-                }
-            }
-            return true;
+            out_picked.out_device_id   = i;
+            out_picked.out_device_name = std::move(midi_out_name);
+            output_set = true;
+            break;
         }
 
-        MIDI_StripRtmidiPortNumber(name);
-        if (preferred_out_name == name)
+        MIDI_StripRtmidiPortNumber(midi_out_name);
+        if(preferred_out_name == midi_out_name)
         {
-            out_picked.in_device_id   = i;
-            out_picked.in_device_name = std::move(name);
-            for (unsigned int j = 0; j < num_devices; ++j)
-            {
-                std::string out_name = midi.getPortName(j);
-                if (preferred_in_name == out_name)
-                {
-                    out_picked.out_device_id   = j;
-                    out_picked.out_device_name = std::move(out_name);
-                }
-            }
-            return true;
+            out_picked.out_device_id   = i;
+            out_picked.out_device_name = std::move(midi_out_name);
+            output_set = true;
+            break;
         }
     }
 
-    // user provided a number
-    if (unsigned int device_in_id; TryParse(preferred_in_name, device_in_id))
+    for (unsigned int i= 0; i < num_devices_in; i++)
     {
-        if (device_in_id < num_devices)
+        std::string midi_in_name = midi_in.getPortName(i);
+        if(preferred_out_name == midi_in_name)
         {
-            out_picked.in_device_id   = device_in_id;
-            out_picked.in_device_name = midi.getPortName(device_in_id);
-            if(unsigned int device_out_id; TryParse(preferred_out_name, device_out_id))
-            {
-                for (unsigned int j = 0; j < num_devices; ++j)
-                {
-                    if (device_out_id < num_devices)
-                    {
-                        out_picked.out_device_id   = device_out_id;
-                        out_picked.out_device_name = midi.getPortName(device_out_id);
-                    }
+            out_picked.in_device_id   = i;
+            out_picked.in_device_name = std::move(midi_in_name);
+            return true;
+        }
 
-                }
-            }
+        MIDI_StripRtmidiPortNumber(midi_in_name);
+        if(preferred_out_name == midi_in_name)
+        {
+            out_picked.in_device_id   = i;
+            out_picked.in_device_name = std::move(midi_in_name);
+            return true;
+        }
 
+    }
+
+    // user provided a number
+    if (unsigned int device_id; TryParse(preferred_out_name, device_id))
+    {
+        if (device_id < num_devices_out)
+        {
+            out_picked.out_device_id   = device_id;
+            out_picked.out_device_name = midi_out.getPortName(device_id);
+            output_set = true;
+        }
+    }
+
+    if (unsigned int device_id; TryParse(preferred_in_name, device_id))
+    {
+        if (device_id < num_devices_in)
+        {
+            out_picked.in_device_id   = device_id;
+            out_picked.in_device_name = midi_in.getPortName(device_id);
             return true;
         }
     }
 
     fprintf(stderr, "No input device named '%s'\n", std::string(preferred_in_name).c_str());
+    
+    if (output_set)
+        fprintf(stderr, "No output device named '%s'\n", std::string(preferred_out_name).c_str());
+    
     return false;
 }
 
@@ -178,11 +213,20 @@ bool MIDI_Init(FE_Application& fe, std::string_view in_port_name_or_id, std::str
     s_midi_in->setCallback(&MidiOnReceive, nullptr); // FIXME: (local bug) Fix the linking error
     s_midi_in->setErrorCallback(&MidiOnError, nullptr);
 
+    if (s_midi_out)
+    {
+        fprintf(stderr, "MIDI output already running\n");
+        return false; // Already running
+    }
+
+    s_midi_out = new RtMidiOut(RtMidi::UNSPECIFIED, "Nuked SC55");
+    s_midi_out->setErrorCallback(&MidiOnError, nullptr);
+
     MIDI_PickedDevices picked_device;
 
     try
     {
-        if (!MIDI_PickDevice(*s_midi_in, in_port_name_or_id, out_port_name_or_id, picked_device))
+        if (!MIDI_PickDevice(*s_midi_in, *s_midi_out, in_port_name_or_id, out_port_name_or_id, picked_device))
         {
             fprintf(stderr, "Failed to initialize RtMidi\n");
             return false;
@@ -196,16 +240,9 @@ bool MIDI_Init(FE_Application& fe, std::string_view in_port_name_or_id, std::str
     s_midi_in->openPort(picked_device.in_device_id, "Nuked SC55");
     fprintf(stderr, "Opened midi in port: %s\n", picked_device.in_device_name.c_str());
 
-    if(!in_port_name_or_id.empty())
+    if(!out_port_name_or_id.empty())
     {
-        if (s_midi_out)
-        {
-            fprintf(stderr, "MIDI output already running\n");
-            return false; // Already running
-        }
-
-        s_midi_out = new RtMidiOut(RtMidi::UNSPECIFIED, "Nuked SC55");
-        s_midi_out->setErrorCallback(&MidiOnError, nullptr);
+        s_midi_out->openPort(picked_device.out_device_id, "Nuked-SC55");
         fprintf(stderr, "Opened midi out port: %s\n", picked_device.out_device_name.c_str());
     }
 
@@ -218,6 +255,7 @@ void MIDI_Quit()
 {
     if (s_midi_out)
     {
+        s_midi_out->closePort();
         delete s_midi_out;
         s_midi_out = nullptr;
     }
