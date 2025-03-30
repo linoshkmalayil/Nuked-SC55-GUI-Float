@@ -9,8 +9,8 @@ Requirements:
 Tested compilers:
 
 - msvc 19.39.33523
-- clang 18.1.4
-- gcc 13.2.0
+- clang 19.1.7
+- gcc 14.2.0
 
 Full build
 
@@ -45,6 +45,12 @@ cmake is expecting to find `<path>/SDL2-X.YY.Z/cmake/sdl2-config.cmake`.
 
 For builds in an msys2 environment, installing SDL2 via pacman should be
 enough.
+
+#### ASIO (optional)
+ 
+ To enable ASIO support, pass `-DNUKED_ENABLE_ASIO=ON` and
+ `-DNUKED_ASIO_SDK_DIR=<path>` where `<path>` points to the extracted ASIO SDK
+ obtained from [here](https://www.steinberg.net/developers/).
 
 # Development
 
