@@ -20,16 +20,43 @@ Differences from upstream:
 
 ## Building
 
-See [BUILDING.md](BUILDING.md).
+See [BUILDING.md](documentation/BUILDING.md).
+
+## Usage
+
+See [USAGE.md](documentation/USAGE.md).
+
+## Changelog
+
+See [CHANGELOG.md](documentation/CHANGELOG.md).
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](documentation/CONTRIBUTING.md).
 
 ## License
 
-Nuked SC-55 can be distributed and used under the original MAME license (see
-LICENSE file). Non-commercial license was chosen to prevent making and selling
-SC-55 emulation boxes using (or around) this code, as well as preventing from
-using it in the commercial music production.
+Nuked SC-55 can be distributed and used under the original [MAME LICENSE](LICENSE). 
+Non-commercial license was chosen to prevent making and selling SC-55 emulation 
+boxes using (or around) this code, as well as preventing from using it in the 
+commercial music production.
 
+## Thanks
+
+The work on this fork is due the contribution of the following people:
+
+### Contributors on the Original Nuked-SC55 Emulator:
+- John McMaster: SC-55 PCM chip decap.
+- org/ogamespec: deroute tool.
+- SDL team.
+- Wohlstand: linux/macos port.
+- mattw.
+- HardWareMan.
+- giulioz: JV-880 support
+- Cloudschatze.
+- NikitaLita.
+- Karmeck.
+
+### This fork is based on the work of the contributors:
+- jcmoyer
+- mckuhei/kebufu
