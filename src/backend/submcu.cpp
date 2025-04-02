@@ -169,7 +169,7 @@ void SM_Write(submcu_t& sm, uint16_t address, uint8_t data)
                 }
                 if(data == 0xFE)
                     break;
-                if(sm.mcu->uart_tx_ptr == sm.mcu->uart_tx_buffer && (data & 0x00) == 0)
+                if(sm.mcu->uart_tx_ptr == sm.mcu->uart_tx_buffer && (data & 0x80) == 0)
                     sm.mcu->uart_tx_ptr = sm.mcu->uart_tx_buffer +1;
                 *(sm.mcu->uart_tx_ptr)++ = data;
                 break;
