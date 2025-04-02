@@ -72,7 +72,7 @@ public:
     void SetSampleCallback(mcu_sample_callback callback, void* userdata);
     void SetMidiCallback(mcu_midi_callback callback);
 
-    bool LoadRoms(Romset romset, const std::filesystem::path& base_path);
+    bool LoadRoms(Romset romset, MK1_Version revision, const std::filesystem::path& base_path);
 
     void PostMIDI(uint8_t data_byte);
     void PostMIDI(std::span<const uint8_t> data);

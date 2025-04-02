@@ -968,7 +968,7 @@ bool R_RenderTrack(const SMF_Data& data, const R_Parameters& params)
     {
         render_states[i].emu.Init({});
 
-        if (!render_states[i].emu.LoadRoms(rs, params.rom_directory))
+        if (!render_states[i].emu.LoadRoms(rs, MK1_Version::NOT_MK1, params.rom_directory))
         {
             return false;
         }

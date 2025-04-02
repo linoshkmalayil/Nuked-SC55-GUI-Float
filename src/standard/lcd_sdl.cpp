@@ -105,9 +105,9 @@ bool LCD_SDL_Backend::Start(lcd_t& lcd)
 
     title += EMU_RomsetName(m_lcd->mcu->romset);
 
-    if(m_lcd->mcu->romset == Romset::MK2)
+    if(m_lcd->mcu->romset == Romset::MK1 || m_lcd->mcu->romset == Romset::MK2)
     {
-        m_image = SDL_LoadBMP("sc55mkII_background.bmp");
+        m_image = SDL_LoadBMP("sc55_background.bmp");
         if(m_image)
         {
             background_enabled = true;
@@ -181,7 +181,7 @@ void LCD_SDL_Backend::Stop()
 
 void LCD_SDL_Backend::HandleEvent(const SDL_Event& sdl_event)
 {
-    if (m_lcd->mcu->romset == Romset::MK2 && background_enabled) 
+    if ((m_lcd->mcu->romset == Romset::MK1 || m_lcd->mcu->romset == Romset::MK2) && background_enabled) 
     {
         switch (sdl_event.type)
         {
@@ -433,7 +433,7 @@ void LCD_SDL_Backend::Render()
     rect.h = m_lcd->height;
     SDL_UpdateTexture(m_texture, &rect, m_lcd->buffer, lcd_width_max * 4);
 
-    if (m_lcd->mcu->romset == Romset::MK2 && background_enabled) {
+    if ((m_lcd->mcu->romset == Romset::MK1 || m_lcd->mcu->romset == Romset::MK2) && background_enabled) {
         SDL_Rect srcrect, dstrect;
         srcrect.x = 0;
         srcrect.y = 0;
@@ -478,6 +478,57 @@ void LCD_SDL_Backend::Render()
             dstrect.w = 59;
             dstrect.h = 59;
             SDL_RenderCopyEx(m_renderer, m_background, &srcrect, &dstrect, (m_lcd->volume - 0.5f) * 300.0, NULL, SDL_FLIP_NONE);
+        }
+        {
+            int type = 1;
+            if (m_lcd->mcu->romset == Romset::MK1) {
+                switch (m_lcd->mcu->revision) {
+                    case MK1_Version::REVISION_SC55_100:
+                        type = 0;
+                        break;
+                    case MK1_Version::REVISION_SC55_110:
+                        type = 2;
+                        break;
+                    case MK1_Version::REVISION_SC55_120:
+                    case MK1_Version::REVISION_SC55_121:
+                    case MK1_Version::REVISION_SC55_200:
+                        type = -1;
+                        break;
+                    default:
+                        type = 1;
+                        break;
+                }
+            } 
+            else if (m_lcd->mcu->romset == Romset::MK2) {
+                type = 3;
+            }
+            if (type >= 0) {
+                srcrect.x = 804 + 262 * (type & 1);
+                srcrect.y = 466 + 50 * (type >> 1);
+                srcrect.w = 262;
+                srcrect.h = 50;
+                dstrect.x = 533;
+                dstrect.y = 195;
+                dstrect.w = 131;
+                dstrect.h = 25;
+                SDL_RenderCopy(m_renderer, m_background, &srcrect, &dstrect);
+            }
+            if (type == -1 || type == 3) {
+                if (type == -1) {
+                    srcrect.x = 1592;
+                }
+                if (type == 3) {
+                    srcrect.x = 1392;
+                }
+                srcrect.y = 466;
+                srcrect.w = 200;
+                srcrect.h = 104;
+                dstrect.x = 696;
+                dstrect.y = 174;
+                dstrect.w = 100;
+                dstrect.h = 52;
+                SDL_RenderCopy(m_renderer, m_background, &srcrect, &dstrect);
+            }
         }
         srcrect.x = 0;
         srcrect.y = 0;

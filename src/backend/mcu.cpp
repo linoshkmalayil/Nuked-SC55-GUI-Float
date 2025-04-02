@@ -38,6 +38,7 @@
 #include "pcm.h"
 #include "submcu.h"
 #include <cstdio>
+#include <string>
 
 void MCU_ErrorTrap(mcu_t& mcu)
 {
@@ -490,6 +491,24 @@ uint8_t MCU_Read(mcu_t& mcu, uint32_t address)
 
                     if (mcu.is_cm300)
                         return 0xff;
+
+                    if (mcu.is_mk1)
+                    {
+                        uint8_t state = 0;
+                         if ((mcu.io_sd & 0x40) == 0) {
+                             state |= 1;
+                             // printf("ALL on\n");
+                         }
+                         if ((mcu.io_sd & 0x20) == 0) {
+                             state |= 2;
+                             // printf("MUTE on\n");
+                         }
+                         if ((mcu.io_sd & 0x10) == 0) {
+                             state |= 4;
+                             // printf("STANDBY on\n");
+                         }
+                         LCD_ButtonEnable(*mcu.lcd, state);
+                    }
 
                     LCD_Enable(*mcu.lcd, (mcu.io_sd & 8) != 0);
 
@@ -1014,22 +1033,66 @@ void MCU_WriteP0(mcu_t& mcu, uint8_t data)
 {
     mcu.p0_data = data;
 
-    uint8_t state = 0;
-    if ((data & 0x40) == 0) {
-        state |= 1;
+    if (mcu.romset == Romset::MK2)
+    {
+        uint8_t state = 0;
+        if ((data & 0x40) == 0) {
+            state |= 1;
+        }
+        if ((data & 0x20) == 0) {
+            state |= 2;
+        }
+        if ((data & 0x10) == 0) {
+            state |= 4;
+        }
+        LCD_ButtonEnable(*mcu.lcd, state);
     }
-    if ((data & 0x20) == 0) {
-        state |= 2;
-    }
-    if ((data & 0x10) == 0) {
-        state |= 4;
-    }
-    LCD_ButtonEnable(*mcu.lcd, state);
 }
 
 void MCU_WriteP1(mcu_t& mcu, uint8_t data)
 {
     mcu.p1_data = data;
+}
+
+uint8_t MCU_DetectMKIRomVersion(mcu_t& mcu, MK1_Version revision)
+{
+    if (mcu.romset != Romset::MK1)
+        return 0;
+
+    std::string rom_revision; 
+    for(int i = 0xf380; i <= 0xf386; i++)
+        rom_revision.push_back((char)mcu.rom2[i]);
+
+    if (revision == MK1_Version::REVISION_SC55_100 || rom_revision == "Ver1.00")
+    {
+        mcu.revision = MK1_Version::REVISION_SC55_100;
+        return 100;
+    }
+    else if (revision == MK1_Version::REVISION_SC55_110 || rom_revision == "Ver1.10")
+    {
+        mcu.revision = MK1_Version::REVISION_SC55_110;
+        return 110;
+    }
+    else if (revision == MK1_Version::REVISION_SC55_120 || rom_revision == "Ver1.20")
+    {
+        mcu.revision = MK1_Version::REVISION_SC55_120;
+        return 120;
+    }
+    else if (revision == MK1_Version::REVISION_SC55_121 || rom_revision == "Ver1.21")
+    {
+        mcu.revision = MK1_Version::REVISION_SC55_121;
+        return 121;
+    }
+    else if (revision == MK1_Version::REVISION_SC55_200 || rom_revision == "Ver2.00")
+    {
+        mcu.revision = MK1_Version::REVISION_SC55_200;
+        return 200;
+    }
+    else
+    {
+        mcu.revision = MK1_Version::REVISION_SC55_120;
+        return 1;
+    }
 }
 
 void MCU_PostSample(mcu_t& mcu, const AudioFrame<int32_t>& frame)
