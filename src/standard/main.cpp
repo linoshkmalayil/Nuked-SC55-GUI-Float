@@ -134,6 +134,7 @@ struct FE_Parameters
     EMU_SystemReset reset = EMU_SystemReset::NONE;
     size_t instances = 1;
     Romset romset = Romset::MK2;
+    MK1_Version revision = MK1_Version::NOT_MK1;
     std::optional<std::filesystem::path> rom_directory;
     AudioFormat output_format = AudioFormat::S16;
     bool no_lcd = false;
@@ -683,7 +684,7 @@ bool FE_CreateInstance(FE_Application& container, const std::filesystem::path& b
         return false;
     }
 
-    if (!fe->emu.LoadRoms(params.romset, *params.rom_directory))
+    if (!fe->emu.LoadRoms(params.romset, params.revision, *params.rom_directory))
     {
         fprintf(stderr, "ERROR: Failed to load roms.\n");
         return false;
@@ -752,6 +753,7 @@ enum class FE_ParseError
     RomDirectoryNotFound,
     FormatInvalid,
     ASIOSampleRateOutOfRange,
+    InvalidRevision,
 };
 
 const char* FE_ParseErrorStr(FE_ParseError err)
@@ -776,6 +778,8 @@ const char* FE_ParseErrorStr(FE_ParseError err)
             return "Rom directory doesn't exist";
         case FE_ParseError::FormatInvalid:
             return "Output format invalid";
+        case FE_ParseError::InvalidRevision:
+            return "MK1 ROM revision invalid";
         case FE_ParseError::ASIOSampleRateOutOfRange:
             return "ASIO sample rate out of range";
     }
@@ -986,6 +990,41 @@ FE_ParseError FE_ParseCommandLine(int argc, char* argv[], FE_Parameters& result)
             result.romset = Romset::SC155MK2;
             result.autodetect = false;
         }
+        else if (reader.Any("-m", "--revision"))
+        {
+            if (!reader.Next())
+            {
+                return FE_ParseError::UnexpectedEnd;
+            }
+            if(result.romset != Romset::MK1)
+            {
+                result.revision = MK1_Version::NOT_MK1;
+            }
+            else if (reader.Arg() == "1.00")
+            {
+                result.revision = MK1_Version::REVISION_SC55_100;
+            }
+            else if (reader.Arg() == "1.10")
+            {
+                result.revision = MK1_Version::REVISION_SC55_110;
+            }
+            else if (reader.Arg() == "1.20")
+            {
+                result.revision = MK1_Version::REVISION_SC55_120;
+            }
+            else if (reader.Arg() == "1.21")
+            {
+                result.revision = MK1_Version::REVISION_SC55_121;
+            }
+            else if (reader.Arg() == "2.00")
+            {
+                result.revision = MK1_Version::REVISION_SC55_200;
+            }
+            else
+            {
+                return FE_ParseError::InvalidRevision;
+            }
+        }
 #if NUKED_ENABLE_ASIO
         else if (reader.Any("--asio-sample-rate"))
         {
@@ -1029,7 +1068,7 @@ Audio options:
   --disable-oversampling                        Halves output frequency.
 
 Emulator options:
-  -r, --reset     gs|gm                         Reset system in GS or GM mode.
+  -r, --reset     gs|gm                         Reset system in GS or GM mode. (No GM in MK1 1.00 & 1.10)
   -n, --instances <count>                       Set number of emulator instances.
   --no-lcd                                      Run without LCDs.
 
@@ -1042,6 +1081,7 @@ ROM management options:
   --jv880                                       Use JV-880 ROM set.
   --scb55                                       Use SCB-55 ROM set.
   --rlp3237                                     Use RLP-3237 ROM set.
+  -m, --revision 1.00|1.10|1.20|1.21|2.00       Specify ROM revision (MK1 Only)
 
 )";
 

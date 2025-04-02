@@ -282,7 +282,7 @@ std::streamsize EMU_ReadStreamUpTo(std::ifstream& s, void* into, std::streamsize
     return s.gcount();
 }
 
-bool Emulator::LoadRoms(Romset romset, const std::filesystem::path& base_path)
+bool Emulator::LoadRoms(Romset romset, MK1_Version revision, const std::filesystem::path& base_path)
 {
     std::vector<uint8_t> tempbuf(0x800000);
 
@@ -405,6 +405,22 @@ bool Emulator::LoadRoms(Romset romset, const std::filesystem::path& base_path)
         }
 
         unscramble(tempbuf.data(), m_pcm->waverom3, 0x100000);
+
+        switch (MCU_DetectMKIRomVersion(*m_mcu, revision))
+        {
+            case 100: fprintf(stderr, "Detected MK1 ROM Version 1.00\n");
+                    break;
+            case 110: fprintf(stderr, "Detected MK1 ROM Version 1.10\n");
+                    break;
+            case 120: fprintf(stderr, "Detected MK1 ROM Version 1.20\n");
+                    break;
+            case 121: fprintf(stderr, "Detected MK1 ROM Version 1.21\n");
+                    break;
+            case 200: fprintf(stderr, "Detected MK1 ROM Version 2.00\n");
+                    break;
+            default : fprintf(stderr, "Rom Version Unknown, defaulting to 1.21\n");
+                    break;
+        }
     }
     else if (m_mcu->is_jv880)
     {
@@ -513,6 +529,9 @@ constexpr uint8_t GS_RESET_SEQ[] = { 0xF0, 0x41, 0x10, 0x42, 0x12, 0x40, 0x00, 0
 
 void Emulator::PostSystemReset(EMU_SystemReset reset)
 {
+    if (m_mcu->revision == MK1_Version::REVISION_SC55_100 || m_mcu->revision == MK1_Version::REVISION_SC55_110)
+        fprintf(stderr, "WARNING: GM Reset not supported by SC-55mk1 verion 1.00 & 1.10, will be interpreted as GS Reset\n");
+
     switch (reset)
     {
         case EMU_SystemReset::NONE:
