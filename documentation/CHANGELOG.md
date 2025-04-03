@@ -3,6 +3,13 @@
 This fork is dependent on the changes on the fork [jcmoyer/Nuked-SC55](https://github.com/jcmoyer/Nuked-SC55)
 For **FULL CHANGELOG** from please check [jcmoyer/Nuked-SC55/CHANGELOG.md](https://github.com/jcmoyer/Nuked-SC55/blob/master/CHANGELOG.md)
 
+# Version 0.5.2 (2025-04-03)
+
+Jist of changes are follows:
+- Updated background to add SC-55 support
+- Fixed bug with MIDI Out Mask
+- Removed back.data.
+
 # Version 0.5.1 (2025-04-01)
 
 - Synced to changes from [jcmoyer/Nuked-SC55#9842310](https://github.com/jcmoyer/Nuked-SC55/commit/984231094fcb977af9f22a7c30e129ee8afc7914)
