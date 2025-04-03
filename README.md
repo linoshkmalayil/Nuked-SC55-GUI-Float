@@ -2,7 +2,7 @@
 
 Fork of [nukeykt/Nuked-SC55](https://github.com/nukeykt/Nuked-SC55) with
 the optimization work of jcmoyer [jcmoyer/Nuked-SC55](https://github.com/jcmoyer/Nuked-SC55)
-and GUI code work of mckuhei [mckuhei/Nuked-SC55](https://github.com/mckuhei/Nuked-SC55).
+and GUI code work of kebufu [kebufu/Nuked-SC55](https://github.com/kebufu/Nuked-SC55) (Formerly mckuhei).
 
 Differences from upstream:
 
