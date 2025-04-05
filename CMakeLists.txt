@@ -112,19 +112,27 @@ if(SDL2_FOUND)
         src/standard/audio_sdl.cpp
         src/standard/lcd_sdl.cpp
         src/standard/main.cpp
-        src/standard/midi.h
         src/standard/output_sdl.cpp
+        
 
         PRIVATE FILE_SET headers TYPE HEADERS FILES
         src/standard/audio_sdl.h
         src/standard/lcd_sdl.h
+        src/standard/midi.h
         src/standard/output_sdl.h
+        src/standard/serial.h
     )
 
     if(USE_RTMIDI)
         target_sources(nuked-sc55 PRIVATE src/standard/midi_rtmidi.cpp)
     elseif(WIN32)
         target_sources(nuked-sc55 PRIVATE src/standard/midi_win32.cpp)
+    endif()
+
+    if(WIN32)
+        target_sources(nuked-sc55 PRIVATE src/standard/serial_dummy.cpp)
+    elseif(UNIX)
+        target_sources(nuked-sc55 PRIVATE src/standard/serial_posix.cpp)
     endif()
 
     if(TARGET SDL2::SDL2main)

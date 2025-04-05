@@ -44,6 +44,7 @@
 #include "path_util.h"
 #include "pcm.h"
 #include "ringbuffer.h"
+#include "serial.h"
 #include <SDL.h>
 #include <optional>
 #include <thread>
@@ -127,6 +128,8 @@ struct FE_Parameters
     bool version = false;
     std::string midiin_device;
     std::string midiout_device;
+    Computerswitch serial_type = Computerswitch::MIDI;
+    std::string serial_port;
     std::string audio_device;
     uint32_t buffer_size = 512;
     uint32_t buffer_count = 16;
@@ -498,6 +501,17 @@ void FE_SetMIDIOutCallback(FE_Application& fe)
     }
 }
 
+void FE_SetSerialCallback(FE_Application& fe)
+{
+    for(size_t i = 0; i < fe.instances_in_use; i++)
+    {
+        fe.instances[i].emu.SetSerialHasDataCallback(SERIAL_HasData);
+        fe.instances[i].emu.SetSerialReadCallback(SERIAL_ReadUART);
+        fe.instances[i].emu.SetSerialPostCallback(SERIAL_PostUART);
+        fe.instances[i].emu.SetSerialUpdateCallback(SERIAL_Update);
+    }
+}
+
 template <typename SampleT>
 void FE_RunInstanceSDL(FE_Instance& instance)
 {
@@ -686,7 +700,7 @@ bool FE_CreateInstance(FE_Application& container, const std::filesystem::path& b
         fe->sdl_lcd = std::make_unique<LCD_SDL_Backend>();
     }
 
-    if (!fe->emu.Init({.lcd_backend = fe->sdl_lcd.get()}))
+    if (!fe->emu.Init({.lcd_backend = fe->sdl_lcd.get(), .serial_type = params.serial_type}))
     {
         fprintf(stderr, "ERROR: Failed to init emulator.\n");
         return false;
@@ -745,6 +759,7 @@ void FE_Quit(FE_Application& container)
         FE_DestroyInstance(container.instances[i]);
     }
 
+    SERIAL_Quit();
     MIDI_Quit();
     SDL_Quit();
 }
@@ -762,6 +777,7 @@ enum class FE_ParseError
     FormatInvalid,
     ASIOSampleRateOutOfRange,
     InvalidRevision,
+    SerialTypeInvalid,
 };
 
 const char* FE_ParseErrorStr(FE_ParseError err)
@@ -790,6 +806,8 @@ const char* FE_ParseErrorStr(FE_ParseError err)
             return "MK1 ROM revision invalid";
         case FE_ParseError::ASIOSampleRateOutOfRange:
             return "ASIO sample rate out of range";
+        case FE_ParseError::SerialTypeInvalid:
+            return "Serial Type Invalid";
     }
     return "Unknown error";
 }
@@ -827,6 +845,38 @@ FE_ParseError FE_ParseCommandLine(int argc, char* argv[], FE_Parameters& result)
             }
 
             result.midiout_device = reader.Arg();
+        }
+        else if (reader.Any("-st", "--serialtype"))
+        {
+            if (!reader.Next())
+            {
+                return FE_ParseError::UnexpectedEnd;
+            }
+
+            if(reader.Arg() == "RS422")
+            {
+                result.serial_type = Computerswitch::RS422;
+            }
+            else if (reader.Arg() == "RS232C_1")
+            {
+                result.serial_type = Computerswitch::RS232C_1;
+            }
+            else if (reader.Arg() == "RS232C_2")
+            {
+                result.serial_type = Computerswitch::RS232C_2;
+            }
+            else
+            {
+                return FE_ParseError::SerialTypeInvalid;
+            }
+        }
+        else if (reader.Any("-sp", "--serial-port"))
+        {
+            if (!reader.Next())
+            {
+                return FE_ParseError::UnexpectedEnd;
+            }
+            result.serial_port = reader.Arg();
         }
         else if (reader.Any("-a", "--audio-device"))
         {
@@ -1075,6 +1125,14 @@ Audio options:
   -f, --format       s16|s32|f32                Set output format.
   --disable-oversampling                        Halves output frequency.
 
+MIDI port options (default, unless set to serial):
+   -pi, --portin      <device_name_or_number>    Set MIDI input port.
+   -po, --portout     <device_name_or_number>    Set MIDI output port.
+ 
+Serial Port options:
+   -st, --serial_type RS422|RS232C_1|RS232C_2    Set serial connection type
+   -sp, --serialport  <serial_io_port>           Set the serial port/named pipe/unix socket for serial I/O.
+
 Emulator options:
   -r, --reset     gs|gm                         Reset system in GS or GM mode. (No GM in MK1 1.00 & 1.10)
   -n, --instances <count>                       Set number of emulator instances.
@@ -1181,20 +1239,35 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    if (!params.midiout_device.empty() && params.romset == Romset::ST)
+    if ((params.serial_type != Computerswitch::MIDI && !params.serial_port.empty()) && (params.romset==Romset::MK2 || params.romset==Romset::ST))
     {
-        fprintf(stderr, "MIDI Output is not available for SC-55st, continuing with only MIDI Input");
-        params.midiout_device = "";
+        if (!SERIAL_Init(frontend, params.serial_port))
+        {
+            fprintf(stderr, "ERROR: Failed to initialize the Serial I/O.\nWARNING: Continuing without Serial I/O...\n");
+            fflush(stderr);
+        }
+        else
+        {
+            FE_SetSerialCallback(frontend);
+        }
     }
+    else
+    {
+        if (!params.midiout_device.empty() && params.romset == Romset::ST)
+        {
+            fprintf(stderr, "MIDI Output is not available for SC-55st, continuing with only MIDI Input");
+            params.midiout_device = "";
+        }
 
-    if (!MIDI_Init(frontend, params.midiin_device, params.midiout_device))
-    {
-        fprintf(stderr, "ERROR: Failed to initialize the MIDI Input.\nWARNING: Continuing without MIDI Input...\n");
-        fflush(stderr);
-    }
-    else if (!params.midiout_device.empty())
-    {
-        FE_SetMIDIOutCallback(frontend);
+        if (!MIDI_Init(frontend, params.midiin_device, params.midiout_device))
+        {
+            fprintf(stderr, "ERROR: Failed to initialize the MIDI Input.\nWARNING: Continuing without MIDI Input...\n");
+            fflush(stderr);
+        }
+        else if (!params.midiout_device.empty())
+        {
+            FE_SetMIDIOutCallback(frontend);
+        }
     }
 
     for (size_t i = 0; i < frontend.instances_in_use; ++i)

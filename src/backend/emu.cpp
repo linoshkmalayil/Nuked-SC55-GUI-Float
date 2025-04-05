@@ -64,7 +64,7 @@ bool Emulator::Init(const EMU_Options& options)
         return false;
     }
 
-    MCU_Init(*m_mcu, *m_sm, *m_pcm, *m_timer, *m_lcd);
+    MCU_Init(*m_mcu, *m_sm, *m_pcm, *m_timer, *m_lcd, options.serial_type);
     SM_Init(*m_sm, *m_mcu);
     PCM_Init(*m_pcm, *m_mcu);
     TIMER_Init(*m_timer, *m_mcu);
@@ -100,6 +100,23 @@ void Emulator::SetSampleCallback(mcu_sample_callback callback, void* userdata)
 void Emulator::SetMidiCallback(mcu_midi_callback callback)
 {
     m_mcu->midi_callback = callback;
+}
+
+void Emulator::SetSerialHasDataCallback(sm_serial_hasdata_callback callback)
+{
+    m_sm->serial_hasdata_callback = callback;
+}
+void Emulator::SetSerialReadCallback(sm_serial_read_callback callback)
+{
+    m_sm->serial_read_callback = callback;
+}
+void Emulator::SetSerialPostCallback(sm_serial_post_callback callback)
+{
+    m_sm->serial_post_callback = callback;
+}
+void Emulator::SetSerialUpdateCallback(sm_serial_update_callback callback)
+{
+    m_sm->serial_update_callback = callback;
 }
 
 const char* rs_name[(size_t)ROMSET_COUNT] = {

@@ -35,6 +35,7 @@
 #include <cstdint>
 
 struct mcu_t;
+struct submcu_t;
 
 enum {
     SM_STATUS_C = 1,
@@ -46,6 +47,16 @@ enum {
     SM_STATUS_V = 64,
     SM_STATUS_N = 128
 };
+
+typedef bool (*sm_serial_hasdata_callback)();
+typedef uint8_t (*sm_serial_read_callback)();
+typedef void (*sm_serial_post_callback)(uint8_t data);
+typedef void (*sm_serial_update_callback)(submcu_t& sm);
+
+bool SM_SerialHasDataCallback();
+uint8_t SM_SerialReadCallback();
+void SM_SerialPostCallback(uint8_t data);
+void SM_SerialUpdateCallback(submcu_t& sm);
 
 struct submcu_t {
     uint16_t pc = 0;
@@ -74,6 +85,12 @@ struct submcu_t {
     uint8_t timer_counter = 0;
 
     uint8_t uart_rx_gotbyte = 0;
+    uint8_t uart_serial_rx_gotbyte = 0;
+
+    sm_serial_hasdata_callback serial_hasdata_callback = SM_SerialHasDataCallback;
+    sm_serial_read_callback serial_read_callback = SM_SerialReadCallback;
+    sm_serial_post_callback serial_post_callback = SM_SerialPostCallback;
+    sm_serial_update_callback serial_update_callback = SM_SerialUpdateCallback;
 };
 
 void SM_Init(submcu_t& sm, mcu_t& mcu);
