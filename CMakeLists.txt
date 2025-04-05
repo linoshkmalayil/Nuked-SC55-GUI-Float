@@ -112,13 +112,15 @@ if(SDL2_FOUND)
         src/standard/audio_sdl.cpp
         src/standard/lcd_sdl.cpp
         src/standard/main.cpp
-        src/standard/midi.h
         src/standard/output_sdl.cpp
+        src/standard/serial_dummy.cpp
 
         PRIVATE FILE_SET headers TYPE HEADERS FILES
         src/standard/audio_sdl.h
         src/standard/lcd_sdl.h
+        src/standard/midi.h
         src/standard/output_sdl.h
+        src/standard/serial.h
     )
 
     if(USE_RTMIDI)

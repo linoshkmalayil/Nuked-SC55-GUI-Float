@@ -258,6 +258,10 @@ struct mcu_t {
     uint64_t uart_rx_delay = 0;
     uint64_t uart_tx_delay = 0;
 
+    uint8_t uart_serial_rx_byte = 0;
+    uint64_t uart_serial_rx_delay = 0;
+    uint64_t uart_serial_tx_delay = 0;
+
     Romset romset = Romset::MK2;
     MK1_Version revision = MK1_Version::NOT_MK1;
 
