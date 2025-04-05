@@ -490,6 +490,14 @@ bool FE_OpenAudio(FE_Application& fe, const FE_Parameters& params)
     return false;
 }
 
+void FE_SetMIDIOutCallback(FE_Application& fe)
+{
+    for(size_t i = 0; i < fe.instances_in_use; i++)
+    {
+        fe.instances[i].emu.SetMidiCallback(MIDI_SetMIDIOutCallBack);
+    }
+}
+
 template <typename SampleT>
 void FE_RunInstanceSDL(FE_Instance& instance)
 {
@@ -1175,8 +1183,12 @@ int main(int argc, char *argv[])
 
     if (!MIDI_Init(frontend, params.midiin_device, params.midiout_device))
     {
-        fprintf(stderr, "ERROR: Failed to initialize the MIDI Input.\nWARNING: Continuing without MIDI Input...\n");
+        fprintf(stderr, "ERROR: Failed to initialize the MIDI Devices.\nWARNING: Continuing without MIDI ...\n");
         fflush(stderr);
+    }
+    else if (!params.midiout_device.empty())
+    {
+        FE_SetMIDIOutCallback(frontend);
     }
 
     for (size_t i = 0; i < frontend.instances_in_use; ++i)
