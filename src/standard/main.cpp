@@ -1181,9 +1181,15 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    if (!params.midiout_device.empty() && params.romset == Romset::ST)
+    {
+        fprintf(stderr, "MIDI Output is not available for SC-55st, continuing with only MIDI Input");
+        params.midiout_device = "";
+    }
+
     if (!MIDI_Init(frontend, params.midiin_device, params.midiout_device))
     {
-        fprintf(stderr, "ERROR: Failed to initialize the MIDI Devices.\nWARNING: Continuing without MIDI ...\n");
+        fprintf(stderr, "ERROR: Failed to initialize the MIDI Input.\nWARNING: Continuing without MIDI Input...\n");
         fflush(stderr);
     }
     else if (!params.midiout_device.empty())
