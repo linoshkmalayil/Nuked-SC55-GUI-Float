@@ -44,6 +44,7 @@
 #include "path_util.h"
 #include "pcm.h"
 #include "ringbuffer.h"
+#include "serial.h"
 #include <SDL.h>
 #include <optional>
 #include <thread>
@@ -127,6 +128,8 @@ struct FE_Parameters
     bool version = false;
     std::string midiin_device;
     std::string midiout_device;
+    Computerswitch serial_type;
+    std::string serial_port;
     std::string audio_device;
     uint32_t buffer_size = 512;
     uint32_t buffer_count = 16;
@@ -134,7 +137,7 @@ struct FE_Parameters
     EMU_SystemReset reset = EMU_SystemReset::NONE;
     size_t instances = 1;
     Romset romset = Romset::MK2;
-    MK1_Version revision = MK1_Version::NOT_MK1;
+    MK1version revision = MK1version::NOT_MK1;
     std::optional<std::filesystem::path> rom_directory;
     AudioFormat output_format = AudioFormat::S16;
     bool no_lcd = false;
@@ -678,7 +681,7 @@ bool FE_CreateInstance(FE_Application& container, const std::filesystem::path& b
         fe->sdl_lcd = std::make_unique<LCD_SDL_Backend>();
     }
 
-    if (!fe->emu.Init({.lcd_backend = fe->sdl_lcd.get()}))
+    if (!fe->emu.Init({.lcd_backend = fe->sdl_lcd.get(), .serial_type = params.serial_type}))
     {
         fprintf(stderr, "ERROR: Failed to init emulator.\n");
         return false;
@@ -754,6 +757,7 @@ enum class FE_ParseError
     FormatInvalid,
     ASIOSampleRateOutOfRange,
     InvalidRevision,
+    SerialTypeInvalid,
 };
 
 const char* FE_ParseErrorStr(FE_ParseError err)
@@ -782,6 +786,8 @@ const char* FE_ParseErrorStr(FE_ParseError err)
             return "MK1 ROM revision invalid";
         case FE_ParseError::ASIOSampleRateOutOfRange:
             return "ASIO sample rate out of range";
+        case FE_ParseError::SerialTypeInvalid:
+            return "Serial Type Invalid";
     }
     return "Unknown error";
 }
@@ -820,6 +826,15 @@ FE_ParseError FE_ParseCommandLine(int argc, char* argv[], FE_Parameters& result)
 
             result.midiout_device = reader.Arg();
         }
+        else if (reader.Any("-st", "--serialtype"))
+        {
+            if (!reader.Next())
+            {
+                return FE_ParseError::UnexpectedEnd;
+            }
+
+            result.midiout_device = reader.Arg();
+        }
         else if (reader.Any("-a", "--audio-device"))
         {
             if (!reader.Next())
@@ -827,7 +842,22 @@ FE_ParseError FE_ParseCommandLine(int argc, char* argv[], FE_Parameters& result)
                 return FE_ParseError::UnexpectedEnd;
             }
 
-            result.audio_device = reader.Arg();
+            if(reader.Arg() == "RS422")
+            {
+                result.serial_type = Computerswitch::RS422;
+            }
+            else if (reader.Arg() == "RS232C_1")
+            {
+                result.serial_type = Computerswitch::RS232C_1;
+            }
+            else if (reader.Arg() == "RS232C_2")
+            {
+                result.serial_type = Computerswitch::RS232C_2;
+            }
+            else
+            {
+                return FE_ParseError::SerialTypeInvalid;
+            }
         }
         else if (reader.Any("-f", "--format"))
         {
@@ -998,27 +1028,27 @@ FE_ParseError FE_ParseCommandLine(int argc, char* argv[], FE_Parameters& result)
             }
             if(result.romset != Romset::MK1)
             {
-                result.revision = MK1_Version::NOT_MK1;
+                result.revision = MK1version::NOT_MK1;
             }
             else if (reader.Arg() == "1.00")
             {
-                result.revision = MK1_Version::REVISION_SC55_100;
+                result.revision = MK1version::REVISION_SC55_100;
             }
             else if (reader.Arg() == "1.10")
             {
-                result.revision = MK1_Version::REVISION_SC55_110;
+                result.revision = MK1version::REVISION_SC55_110;
             }
             else if (reader.Arg() == "1.20")
             {
-                result.revision = MK1_Version::REVISION_SC55_120;
+                result.revision = MK1version::REVISION_SC55_120;
             }
             else if (reader.Arg() == "1.21")
             {
-                result.revision = MK1_Version::REVISION_SC55_121;
+                result.revision = MK1version::REVISION_SC55_121;
             }
             else if (reader.Arg() == "2.00")
             {
-                result.revision = MK1_Version::REVISION_SC55_200;
+                result.revision = MK1version::REVISION_SC55_200;
             }
             else
             {
@@ -1066,6 +1096,14 @@ Audio options:
   -b, --buffer-size  <size>[:count]             Set buffer size, number of buffers.
   -f, --format       s16|s32|f32                Set output format.
   --disable-oversampling                        Halves output frequency.
+
+MIDI port options (default, unless set to serial):
+   -pi, --portin      <device_name_or_number>    Set MIDI input port.
+   -po, --portout     <device_name_or_number>    Set MIDI output port.
+ 
+Serial Port options:
+   -st, --serial_type rs422|rs232c_1|rs232c_2    Set serial connection type
+   -sp, --serialport  <serial_io_port>           Set the serial port/named pipe/unix socket for serial I/O.
 
 Emulator options:
   -r, --reset     gs|gm                         Reset system in GS or GM mode. (No GM in MK1 1.00 & 1.10)

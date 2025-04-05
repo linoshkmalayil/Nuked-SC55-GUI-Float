@@ -200,13 +200,20 @@ enum class Romset {
     SC155MK2,
 };
 
-enum class MK1_Version {
+enum class MK1version {
     NOT_MK1,
     REVISION_SC55_100,
     REVISION_SC55_110,
     REVISION_SC55_120,
     REVISION_SC55_121,
     REVISION_SC55_200,
+};
+
+enum class Computerswitch {
+    RS422,
+    RS232C_1,
+    RS232C_2,
+    MIDI
 };
 
 constexpr size_t ROMSET_COUNT = 9;
@@ -240,7 +247,7 @@ struct mcu_t {
 
     uint16_t ad_val[4]{};
     uint8_t ad_nibble = 0;
-    uint8_t sw_pos = 3;
+    Computerswitch sw_pos = Computerswitch::MIDI;
     uint8_t io_sd = 0;
 
     submcu_t* sm = nullptr;
@@ -263,7 +270,7 @@ struct mcu_t {
     uint64_t uart_serial_tx_delay = 0;
 
     Romset romset = Romset::MK2;
-    MK1_Version revision = MK1_Version::NOT_MK1;
+    MK1version revision = MK1version::NOT_MK1;
 
     int is_mk1 = 0; // 0 - SC-55mkII, SC-55ST. 1 - SC-55, CM-300/SCC-1
     int is_cm300 = 0; // 0 - SC-55, 1 - CM-300/SCC-1
@@ -306,7 +313,7 @@ struct mcu_t {
     mcu_midi_callback midi_callback = MCU_DefaultMidiCallback;
 };
 
-void MCU_Init(mcu_t& mcu, submcu_t& sm, pcm_t& pcm, mcu_timer_t& timer, lcd_t& lcd);
+void MCU_Init(mcu_t& mcu, submcu_t& sm, pcm_t& pcm, mcu_timer_t& timer, lcd_t& lcd, Computerswitch sw);
 void MCU_Reset(mcu_t& mcu);
 void MCU_PatchROM(mcu_t& mcu);
 void MCU_Step(mcu_t& mcu);
@@ -557,7 +564,7 @@ enum {
 
 uint8_t MCU_ReadP0(mcu_t& mcu);
 uint8_t MCU_ReadP1(mcu_t& mcu);
-uint8_t MCU_DetectMKIRomVersion(mcu_t& mcu, MK1_Version revision);
+uint8_t MCU_DetectMKIRomVersion(mcu_t& mcu, MK1version revision);
 void MCU_WriteP0(mcu_t& mcu, uint8_t data);
 void MCU_WriteP1(mcu_t& mcu, uint8_t data);
 void MCU_GA_SetGAInt(mcu_t& mcu, int line, int value);

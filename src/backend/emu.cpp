@@ -64,7 +64,7 @@ bool Emulator::Init(const EMU_Options& options)
         return false;
     }
 
-    MCU_Init(*m_mcu, *m_sm, *m_pcm, *m_timer, *m_lcd);
+    MCU_Init(*m_mcu, *m_sm, *m_pcm, *m_timer, *m_lcd, options.serial_type);
     SM_Init(*m_sm, *m_mcu);
     PCM_Init(*m_pcm, *m_mcu);
     TIMER_Init(*m_timer, *m_mcu);
@@ -100,6 +100,23 @@ void Emulator::SetSampleCallback(mcu_sample_callback callback, void* userdata)
 void Emulator::SetMidiCallback(mcu_midi_callback callback)
 {
     m_mcu->midi_callback = callback;
+}
+
+void Emulator::SetSerialHasDataCallback(sm_serial_hasdata_callback callback)
+{
+    m_sm->serial_hasdata_callback = callback;
+}
+void Emulator::SetSerialReadCallback(sm_serial_read_callback callback)
+{
+    m_sm->serial_read_callback = callback;
+}
+void Emulator::SetSerialPostCallback(sm_serial_post_callback callback)
+{
+    m_sm->serial_post_callback = callback;
+}
+void Emulator::SetSerialUpdateCallback(sm_serial_update_callback callback)
+{
+    m_sm->serial_update_callback = callback;
 }
 
 const char* rs_name[(size_t)ROMSET_COUNT] = {
@@ -282,7 +299,7 @@ std::streamsize EMU_ReadStreamUpTo(std::ifstream& s, void* into, std::streamsize
     return s.gcount();
 }
 
-bool Emulator::LoadRoms(Romset romset, MK1_Version revision, const std::filesystem::path& base_path)
+bool Emulator::LoadRoms(Romset romset, MK1version revision, const std::filesystem::path& base_path)
 {
     std::vector<uint8_t> tempbuf(0x800000);
 
@@ -529,7 +546,7 @@ constexpr uint8_t GS_RESET_SEQ[] = { 0xF0, 0x41, 0x10, 0x42, 0x12, 0x40, 0x00, 0
 
 void Emulator::PostSystemReset(EMU_SystemReset reset)
 {
-    if (m_mcu->revision == MK1_Version::REVISION_SC55_100 || m_mcu->revision == MK1_Version::REVISION_SC55_110)
+    if (m_mcu->revision == MK1version::REVISION_SC55_100 || m_mcu->revision == MK1version::REVISION_SC55_110)
         fprintf(stderr, "WARNING: GM Reset not supported by SC-55mk1 verion 1.00 & 1.10, will be interpreted as GS Reset\n");
 
     switch (reset)
