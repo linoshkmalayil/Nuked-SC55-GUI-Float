@@ -79,6 +79,21 @@ const int button_map_jv880[][2] = {
     {SDL_SCANCODE_G, MCU_BUTTON_ENTER},
 };
 
+void LCD_VolumeChanged(lcd_t& lcd) {
+    if (lcd.volume > 1.0f) {
+        lcd.volume = 1.0f;
+    }
+    if (lcd.volume < 0.0f) {
+        lcd.volume = 0.0f;
+    }
+    if (lcd.volume != 0.0f) {
+        float vol = powf(10.0f, (-80.0f * (1.0f - lcd.volume)) / 20.0f); // or volume ^ 8 (0 < volume < 1)
+        MCU_SetVolume(*lcd.mcu, (uint16_t) (vol * UINT16_MAX));
+    } else {
+        MCU_SetVolume(*lcd.mcu, 0);
+    }
+}
+
 LCD_SDL_Backend::~LCD_SDL_Backend()
 {
     Stop();
@@ -87,18 +102,18 @@ LCD_SDL_Backend::~LCD_SDL_Backend()
 bool LCD_SDL_Backend::Start(lcd_t& lcd)
 {
     m_lcd = &lcd;
-    int screen_width = m_lcd->width; 
-    int screen_height = m_lcd->height;
+    int32_t screen_width = (int32_t)m_lcd->width; 
+    int32_t screen_height = (int32_t)m_lcd->height;
 
     if (m_lcd->mcu->romset == Romset::JV880)
     {
-        screen_width = m_lcd->width;
-        screen_height = m_lcd->height;
+        screen_width = (int32_t)m_lcd->width;
+        screen_height = (int32_t)m_lcd->height;
     }
     else
     {
-        screen_width = m_lcd->width;
-        screen_height = m_lcd->height;
+        screen_width = (int32_t)m_lcd->width;
+        screen_height = (int32_t)m_lcd->height;
     }
 
     std::string title = "Nuked SC-55: ";
@@ -132,7 +147,7 @@ bool LCD_SDL_Backend::Start(lcd_t& lcd)
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "BEST");
 
     m_texture = SDL_CreateTexture(
-        m_renderer, SDL_PIXELFORMAT_BGR888, SDL_TEXTUREACCESS_STREAMING, m_lcd->width, m_lcd->height);
+        m_renderer, SDL_PIXELFORMAT_BGR888, SDL_TEXTUREACCESS_STREAMING, (int32_t)m_lcd->width, (int32_t)m_lcd->height);
     if (!m_texture)
         return false;
 
@@ -191,10 +206,14 @@ void LCD_SDL_Backend::HandleEvent(const SDL_Event& sdl_event)
                 if (drag_volume_knob || (sdl_event.button.x >= 153 && sdl_event.button.x <= 212 && sdl_event.button.y >= 42 && sdl_event.button.y <= 101)) {
                     drag_volume_knob = (sdl_event.type == SDL_MOUSEBUTTONDOWN) || (drag_volume_knob && sdl_event.type != SDL_MOUSEBUTTONUP);
                 }
+                if (sdl_event.button.clicks == 2 && (sdl_event.button.x >= 153 && sdl_event.button.x <= 212 && sdl_event.button.y >= 42 && sdl_event.button.y <= 101)) {
+                    m_lcd->volume = 0.8f;
+                    LCD_VolumeChanged(*m_lcd);
+                } 
             }
             int32_t x = sdl_event.button.x;
             int32_t y = sdl_event.button.y;
-            uint32_t mask = 0;
+            int mask = 0;
             uint32_t button_pressed = m_lcd->mcu->button_pressed;
             for (int i = 0; i < 32; i++) {
                 const SDL_Rect *rect = &lcd_button_regions_sc55[i];
@@ -212,26 +231,31 @@ void LCD_SDL_Backend::HandleEvent(const SDL_Event& sdl_event)
         }
         case SDL_MOUSEMOTION:
             if (drag_volume_knob) {
-                int32_t relval = abs(sdl_event.motion.xrel) > abs(sdl_event.motion.yrel) ? sdl_event.motion.xrel : (m_lcd->volume > 0.5f ? sdl_event.motion.yrel : -sdl_event.motion.yrel);
-                if (relval > 50) { // Maximum ±10dB incremental
-                    relval = 50;
+                float angle = (float) (atan2(sdl_event.motion.y - 72, sdl_event.motion.x - 183) + 270.0f / 180.0f * M_PI);
+                if (isnan(angle)) {
+                    angle = (float)(270.0 / 180.0 * M_PI);
                 }
-                if (relval < -50) {
-                    relval = -50;
+                if (angle > 2.0 * M_PI) {
+                    angle = angle - (float)(2.0 * M_PI);
                 }
-                m_lcd->volume += relval / (m_lcd->volume > 0.775f ? 10000.0f : 400.0f); // Prevent someone make sound too loud (like me)
-                if (m_lcd->volume > 1.0f) {
-                    m_lcd->volume = 1.0f;
+                if (angle > 330.0f / 180.0f * M_PI)
+                    angle = float(330.0 / 180.0 * M_PI);
+                if (angle < 30.0f / 180.0f * M_PI)
+                    angle = float(30.0f / 180.0f * M_PI);
+                float delta = (float)((angle - 30.0 / 180.0 * M_PI) / (300.0 / 180.0 * M_PI)) - m_lcd->volume;
+                if (abs(delta) > 0.5f) {
+                    delta = 0.0f;
                 }
-                if (m_lcd->volume < 0.0f) {
-                    m_lcd->volume = 0.0f;
+                if (m_lcd->volume > 0.8f || m_lcd->volume + delta > 0.8f) {
+                    if (delta > 0.005f) {
+                        delta = 0.005f;
+                    }
+                    if (delta < -0.005f) {
+                        delta = -0.005f;
+                    }
                 }
-                if (m_lcd->volume != 0.0f) {
-                    float vol = powf(10.0f, (-80.0f * (1.0f - m_lcd->volume)) / 20.0f); // or volume ^ 8 (0 < volume < 1)
-                    MCU_SetVolume(*m_lcd->mcu, (uint16_t) (vol *UINT16_MAX));
-                } else {
-                    MCU_SetVolume(*m_lcd->mcu, 0);
-                }
+                m_lcd->volume += delta;
+                LCD_VolumeChanged(*m_lcd);
             }
             break;
         case SDL_MOUSEWHEEL:
@@ -243,20 +267,9 @@ void LCD_SDL_Backend::HandleEvent(const SDL_Event& sdl_event)
                 if (relval < -10) {
                     relval = -10;
                 }
-                m_lcd->volume += relval / 400.0f;
-                if (m_lcd->volume > 1.0f) {
-                    m_lcd->volume = 1.0f;
+                m_lcd->volume += (float)relval / 400.0f;
+                LCD_VolumeChanged(*m_lcd);
                 }
-                if (m_lcd->volume < 0.0f) {
-                    m_lcd->volume = 0.0f;
-                }
-                if (m_lcd->volume != 0.0f) {
-                    float vol = powf(10.0f, (-80.0f * (1.0f - m_lcd->volume)) / 20.0f); // or volume ^ 8 (0 < volume < 1)
-                    MCU_SetVolume(*m_lcd->mcu, (uint16_t) (vol * UINT16_MAX));
-                } else {
-                    MCU_SetVolume(*m_lcd->mcu, 0);
-                }
-            }
             break;
 
         default:
@@ -429,8 +442,8 @@ void LCD_SDL_Backend::Render()
     SDL_Rect rect;
     rect.x = 0;
     rect.y = 0;
-    rect.w = m_lcd->width;
-    rect.h = m_lcd->height;
+    rect.w = (int32_t)m_lcd->width;
+    rect.h = (int32_t)m_lcd->height;
     SDL_UpdateTexture(m_texture, &rect, m_lcd->buffer, lcd_width_max * 4);
 
     if ((m_lcd->mcu->romset == Romset::MK1 || m_lcd->mcu->romset == Romset::MK2) && background_enabled) {
