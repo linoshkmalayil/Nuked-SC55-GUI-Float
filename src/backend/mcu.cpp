@@ -799,6 +799,7 @@ void MCU_DefaultMidiCallback(void* userdata, uint8_t* message, int len)
 {
     (void)userdata;
     (void)message;
+    (void)len;
 }
 
 void MCU_Init(mcu_t& mcu, submcu_t& sm, pcm_t& pcm, mcu_timer_t& timer, lcd_t& lcd)
