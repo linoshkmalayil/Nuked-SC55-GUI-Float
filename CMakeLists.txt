@@ -130,7 +130,7 @@ if(SDL2_FOUND)
     endif()
 
     if(WIN32)
-        target_sources(nuked-sc55 PRIVATE src/standard/serial_dummy.cpp)
+        target_sources(nuked-sc55 PRIVATE src/standard/serial_win32.cpp)
     elseif(UNIX)
         target_sources(nuked-sc55 PRIVATE src/standard/serial_posix.cpp)
     endif()
