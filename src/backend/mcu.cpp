@@ -132,15 +132,15 @@ READ_RCU:
             case 2: // SW
                 switch (mcu.sw_pos)
                 {
-                case 0:
-                default:
-                    return ANALOG_LEVEL_SW_0;
-                case 1:
-                    return ANALOG_LEVEL_SW_1;
-                case 2:
-                    return ANALOG_LEVEL_SW_2;
-                case 3:
-                    return ANALOG_LEVEL_SW_3;
+                    case Computerswitch::RS422:
+                        return ANALOG_LEVEL_SW_0; // Mac (RS422)
+                    case Computerswitch::RS232C_1:
+                        return ANALOG_LEVEL_SW_1; // PC-1 (RS232C-1)
+                    case Computerswitch::RS232C_2:
+                        return ANALOG_LEVEL_SW_2; // PC-2 (RS232C-2)
+                    default:
+                    case Computerswitch::MIDI:    // MIDI
+                        return ANALOG_LEVEL_SW_3;
                 }
             case 3: // RCU
                 goto READ_RCU;
@@ -802,12 +802,13 @@ void MCU_DefaultMidiCallback(void* userdata, uint8_t* message, int len)
     (void)len;
 }
 
-void MCU_Init(mcu_t& mcu, submcu_t& sm, pcm_t& pcm, mcu_timer_t& timer, lcd_t& lcd)
+void MCU_Init(mcu_t& mcu, submcu_t& sm, pcm_t& pcm, mcu_timer_t& timer, lcd_t& lcd, Computerswitch sw)
 {
     mcu.sm = &sm;
     mcu.pcm = &pcm;
     mcu.timer = &timer;
     mcu.lcd = &lcd;
+    mcu.sw_pos = sw;
 }
 
 void MCU_Deinit(mcu_t& mcu)

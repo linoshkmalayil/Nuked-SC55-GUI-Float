@@ -48,6 +48,8 @@ struct EMU_Options
     // The backend provided here will receive callbacks from the emulator.
     // If left null, LCD processing will be skipped.
     LCD_Backend* lcd_backend = nullptr;
+    Computerswitch serial_type = Computerswitch::MIDI;
+
 };
 
 enum class EMU_SystemReset {
@@ -71,6 +73,11 @@ public:
 
     void SetSampleCallback(mcu_sample_callback callback, void* userdata);
     void SetMidiCallback(mcu_midi_callback callback);
+
+    void SetSerialHasDataCallback(sm_serial_hasdata_callback callback);
+    void SetSerialReadCallback(sm_serial_read_callback callback);
+    void SetSerialPostCallback(sm_serial_post_callback callback);
+    void SetSerialUpdateCallback(sm_serial_update_callback callback);
 
     bool LoadRoms(Romset romset, MK1_Version revision, const std::filesystem::path& base_path);
 

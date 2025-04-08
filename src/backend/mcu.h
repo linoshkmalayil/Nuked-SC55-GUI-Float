@@ -209,6 +209,13 @@ enum class MK1_Version {
     REVISION_SC55_200,
 };
 
+enum class Computerswitch {
+    RS422,
+    RS232C_1,
+    RS232C_2,
+    MIDI
+};
+
 constexpr size_t ROMSET_COUNT = 9;
 
 typedef void(*mcu_sample_callback)(void* userdata, const AudioFrame<int32_t>& frame);
@@ -240,7 +247,7 @@ struct mcu_t {
 
     uint16_t ad_val[4]{};
     uint8_t ad_nibble = 0;
-    uint8_t sw_pos = 3;
+    Computerswitch sw_pos = Computerswitch::MIDI;
     uint8_t io_sd = 0;
 
     submcu_t* sm = nullptr;
@@ -257,6 +264,10 @@ struct mcu_t {
     uint8_t uart_rx_byte = 0;
     uint64_t uart_rx_delay = 0;
     uint64_t uart_tx_delay = 0;
+
+    uint8_t uart_serial_rx_byte = 0;
+    uint64_t uart_serial_rx_delay = 0;
+    uint64_t uart_serial_tx_delay = 0;
 
     Romset romset = Romset::MK2;
     MK1_Version revision = MK1_Version::NOT_MK1;
@@ -302,7 +313,7 @@ struct mcu_t {
     mcu_midi_callback midi_callback = MCU_DefaultMidiCallback;
 };
 
-void MCU_Init(mcu_t& mcu, submcu_t& sm, pcm_t& pcm, mcu_timer_t& timer, lcd_t& lcd);
+void MCU_Init(mcu_t& mcu, submcu_t& sm, pcm_t& pcm, mcu_timer_t& timer, lcd_t& lcd, Computerswitch sw);
 void MCU_Reset(mcu_t& mcu);
 void MCU_PatchROM(mcu_t& mcu);
 void MCU_Step(mcu_t& mcu);
