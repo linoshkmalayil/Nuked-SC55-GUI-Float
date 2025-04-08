@@ -100,7 +100,7 @@ bool Serial_Handler::SerialOpen(std::string_view serial_port)
     }
     tcflush(port_handle, TCIFLUSH);
 
-    fprintf(stderr, "Opened serial port %s\n", std::string(serial_port).c_str());
+    fprintf(stderr, "Opened serial port: %s\n", std::string(serial_port).c_str());
     serial_init = true;
 
     return true;
