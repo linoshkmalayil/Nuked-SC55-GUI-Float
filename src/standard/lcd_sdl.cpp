@@ -496,15 +496,15 @@ void LCD_SDL_Backend::Render()
             int type = 1;
             if (m_lcd->mcu->romset == Romset::MK1) {
                 switch (m_lcd->mcu->revision) {
-                    case MK1_Version::REVISION_SC55_100:
+                    case MK1version::REVISION_SC55_100:
                         type = 0;
                         break;
-                    case MK1_Version::REVISION_SC55_110:
+                    case MK1version::REVISION_SC55_110:
                         type = 2;
                         break;
-                    case MK1_Version::REVISION_SC55_120:
-                    case MK1_Version::REVISION_SC55_121:
-                    case MK1_Version::REVISION_SC55_200:
+                    case MK1version::REVISION_SC55_120:
+                    case MK1version::REVISION_SC55_121:
+                    case MK1version::REVISION_SC55_200:
                         type = -1;
                         break;
                     default:

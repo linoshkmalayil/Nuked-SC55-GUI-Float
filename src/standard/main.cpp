@@ -137,7 +137,7 @@ struct FE_Parameters
     EMU_SystemReset reset = EMU_SystemReset::NONE;
     size_t instances = 1;
     Romset romset = Romset::MK2;
-    MK1_Version revision = MK1_Version::NOT_MK1;
+    MK1version revision = MK1version::NOT_MK1;
     std::optional<std::filesystem::path> rom_directory;
     AudioFormat output_format = AudioFormat::S16;
     bool no_lcd = false;
@@ -1056,27 +1056,27 @@ FE_ParseError FE_ParseCommandLine(int argc, char* argv[], FE_Parameters& result)
             }
             if(result.romset != Romset::MK1)
             {
-                result.revision = MK1_Version::NOT_MK1;
+                result.revision = MK1version::NOT_MK1;
             }
             else if (reader.Arg() == "1.00")
             {
-                result.revision = MK1_Version::REVISION_SC55_100;
+                result.revision = MK1version::REVISION_SC55_100;
             }
             else if (reader.Arg() == "1.10")
             {
-                result.revision = MK1_Version::REVISION_SC55_110;
+                result.revision = MK1version::REVISION_SC55_110;
             }
             else if (reader.Arg() == "1.20")
             {
-                result.revision = MK1_Version::REVISION_SC55_120;
+                result.revision = MK1version::REVISION_SC55_120;
             }
             else if (reader.Arg() == "1.21")
             {
-                result.revision = MK1_Version::REVISION_SC55_121;
+                result.revision = MK1version::REVISION_SC55_121;
             }
             else if (reader.Arg() == "2.00")
             {
-                result.revision = MK1_Version::REVISION_SC55_200;
+                result.revision = MK1version::REVISION_SC55_200;
             }
             else
             {

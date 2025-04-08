@@ -79,7 +79,7 @@ public:
     void SetSerialPostCallback(sm_serial_post_callback callback);
     void SetSerialUpdateCallback(sm_serial_update_callback callback);
 
-    bool LoadRoms(Romset romset, MK1_Version revision, const std::filesystem::path& base_path);
+    bool LoadRoms(Romset romset, MK1version revision, const std::filesystem::path& base_path);
 
     void PostMIDI(uint8_t data_byte);
     void PostMIDI(std::span<const uint8_t> data);

@@ -200,7 +200,7 @@ enum class Romset {
     SC155MK2,
 };
 
-enum class MK1_Version {
+enum class MK1version {
     NOT_MK1,
     REVISION_SC55_100,
     REVISION_SC55_110,
@@ -270,7 +270,7 @@ struct mcu_t {
     uint64_t uart_serial_tx_delay = 0;
 
     Romset romset = Romset::MK2;
-    MK1_Version revision = MK1_Version::NOT_MK1;
+    MK1version revision = MK1version::NOT_MK1;
 
     int is_mk1 = 0; // 0 - SC-55mkII, SC-55ST. 1 - SC-55, CM-300/SCC-1
     int is_cm300 = 0; // 0 - SC-55, 1 - CM-300/SCC-1
@@ -564,7 +564,7 @@ enum {
 
 uint8_t MCU_ReadP0(mcu_t& mcu);
 uint8_t MCU_ReadP1(mcu_t& mcu);
-uint8_t MCU_DetectMKIRomVersion(mcu_t& mcu, MK1_Version revision);
+uint8_t MCU_DetectMKIRomVersion(mcu_t& mcu, MK1version revision);
 void MCU_WriteP0(mcu_t& mcu, uint8_t data);
 void MCU_WriteP1(mcu_t& mcu, uint8_t data);
 void MCU_GA_SetGAInt(mcu_t& mcu, int line, int value);

@@ -1056,7 +1056,7 @@ void MCU_WriteP1(mcu_t& mcu, uint8_t data)
     mcu.p1_data = data;
 }
 
-uint8_t MCU_DetectMKIRomVersion(mcu_t& mcu, MK1_Version revision)
+uint8_t MCU_DetectMKIRomVersion(mcu_t& mcu, MK1version revision)
 {
     if (mcu.romset != Romset::MK1)
         return 0;
@@ -1065,34 +1065,34 @@ uint8_t MCU_DetectMKIRomVersion(mcu_t& mcu, MK1_Version revision)
     for(int i = 0xf380; i <= 0xf386; i++)
         rom_revision.push_back((char)mcu.rom2[i]);
 
-    if (revision == MK1_Version::REVISION_SC55_100 || rom_revision == "Ver1.00")
+    if (revision == MK1version::REVISION_SC55_100 || rom_revision == "Ver1.00")
     {
-        mcu.revision = MK1_Version::REVISION_SC55_100;
+        mcu.revision = MK1version::REVISION_SC55_100;
         return 100;
     }
-    else if (revision == MK1_Version::REVISION_SC55_110 || rom_revision == "Ver1.10")
+    else if (revision == MK1version::REVISION_SC55_110 || rom_revision == "Ver1.10")
     {
-        mcu.revision = MK1_Version::REVISION_SC55_110;
+        mcu.revision = MK1version::REVISION_SC55_110;
         return 110;
     }
-    else if (revision == MK1_Version::REVISION_SC55_120 || rom_revision == "Ver1.20")
+    else if (revision == MK1version::REVISION_SC55_120 || rom_revision == "Ver1.20")
     {
-        mcu.revision = MK1_Version::REVISION_SC55_120;
+        mcu.revision = MK1version::REVISION_SC55_120;
         return 120;
     }
-    else if (revision == MK1_Version::REVISION_SC55_121 || rom_revision == "Ver1.21")
+    else if (revision == MK1version::REVISION_SC55_121 || rom_revision == "Ver1.21")
     {
-        mcu.revision = MK1_Version::REVISION_SC55_121;
+        mcu.revision = MK1version::REVISION_SC55_121;
         return 121;
     }
-    else if (revision == MK1_Version::REVISION_SC55_200 || rom_revision == "Ver2.00")
+    else if (revision == MK1version::REVISION_SC55_200 || rom_revision == "Ver2.00")
     {
-        mcu.revision = MK1_Version::REVISION_SC55_200;
+        mcu.revision = MK1version::REVISION_SC55_200;
         return 200;
     }
     else
     {
-        mcu.revision = MK1_Version::REVISION_SC55_120;
+        mcu.revision = MK1version::REVISION_SC55_120;
         return 1;
     }
 }
