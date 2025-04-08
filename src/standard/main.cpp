@@ -137,7 +137,7 @@ struct FE_Parameters
     EMU_SystemReset reset = EMU_SystemReset::NONE;
     size_t instances = 1;
     Romset romset = Romset::MK2;
-    MK1_Version revision = MK1_Version::NOT_MK1;
+    MK1version revision = MK1version::NOT_MK1;
     std::optional<std::filesystem::path> rom_directory;
     AudioFormat output_format = AudioFormat::S16;
     bool no_lcd = false;
@@ -1056,27 +1056,27 @@ FE_ParseError FE_ParseCommandLine(int argc, char* argv[], FE_Parameters& result)
             }
             if(result.romset != Romset::MK1)
             {
-                result.revision = MK1_Version::NOT_MK1;
+                result.revision = MK1version::NOT_MK1;
             }
             else if (reader.Arg() == "1.00")
             {
-                result.revision = MK1_Version::REVISION_SC55_100;
+                result.revision = MK1version::REVISION_SC55_100;
             }
             else if (reader.Arg() == "1.10")
             {
-                result.revision = MK1_Version::REVISION_SC55_110;
+                result.revision = MK1version::REVISION_SC55_110;
             }
             else if (reader.Arg() == "1.20")
             {
-                result.revision = MK1_Version::REVISION_SC55_120;
+                result.revision = MK1version::REVISION_SC55_120;
             }
             else if (reader.Arg() == "1.21")
             {
-                result.revision = MK1_Version::REVISION_SC55_121;
+                result.revision = MK1version::REVISION_SC55_121;
             }
             else if (reader.Arg() == "2.00")
             {
-                result.revision = MK1_Version::REVISION_SC55_200;
+                result.revision = MK1version::REVISION_SC55_200;
             }
             else
             {
@@ -1165,6 +1165,79 @@ ROM management options:
 #endif
     MIDI_PrintDevices();
     FE_PrintAudioDevices();
+}
+
+void FE_PrintControls(Romset romset)
+{
+    constexpr const char* SC_55_CONTROLS = R"(
+Roland SC-55 mk1/mk2 Controls:
+
+Q -> POWER
+W -> INST ALL
+E -> INST MUTE
+R -> PART L
+T -> PART R
+Y -> INST L
+U -> INST R
+I -> KEY SHIFT L
+O -> KEY SHIFT R
+P -> LEVEL L
+LEFT BRACKET -> LEVEL R
+A -> MIDI CH L
+S -> MIDI CH R
+D -> PAN L
+F -> PAN R
+G -> REVERB L
+H -> REVERB R
+J -> CHORUS L
+K -> CHORUS R
+LEFT -> PART L
+RIGHT -> PART R
+SCROLL WHEEL UP (On Volume Knob) -> INCREASE VOLUME
+SCROLL WHEEL DOWN (On Volume Knob) -> DECREASE VOLUME
+LMB + MOUSE MOVEMENT (O Volume Knob) -> ADJUST VOLUME
+
+)";
+
+    constexpr const char* JV880_CONTROLS = R"(
+Roland SC-55 mk1/mk2 Controls:
+
+Q -> POWER
+W -> INST ALL
+E -> INST MUTE
+R -> PART L
+T -> PART R
+Y -> INST L
+U -> INST R
+I -> KEY SHIFT L
+O -> KEY SHIFT R
+P -> LEVEL L
+LEFT BRACKET -> LEVEL R
+A -> MIDI CH L
+S -> MIDI CH R
+D -> PAN L
+F -> PAN R
+G -> REVERB L
+H -> REVERB R
+J -> CHORUS L
+K -> CHORUS R
+LEFT -> PART L
+RIGHT -> PART R
+SCROLL WHEEL UP (On Volume Knob) -> INCREASE VOLUME
+SCROLL WHEEL DOWN (On Volume Knob) -> DECREASE VOLUME
+LMB + MOUSE MOVEMENT (O Volume Knob) -> ADJUST VOLUME
+
+)";
+
+    if (romset == Romset::JV880)
+    {
+        fprintf(stderr, JV880_CONTROLS);
+    }
+    else if (romset == Romset::MK1 || romset == Romset::MK2)
+    {
+        fprintf(stderr, SC_55_CONTROLS);
+    }
+
 }
 
 int main(int argc, char *argv[])
@@ -1274,6 +1347,8 @@ int main(int argc, char *argv[])
     {
         frontend.instances[i].emu.PostSystemReset(params.reset);
     }
+
+    FE_PrintControls(params.romset);
 
     FE_Run(frontend);
 
