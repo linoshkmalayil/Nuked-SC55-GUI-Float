@@ -11,7 +11,7 @@
 #include <vector>
 
 #define INVALID_VALUE -1
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 4096
 
 std::vector<uint8_t> read_buffer;
 std::vector<uint8_t> write_buffer;
@@ -156,7 +156,7 @@ void Serial_Handler::WriteSerialPort()
     linux_write_buffer.clear();
 }
 
-static Serial_Handler *s_handler = nullptr;
+Serial_Handler *s_handler = nullptr;
 
 bool SERIAL_Init(FE_Application& fe, std::string_view serial_port)
 {
