@@ -225,25 +225,76 @@ void LCD_Stop(lcd_t& lcd)
     }
 }
 
-void LCD_FontRenderStandard(lcd_t& lcd, uint8_t* LCD_CG, int32_t x, int32_t y, uint8_t ch, bool overlay = false)
+uint32_t LCD_Fade(lcd_t& lcd, uint32_t color1, uint32_t color2) {
+    auto NONZERO = [](uint32_t x, uint32_t y) {
+        return x == 0 ? x : y;
+    };
+
+    if (color1 == color2) {
+        return color2;
+    }
+
+    if (color1 == back_palette[back_data[0 * lcd.width + 0]]) {
+        color1 = lcd.color2;
+    }
+
+    uint8_t sb = (color1 >> 16) & 0xFF;
+    uint8_t sg = (color1 >> 8) & 0xFF;
+    uint8_t sr =  color1 & 0xFF;
+    uint8_t db = (color2 >> 16) & 0xFF;
+    uint8_t dg = (color2 >> 8) & 0xFF;
+    uint8_t dr =  color2 & 0xFF;
+    uint8_t r = (uint8_t) ((((uint32_t) sr * 2) + dr) / 3);
+    uint8_t g = (uint8_t) ((((uint32_t) sg * 2) + dg) / 3);
+    uint8_t b = (uint8_t) ((((uint32_t) sb * 2) + db) / 3);
+    uint32_t color = ((b & 0xFF) << 16) | ((g & 0xFF) << 8) | (r & 0xFF);
+
+    if (color != lcd.color1 && color != lcd.color2) {
+        if (r == sr)
+            r += NONZERO((dr - sr) / 2, dr - sr);
+        if (g == sg)
+            g += NONZERO((dg - sg) / 2, dg - sg);
+        if (b == sb)
+            b += NONZERO((db - sb) / 2, db - sb);
+    }
+    color = ((b & 0xFF) << 16) | ((g & 0xFF) << 8) | (r & 0xFF);
+    return color;
+}
+
+void LCD_FontRenderStandard(lcd_t& lcd, uint8_t* LCD_CG, int32_t x, int32_t y, uint8_t ch, uint8_t cursor = 0)
 {
     uint8_t* f;
     if (ch >= 16)
         f = &lcd_font[ch - 16][0];
     else
         f = &LCD_CG[(ch & 7) * 8];
-    for (int i = 0; i < 7; i++)
+    for (int i = 0; i < 8; i++)
     {
+        if (i == 7 && cursor == 0) {
+            break;
+        }
+
         for (int j = 0; j < 5; j++)
         {
             uint32_t col;
-            if (f[i] & (1<<(4-j)))
-            {
-                col = lcd.color1;
-            }
-            else
-            {
-                col = lcd.color2;
+            if (i == 7) {
+                if (cursor == 2)
+                {
+                    col = lcd.color1;
+                }
+                else
+                {
+                    col = lcd.color2;
+                }
+            } else {
+                if (f[i] & (1<<(4-j)))
+                {
+                    col = lcd.color1;
+                }
+                else
+                {
+                    col = lcd.color2;
+                }
             }
             int xx = x + i * 6;
             int yy = y + j * 6;
@@ -251,13 +302,7 @@ void LCD_FontRenderStandard(lcd_t& lcd, uint8_t* LCD_CG, int32_t x, int32_t y, u
             {
                 for (int jj = 0; jj < 5; jj++)
                 {
-                    if (overlay)
-                    {
-                        if (lcd.buffer[xx+ii][yy+jj] != col && col == lcd.color1)
-                            lcd.buffer[xx+ii][yy+jj] = col;
-                    }
-                    else
-                        lcd.buffer[xx+ii][yy+jj] = col;
+                    lcd.buffer[xx+ii][yy+jj] = LCD_Fade(lcd, lcd.buffer[xx+ii][yy+jj], col);
                 }
             }
         }
@@ -290,7 +335,7 @@ void LCD_FontRenderLevel(lcd_t& lcd, uint8_t* LCD_CG, int32_t x, int32_t y, uint
             {
                 for (int jj = 0; jj < 24; jj++)
                 {
-                    lcd.buffer[xx+ii][yy+jj] = col;
+                    lcd.buffer[xx+ii][yy+jj] = LCD_Fade(lcd, lcd.buffer[xx+ii][yy+jj], col);
                 }
             }
         }
@@ -358,7 +403,7 @@ void LCD_FontRenderLR(lcd_t& lcd, uint8_t* LCD_CG, uint8_t ch)
             for (int j = 0; j < 11; j++)
             {
                 if (LR[letter][i][j])
-                    lcd.buffer[i+LR_xy[letter][0]][j+LR_xy[letter][1]] = col;
+                    lcd.buffer[i+LR_xy[letter][0]][j+LR_xy[letter][1]] = LCD_Fade(lcd, lcd.buffer[i+LR_xy[letter][0]][j+LR_xy[letter][1]], col);
             }
         }
     }
@@ -410,17 +455,23 @@ void LCD_Render(lcd_t& lcd)
         {
             if (lcd.mcu->is_jv880)
             {
-                for (size_t i = 0; i < lcd.height; i++) {
-                    for (size_t j = 0; j < lcd.width; j++) {
-                        lcd.buffer[i][j] = 0xFF03be51;
+                if (lcd.buffer[0][0] != 0xFF03BE51) 
+                {
+                    for (size_t i = 0; i < lcd.height; i++) {
+                        for (size_t j = 0; j < lcd.width; j++) {
+                            lcd.buffer[i][j] = 0xFF03BE51;
+                        }
                     }
                 }
             }
             else
             {
-                for (size_t i = 0; i < lcd.height; i++) {
-                    for (size_t j = 0; j < lcd.width; j++) {
-                        lcd.buffer[i][j] = back_palette[back_data[i * lcd.width + j]];;
+                if (lcd.buffer[0][0] != back_palette[back_data[0 * lcd.width + 0]])
+                {
+                    for (size_t i = 0; i < lcd.height; i++) {
+                        for (size_t j = 0; j < lcd.width; j++) {
+                            lcd.buffer[i][j] = back_palette[back_data[i * lcd.width + j]];
+                        }
                     }
                 }
             }
@@ -432,21 +483,18 @@ void LCD_Render(lcd_t& lcd)
 
             if (lcd.mcu->is_jv880)
             {
+                int curX = LCD_DD_RAM % 0x40;
+                int curY = LCD_DD_RAM / 0x40;
+
                 for (int i = 0; i < 2; i++)
                 {
                     for (int j = 0; j < 24; j++)
                     {
                         uint8_t ch = LCD_Data[i * 40 + j];
-                        LCD_FontRenderStandard(lcd, LCD_CG, 10 + i * 50, 4 + j * 34, ' ');
-                        LCD_FontRenderStandard(lcd, LCD_CG, 4 + i * 50, 4 + j * 34, ch);
+                        LCD_FontRenderStandard(lcd, LCD_CG, (4 + i * 50), 4 + j * 34, ch, (i == curY && j == curX && LCD_C) + 1);
                     }
                 }
-                
-                // cursor
-                int j = LCD_DD_RAM % 0x40;
-                int i = LCD_DD_RAM / 0x40;
-                if (i < 2 && j < 24 && LCD_C)
-                    LCD_FontRenderStandard(lcd, LCD_CG, 10 + i * 50, 4 + j * 34, '_', true);
+
             }
             else
             {
