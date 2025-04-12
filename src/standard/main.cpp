@@ -731,9 +731,13 @@ void FE_DestroyInstance(FE_Instance& instance)
         SDL_FreeAudioStream(instance.stream);
         instance.stream = nullptr;
     }
-#else
-    (void)instance;
 #endif
+    std::filesystem::path base_path = P_GetProcessPath().parent_path();
+
+    if (std::filesystem::exists(base_path / "../share/nuked-sc55"))
+        base_path = base_path / "../share/nuked-sc55";
+
+    instance.emu.WriteSRAM(base_path);
 }
 
 void FE_Quit(FE_Application& container)

@@ -88,6 +88,8 @@ public:
 
     void Step();
 
+    bool WriteSRAM(const std::filesystem::path& base_path);
+
     mcu_t& GetMCU() { return *m_mcu; }
     pcm_t& GetPCM() { return *m_pcm; }
     lcd_t& GetLCD() { return *m_lcd; }
