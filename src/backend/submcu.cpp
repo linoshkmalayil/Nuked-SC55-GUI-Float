@@ -116,13 +116,15 @@ uint8_t SM_Read(submcu_t& sm, uint16_t address)
             case SM_DEV_UART1_MODE_STATUS:
             {
                 uint8_t ret = 0;
-                ret        |= 5;
+                ret        |= 1;
+                ret        |= 4; // Serial output enabled
                 return ret;
             }
             case SM_DEV_UART2_MODE_STATUS:
             {
                 uint8_t ret = sm.uart_rx_gotbyte << 1;
-                ret        |= 5;
+                ret        |= 1;
+                ret        |= 4; // Midi output enabled
                 return ret;
             }
             case SM_DEV_UART3_MODE_STATUS:
@@ -1436,7 +1438,7 @@ void SM_UpdateTimer(submcu_t& sm)
             else
                 sm.timer_prescaler--;
         }
-        sm.timer_cycles += 16;
+        sm.timer_cycles += 120;
     }
 }
 
@@ -1444,7 +1446,7 @@ void SM_UpdateUART(submcu_t& sm)
 {
     mcu_t& mcu = *sm.mcu;
 
-    if ((sm.device_mode[SM_DEV_UART1_CTRL] & 4) == 0) // RX disabled
+    if ((sm.device_mode[SM_DEV_UART2_CTRL] & 4) == 0) // RX disabled
         return;
     if (mcu.uart_write_ptr == mcu.uart_read_ptr) // no byte
         return;
