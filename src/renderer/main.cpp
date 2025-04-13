@@ -41,7 +41,7 @@ struct R_Parameters
     bool help = false;
     bool version = false;
     size_t instances = 1;
-    EMU_SystemReset reset = EMU_SystemReset::NONE;
+    std::optional<EMU_SystemReset> reset;
     std::filesystem::path rom_directory;
     AudioFormat output_format = AudioFormat::S16;
     bool output_stdout = false;
@@ -63,6 +63,7 @@ enum class R_ParseError
     RomDirectoryNotFound,
     FormatInvalid,
     EndInvalid,
+    ResetInvalid,
 };
 
 const char* R_ParseErrorStr(R_ParseError err)
@@ -89,6 +90,8 @@ const char* R_ParseErrorStr(R_ParseError err)
             return "Output format invalid";
         case R_ParseError::EndInvalid:
             return "End behavior invalid";
+        case R_ParseError::ResetInvalid:
+            return "Reset invalid (should be none, gs, or gm)";
     }
     return "Unknown error";
 }
@@ -154,9 +157,13 @@ R_ParseError R_ParseCommandLine(int argc, char* argv[], R_Parameters& result)
             {
                 result.reset = EMU_SystemReset::GS_RESET;
             }
-            else
+            else if (reader.Arg() == "none")
             {
                 result.reset = EMU_SystemReset::NONE;
+            }
+            else
+            {
+                return R_ParseError::ResetInvalid;
             }
         }
         else if (reader.Any("-d", "--rom-directory"))
@@ -949,6 +956,18 @@ bool R_RenderTrack(const SMF_Data& data, const R_Parameters& params)
         fprintf(stderr, "Detected romset: %s\n", EMU_RomsetName(rs));
     }
 
+    EMU_SystemReset reset = EMU_SystemReset::NONE;
+    if (params.reset)
+    {
+        reset = *params.reset;
+    }
+    else if (!params.reset && rs == Romset::MK2)
+    {
+        // user didn't explicitly pass a reset and we're using a buggy romset
+        fprintf(stderr, "WARNING: No reset specified with mk2 romset; using gs\n");
+        reset = EMU_SystemReset::GS_RESET;
+    }   
+
     R_Mixer mixer;
     switch (params.output_format)
     {
@@ -977,7 +996,7 @@ bool R_RenderTrack(const SMF_Data& data, const R_Parameters& params)
         render_states[i].emu.GetPCM().disable_oversampling = params.disable_oversampling;
 
         fprintf(stderr, "Initializing emulator #%02zu...\n", i);
-        R_RunReset(render_states[i].emu, params.reset);
+        R_RunReset(render_states[i].emu, reset);
 
         switch (params.output_format)
         {

@@ -17,9 +17,9 @@ std::vector<uint8_t> read_buffer;
 std::vector<uint8_t> write_buffer;
 
 std::thread linux_io_thread;
-std::mutex linux_io_mutex;
-bool thread_run = false;
-void Linux_IO_Serial();
+std::mutex  linux_io_mutex;
+bool        thread_run = false;
+void        Linux_IO_Serial();
 
 class Serial_Handler
 {
@@ -46,7 +46,7 @@ class Serial_Handler
             write_data.clear();
         }
 
-        void SetReadPending(bool value) { read_pending = value; }
+        void SetReadPending(bool value) {   read_pending = value; }
         void SetWritePending(bool value) { write_pending = value; }
 
         void ReadSerialPort();
@@ -58,7 +58,7 @@ class Serial_Handler
         std::vector<uint8_t> linux_read_buffer;
         std::vector<uint8_t> linux_write_buffer;
 
-        bool read_pending = false;
+        bool read_pending  = false;
         bool write_pending = false;
 };
 
@@ -91,7 +91,7 @@ bool Serial_Handler::SerialOpen(std::string_view serial_port)
     // Prevent conversion of newline to carriage return/line feed
 
     tty_handle.c_cc[VTIME] = 0;    // Do not wait, process asap
-    tty_handle.c_cc[VMIN] = 0;
+    tty_handle.c_cc[VMIN]  = 0;
 
     // Save tty settings, also checking for error
     if (tcsetattr(port_handle, TCSANOW, &tty_handle) != 0) {
@@ -175,7 +175,7 @@ bool SERIAL_Init(FE_Application& fe, std::string_view serial_port)
         return false;
     }
 
-    thread_run = true;
+    thread_run      = true;
     linux_io_thread = std::thread(&Linux_IO_Serial);
 
     return true;

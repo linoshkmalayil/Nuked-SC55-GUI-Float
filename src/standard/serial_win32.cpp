@@ -48,11 +48,11 @@ class Serial_Handler
         LPCSTR GetErrorString(DWORD error);
         void ReportIOError(DWORD error);
         
-        bool serial_init = false;
-        bool read_pending = false;
+        bool serial_init   = false;
+        bool read_pending  = false;
         bool write_pending = false;
         
-        HANDLE handle;
+        HANDLE     handle;
         OVERLAPPED olRead;
         OVERLAPPED olWrite;
 
@@ -180,7 +180,7 @@ bool Serial_Handler::SerialOpen(std::string_view serial_port)
     memset(&olRead, 0, sizeof(OVERLAPPED));
     memset(&olWrite, 0, sizeof(OVERLAPPED));
 
-    olRead.hEvent = CreateEventA(NULL, true, false, NULL);
+    olRead.hEvent  = CreateEventA(NULL, true, false, NULL);
     olWrite.hEvent = CreateEventA(NULL, true, false, NULL);
 
     printf("Opened serial port '%s'\n", std::string(serial_port).c_str());
@@ -195,8 +195,8 @@ void Serial_Handler::SerialClose()
     CloseHandle(handle);
     CloseHandle(olRead.hEvent);
     CloseHandle(olWrite.hEvent);
-    handle = INVALID_HANDLE_VALUE;
-    olRead.hEvent = INVALID_HANDLE_VALUE;
+    handle         = INVALID_HANDLE_VALUE;
+    olRead.hEvent  = INVALID_HANDLE_VALUE;
     olWrite.hEvent = INVALID_HANDLE_VALUE;
 }
 
@@ -214,7 +214,7 @@ void Serial_Handler::ReadSerialPort()
         bool success = ReadFile(handle, read_end, (DWORD) (read_limit - read_end), &dwReads, &olRead);
         if (success)
         {
-            read_end += dwReads;
+            read_end    += dwReads;
             read_pending = false;
         } 
         else 
@@ -237,7 +237,7 @@ void Serial_Handler::ReadSerialPort()
         DWORD dwReads;
         bool success = GetOverlappedResult(handle, &olRead, &dwReads, false);
         if (success) {
-            read_end += dwReads;
+            read_end    += dwReads;
             read_pending = false;
         } else 
         {
@@ -256,14 +256,14 @@ void Serial_Handler::WriteSerialPort()
     if (write_ptr != write_end && !write_pending)
     {
         DWORD dwWrite;
-        int32_t len = (int32_t) (write_end - write_ptr);
+        int32_t len      = (int32_t) (write_end - write_ptr);
         uint8_t *towrite = write_ptr;
         if (len < 0) 
         {
             if (towrite == write_limit) 
             {
-                len += BUFFER_SIZE;
-                towrite = write_buffer;
+                len      += BUFFER_SIZE;
+                towrite   = write_buffer;
                 write_ptr = write_buffer;
             } 
             else
@@ -275,7 +275,7 @@ void Serial_Handler::WriteSerialPort()
         bool success = WriteFile(handle, towrite, len, &dwWrite, &olWrite);
         if (success) 
         {
-            write_ptr += dwWrite;
+            write_ptr    += dwWrite;
             write_pending = false;
         } 
         else
@@ -298,7 +298,7 @@ void Serial_Handler::WriteSerialPort()
         bool success = GetOverlappedResult(handle, &olWrite, &dwWrite, false);
         if (success)
         {
-            write_ptr += dwWrite;
+            write_ptr    += dwWrite;
             write_pending = false;
         }
         else

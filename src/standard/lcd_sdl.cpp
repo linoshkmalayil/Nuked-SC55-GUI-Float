@@ -4,79 +4,79 @@
 #include <string>
 
 const SDL_Rect lcd_button_regions_sc55[32] = {
-    {38, 36, 67, 19}, // Power
-    {0, 0, 0, 0},
-    {0, 0, 0, 0},
-    {968, 38, 53, 18}, // Instrument
-    {1024, 38, 53, 18},
-    {754, 82, 26, 26}, // Mute
-    {754, 35, 26, 26}, // All
-    {0, 0, 0, 0},
-    {968, 178, 53, 18}, // MIDI ch
+    {  38,  36, 67, 19}, // Power
+    {   0,   0,  0,  0},
+    {   0,   0,  0,  0},
+    { 968,  38, 53, 18}, // Instrument
+    {1024,  38, 53, 18},
+    { 754,  82, 26, 26}, // Mute
+    { 754,  35, 26, 26}, // All
+    {   0,   0,  0,  0},
+    { 968, 178, 53, 18}, // MIDI ch
     {1024, 178, 53, 18},
-    {968, 132, 53, 18}, // Chorus
+    { 968, 132, 53, 18}, // Chorus
     {1024, 132, 53, 18},
-    {968, 85, 53, 18}, // Pan
-    {1024, 85, 53, 18},
-    {903, 37, 53, 18}, // Part R
-    {0, 0, 0, 0},
-    {831, 178, 53, 18}, // Key shift
-    {887, 178, 53, 18},
-    {831, 132, 53, 18}, // Reverb
-    {887, 132, 53, 18},
-    {831, 85, 53, 18}, // Level
-    {887, 85, 53, 18},
-    {849, 37, 53, 18}, // Part L
-    {0, 0, 0, 0},
-    {0, 0, 0, 0},
-    {0, 0, 0, 0},
-    {0, 0, 0, 0},
-    {0, 0, 0, 0},
-    {0, 0, 0, 0},
-    {0, 0, 0, 0},
-    {0, 0, 0, 0},
-    {0, 0, 0, 0}
+    { 968,  85, 53, 18}, // Pan
+    {1024,  85, 53, 18},
+    { 903,  37, 53, 18}, // Part R
+    {   0,   0,  0,  0},
+    { 831, 178, 53, 18}, // Key shift
+    { 887, 178, 53, 18},
+    { 831, 132, 53, 18}, // Reverb
+    { 887, 132, 53, 18},
+    { 831,  85, 53, 18}, // Level
+    { 887,  85, 53, 18},
+    { 849,  37, 53, 18}, // Part L
+    {   0,   0,  0,  0},
+    {   0,   0,  0,  0},
+    {   0,   0,  0,  0},
+    {   0,   0,  0,  0},
+    {   0,   0,  0,  0},
+    {   0,   0,  0,  0},
+    {   0,   0,  0,  0},
+    {   0,   0,  0,  0},
+    {   0,   0,  0,  0}
 };
 
 const int button_map_sc55[][2] = {
-    {SDL_SCANCODE_Q, MCU_BUTTON_POWER},
-    {SDL_SCANCODE_W, MCU_BUTTON_INST_ALL},
-    {SDL_SCANCODE_E, MCU_BUTTON_INST_MUTE},
-    {SDL_SCANCODE_R, MCU_BUTTON_PART_L},
-    {SDL_SCANCODE_T, MCU_BUTTON_PART_R},
-    {SDL_SCANCODE_Y, MCU_BUTTON_INST_L},
-    {SDL_SCANCODE_U, MCU_BUTTON_INST_R},
-    {SDL_SCANCODE_I, MCU_BUTTON_KEY_SHIFT_L},
-    {SDL_SCANCODE_O, MCU_BUTTON_KEY_SHIFT_R},
-    {SDL_SCANCODE_P, MCU_BUTTON_LEVEL_L},
+    {SDL_SCANCODE_Q,           MCU_BUTTON_POWER},
+    {SDL_SCANCODE_W,           MCU_BUTTON_INST_ALL},
+    {SDL_SCANCODE_E,           MCU_BUTTON_INST_MUTE},
+    {SDL_SCANCODE_R,           MCU_BUTTON_PART_L},
+    {SDL_SCANCODE_T,           MCU_BUTTON_PART_R},
+    {SDL_SCANCODE_Y,           MCU_BUTTON_INST_L},
+    {SDL_SCANCODE_U,           MCU_BUTTON_INST_R},
+    {SDL_SCANCODE_I,           MCU_BUTTON_KEY_SHIFT_L},
+    {SDL_SCANCODE_O,           MCU_BUTTON_KEY_SHIFT_R},
+    {SDL_SCANCODE_P,           MCU_BUTTON_LEVEL_L},
     {SDL_SCANCODE_LEFTBRACKET, MCU_BUTTON_LEVEL_R},
-    {SDL_SCANCODE_A, MCU_BUTTON_MIDI_CH_L},
-    {SDL_SCANCODE_S, MCU_BUTTON_MIDI_CH_R},
-    {SDL_SCANCODE_D, MCU_BUTTON_PAN_L},
-    {SDL_SCANCODE_F, MCU_BUTTON_PAN_R},
-    {SDL_SCANCODE_G, MCU_BUTTON_REVERB_L},
-    {SDL_SCANCODE_H, MCU_BUTTON_REVERB_R},
-    {SDL_SCANCODE_J, MCU_BUTTON_CHORUS_L},
-    {SDL_SCANCODE_K, MCU_BUTTON_CHORUS_R},
-    {SDL_SCANCODE_LEFT, MCU_BUTTON_PART_L},
-    {SDL_SCANCODE_RIGHT, MCU_BUTTON_PART_R},
+    {SDL_SCANCODE_A,           MCU_BUTTON_MIDI_CH_L},
+    {SDL_SCANCODE_S,           MCU_BUTTON_MIDI_CH_R},
+    {SDL_SCANCODE_D,           MCU_BUTTON_PAN_L},
+    {SDL_SCANCODE_F,           MCU_BUTTON_PAN_R},
+    {SDL_SCANCODE_G,           MCU_BUTTON_REVERB_L},
+    {SDL_SCANCODE_H,           MCU_BUTTON_REVERB_R},
+    {SDL_SCANCODE_J,           MCU_BUTTON_CHORUS_L},
+    {SDL_SCANCODE_K,           MCU_BUTTON_CHORUS_R},
+    {SDL_SCANCODE_LEFT,        MCU_BUTTON_PART_L},
+    {SDL_SCANCODE_RIGHT,       MCU_BUTTON_PART_R},
 };
 
 const int button_map_jv880[][2] = {
-    {SDL_SCANCODE_P, MCU_BUTTON_PREVIEW},
-    {SDL_SCANCODE_LEFT, MCU_BUTTON_CURSOR_L},
+    {SDL_SCANCODE_P,     MCU_BUTTON_PREVIEW},
+    {SDL_SCANCODE_LEFT,  MCU_BUTTON_CURSOR_L},
     {SDL_SCANCODE_RIGHT, MCU_BUTTON_CURSOR_R},
-    {SDL_SCANCODE_TAB, MCU_BUTTON_DATA},
-    {SDL_SCANCODE_Q, MCU_BUTTON_TONE_SELECT},
-    {SDL_SCANCODE_A, MCU_BUTTON_PATCH_PERFORM},
-    {SDL_SCANCODE_W, MCU_BUTTON_EDIT},
-    {SDL_SCANCODE_E, MCU_BUTTON_SYSTEM},
-    {SDL_SCANCODE_R, MCU_BUTTON_RHYTHM},
-    {SDL_SCANCODE_T, MCU_BUTTON_UTILITY},
-    {SDL_SCANCODE_S, MCU_BUTTON_MUTE},
-    {SDL_SCANCODE_D, MCU_BUTTON_MONITOR},
-    {SDL_SCANCODE_F, MCU_BUTTON_COMPARE},
-    {SDL_SCANCODE_G, MCU_BUTTON_ENTER},
+    {SDL_SCANCODE_TAB,   MCU_BUTTON_DATA},
+    {SDL_SCANCODE_Q,     MCU_BUTTON_TONE_SELECT},
+    {SDL_SCANCODE_A,     MCU_BUTTON_PATCH_PERFORM},
+    {SDL_SCANCODE_W,     MCU_BUTTON_EDIT},
+    {SDL_SCANCODE_E,     MCU_BUTTON_SYSTEM},
+    {SDL_SCANCODE_R,     MCU_BUTTON_RHYTHM},
+    {SDL_SCANCODE_T,     MCU_BUTTON_UTILITY},
+    {SDL_SCANCODE_S,     MCU_BUTTON_MUTE},
+    {SDL_SCANCODE_D,     MCU_BUTTON_MONITOR},
+    {SDL_SCANCODE_F,     MCU_BUTTON_COMPARE},
+    {SDL_SCANCODE_G,     MCU_BUTTON_ENTER},
 };
 
 void LCD_VolumeChanged(lcd_t& lcd) {
@@ -101,18 +101,18 @@ LCD_SDL_Backend::~LCD_SDL_Backend()
 
 bool LCD_SDL_Backend::Start(lcd_t& lcd)
 {
-    m_lcd = &lcd;
-    int32_t screen_width = (int32_t)m_lcd->width; 
+    m_lcd                 = &lcd;
+    int32_t screen_width  = (int32_t)m_lcd->width; 
     int32_t screen_height = (int32_t)m_lcd->height;
 
     if (m_lcd->mcu->romset == Romset::JV880)
     {
-        screen_width = (int32_t)m_lcd->width;
+        screen_width  = (int32_t)m_lcd->width;
         screen_height = (int32_t)m_lcd->height;
     }
     else
     {
-        screen_width = (int32_t)m_lcd->width;
+        screen_width  = (int32_t)m_lcd->width;
         screen_height = (int32_t)m_lcd->height;
     }
 
@@ -126,8 +126,8 @@ bool LCD_SDL_Backend::Start(lcd_t& lcd)
         if(m_image)
         {
             background_enabled = true;
-            screen_width = 1120;
-            screen_height = 233;
+            screen_width       = 1120;
+            screen_height      = 233;
         }
     }
 
@@ -213,7 +213,7 @@ void LCD_SDL_Backend::HandleEvent(const SDL_Event& sdl_event)
             }
             int32_t x = sdl_event.button.x;
             int32_t y = sdl_event.button.y;
-            int mask = 0;
+            int mask  = 0;
             uint32_t button_pressed = m_lcd->mcu->button_pressed;
             for (int i = 0; i < 32; i++) {
                 const SDL_Rect *rect = &lcd_button_regions_sc55[i];
@@ -321,7 +321,7 @@ void LCD_SDL_Backend::HandleEvent(const SDL_Event& sdl_event)
             int      mask           = 0;
             uint32_t button_pressed = m_lcd->mcu->button_pressed;
 
-            auto button_map = m_lcd->mcu->is_jv880 ? button_map_jv880 : button_map_sc55;
+            auto button_map  = m_lcd->mcu->is_jv880 ? button_map_jv880 : button_map_sc55;
             auto button_size =
                 (m_lcd->mcu->is_jv880 ? sizeof(button_map_jv880) : sizeof(button_map_sc55)) / sizeof(button_map_sc55[0]);
             for (size_t i = 0; i < button_size; i++)
@@ -448,19 +448,19 @@ void LCD_SDL_Backend::Render()
 
     if ((m_lcd->mcu->romset == Romset::MK1 || m_lcd->mcu->romset == Romset::MK2) && background_enabled) {
         SDL_Rect srcrect, dstrect;
-        srcrect.x = 0;
-        srcrect.y = 0;
+        srcrect.x =    0;
+        srcrect.y =    0;
         srcrect.w = 2240;
-        srcrect.h = 466;
+        srcrect.h =  466;
         SDL_RenderCopy(m_renderer, m_background, &srcrect, NULL);
         if((m_lcd->button_enable & 1) != 0 || (m_lcd->button_enable & 2) != 0) {
-            srcrect.x = 0;
+            srcrect.x =   0;
             srcrect.y = 466;
-            srcrect.w = 52;
-            srcrect.h = 52;
+            srcrect.w =  52;
+            srcrect.h =  52;
             dstrect.x = 754;
-            dstrect.w = 26;
-            dstrect.h = 26;
+            dstrect.w =  26;
+            dstrect.h =  26;
             if ((m_lcd->button_enable & 1) != 0) { // ALL
                 dstrect.y = 35;
                 SDL_RenderCopy(m_renderer, m_background, &srcrect, &dstrect);
@@ -471,25 +471,25 @@ void LCD_SDL_Backend::Render()
             }
         }
         if ((m_lcd->button_enable & 4) != 0) { // STANDBY
-            srcrect.x = 0;
+            srcrect.x =   0;
             srcrect.y = 518;
-            srcrect.w = 20;
-            srcrect.h = 20;
+            srcrect.w =  20;
+            srcrect.h =  20;
             dstrect.x = 118;
-            dstrect.y = 42;
-            dstrect.w = 10;
-            dstrect.h = 10;
+            dstrect.y =  42;
+            dstrect.w =  10;
+            dstrect.h =  10;
             SDL_RenderCopy(m_renderer, m_background, &srcrect, &dstrect);
         }
         { // Volume
-            srcrect.x = 54;
+            srcrect.x =  54;
             srcrect.y = 468;
             srcrect.w = 118;
             srcrect.h = 118;
             dstrect.x = 153;
-            dstrect.y = 42;
-            dstrect.w = 59;
-            dstrect.h = 59;
+            dstrect.y =  42;
+            dstrect.w =  59;
+            dstrect.h =  59;
             SDL_RenderCopyEx(m_renderer, m_background, &srcrect, &dstrect, (m_lcd->volume - 0.5f) * 300.0, NULL, SDL_FLIP_NONE);
         }
         {
@@ -519,11 +519,11 @@ void LCD_SDL_Backend::Render()
                 srcrect.x = 804 + 262 * (type & 1);
                 srcrect.y = 466 + 50 * (type >> 1);
                 srcrect.w = 262;
-                srcrect.h = 50;
+                srcrect.h =  50;
                 dstrect.x = 533;
                 dstrect.y = 195;
                 dstrect.w = 131;
-                dstrect.h = 25;
+                dstrect.h =  25;
                 SDL_RenderCopy(m_renderer, m_background, &srcrect, &dstrect);
             }
             if (type == -1 || type == 3) {
@@ -539,16 +539,16 @@ void LCD_SDL_Backend::Render()
                 dstrect.x = 696;
                 dstrect.y = 174;
                 dstrect.w = 100;
-                dstrect.h = 52;
+                dstrect.h =  52;
                 SDL_RenderCopy(m_renderer, m_background, &srcrect, &dstrect);
             }
         }
-        srcrect.x = 0;
-        srcrect.y = 0;
+        srcrect.x =   0;
+        srcrect.y =   0;
         srcrect.w = 740;
         srcrect.h = 268;
         dstrect.x = 283;
-        dstrect.y = 49;
+        dstrect.y =  49;
         dstrect.w = 370;
         dstrect.h = 134;
         SDL_RenderCopy(m_renderer, m_texture, &srcrect, &dstrect);

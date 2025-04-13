@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-static RtMidiIn *s_midi_in = nullptr;
+static RtMidiIn *s_midi_in   = nullptr;
 static RtMidiOut *s_midi_out = nullptr;
 
 static FE_Application* midi_frontend = nullptr;
@@ -50,10 +50,10 @@ void MIDI_PrintDevices()
 {
     try
     {
-        std::unique_ptr<RtMidiIn> midiin = std::make_unique<RtMidiIn>();
+        std::unique_ptr<RtMidiIn> midiin   = std::make_unique<RtMidiIn>();
         std::unique_ptr<RtMidiOut> midiout = std::make_unique<RtMidiOut>();
 
-        const unsigned int num_devices_in = midiin->getPortCount();
+        const unsigned int num_devices_in  = midiin->getPortCount();
         const unsigned int num_devices_out = midiout->getPortCount();
 
         if (num_devices_in == 0)
@@ -95,14 +95,14 @@ void MIDI_PrintDevices()
 
 struct MIDI_PickedDevices
 {
-    unsigned int in_device_id, out_device_id;
+    unsigned int   in_device_id, out_device_id;
     std::string  in_device_name, out_device_name;
 };
 
 // throws RtMidiError
 bool MIDI_PickDevice(RtMidiIn& midi_in, RtMidiOut& midi_out, std::string_view preferred_in_name, std::string_view preferred_out_name, MIDI_PickedDevices& out_picked)
 {
-    const unsigned int num_devices_in = midi_in.getPortCount();
+    const unsigned int num_devices_in  = midi_in.getPortCount();
     const unsigned int num_devices_out = midi_out.getPortCount();
 
     if (num_devices_in == 0)

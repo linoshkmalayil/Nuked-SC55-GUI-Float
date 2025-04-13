@@ -247,10 +247,10 @@ bool SMF_ReadTrack(SMF_Reader& reader, SMF_Data& result, uint64_t expected_end)
 
         new_track.events.emplace_back();
         SMF_Event& new_event = new_track.events.back();
-        new_event.seq_id = new_track.events.size();
+        new_event.seq_id     = new_track.events.size();
         new_event.delta_time = delta_time;
-        new_event.timestamp = total_time;
-        new_event.status = running_status;
+        new_event.timestamp  = total_time;
+        new_event.status     = running_status;
 
         switch (new_event.status & 0xF0)
         {
@@ -262,14 +262,14 @@ bool SMF_ReadTrack(SMF_Reader& reader, SMF_Data& result, uint64_t expected_end)
             case 0xE0:
                 new_event.data_first = reader.GetOffset();
                 CHECK(reader.Skip(2));
-                new_event.data_last = reader.GetOffset();
+                new_event.data_last  = reader.GetOffset();
                 break;
             // 1 param
             case 0xC0:
             case 0xD0:
                 new_event.data_first = reader.GetOffset();
                 CHECK(reader.Skip(1));
-                new_event.data_last = reader.GetOffset();
+                new_event.data_last  = reader.GetOffset();
                 break;
             // variable length
             case 0xF0:
@@ -281,7 +281,7 @@ bool SMF_ReadTrack(SMF_Reader& reader, SMF_Data& result, uint64_t expected_end)
                         CHECK(SMF_ReadVarint(reader, sysex_len));
                         new_event.data_first = reader.GetOffset();
                         CHECK(reader.Skip(sysex_len));
-                        new_event.data_last = reader.GetOffset();
+                        new_event.data_last  = reader.GetOffset();
                     }
                     else if (new_event.status == 0xFF)
                     {
@@ -292,7 +292,7 @@ bool SMF_ReadTrack(SMF_Reader& reader, SMF_Data& result, uint64_t expected_end)
                         CHECK(reader.ReadU8(meta_type));
                         CHECK(SMF_ReadVarint(reader, meta_len));
                         CHECK(reader.Skip(meta_len));
-                        new_event.data_last = reader.GetOffset();
+                        new_event.data_last  = reader.GetOffset();
 
                         // End of track: stop reading events and skip to where the next track would be
                         if (meta_type == 0x2F)
@@ -355,10 +355,10 @@ bool SMF_ReadChunk(SMF_Reader& reader, SMF_Data& data)
     uint8_t chunk_type[4];
     CHECK(reader.ReadBytes(chunk_type, 4));
 
-    uint32_t chunk_size = 0;
+    uint32_t chunk_size  = 0;
     CHECK(reader.ReadU32BE(chunk_size));
 
-    uint64_t chunk_end = reader.GetOffset() + chunk_size;
+    uint64_t chunk_end   = reader.GetOffset() + chunk_size;
 
     if (memcmp(chunk_type, "MThd", 4) == 0)
     {

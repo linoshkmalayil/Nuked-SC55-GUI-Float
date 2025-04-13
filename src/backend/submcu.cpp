@@ -49,33 +49,33 @@ enum {
 };
 
 enum {
-    SM_DEV_P1_DATA = 0x00,
-    SM_DEV_P1_DIR = 0x01,
-    SM_DEV_RAM_DIR = 0x02,
-    SM_DEV_UART1_DATA = 0x04,
+    SM_DEV_P1_DATA           = 0x00,
+    SM_DEV_P1_DIR            = 0x01,
+    SM_DEV_RAM_DIR           = 0x02,
+    SM_DEV_UART1_DATA        = 0x04,
     SM_DEV_UART1_MODE_STATUS = 0x05,
-    SM_DEV_UART1_CTRL = 0x06,
-    SM_DEV_UART2_DATA = 0x08,
+    SM_DEV_UART1_CTRL        = 0x06,
+    SM_DEV_UART2_DATA        = 0x08,
     SM_DEV_UART2_MODE_STATUS = 0x09,
-    SM_DEV_UART2_CTRL = 0x0a,
-    SM_DEV_UART3_DATA = 0x0c,
+    SM_DEV_UART2_CTRL        = 0x0a,
+    SM_DEV_UART3_DATA        = 0x0c,
     SM_DEV_UART3_MODE_STATUS = 0x0d,
-    SM_DEV_UART3_CTRL = 0x0e,
-    SM_DEV_IPCM0 = 0x10,
-    SM_DEV_IPCM1 = 0x11,
-    SM_DEV_IPCM2 = 0x12,
-    SM_DEV_IPCM3 = 0x13,
-    SM_DEV_IPCE0 = 0x14,
-    SM_DEV_IPCE1 = 0x15,
-    SM_DEV_IPCE2 = 0x16,
-    SM_DEV_IPCE3 = 0x17,
-    SM_DEV_SEMAPHORE = 0x19,
-    SM_DEV_COLLISION = 0x1a,
-    SM_DEV_INT_ENABLE = 0x1b,
-    SM_DEV_INT_REQUEST = 0x1c,
-    SM_DEV_PRESCALER = 0x1d,
-    SM_DEV_TIMER = 0x1e,
-    SM_DEV_TIMER_CTRL = 0x1f
+    SM_DEV_UART3_CTRL        = 0x0e,
+    SM_DEV_IPCM0             = 0x10,
+    SM_DEV_IPCM1             = 0x11,
+    SM_DEV_IPCM2             = 0x12,
+    SM_DEV_IPCM3             = 0x13,
+    SM_DEV_IPCE0             = 0x14,
+    SM_DEV_IPCE1             = 0x15,
+    SM_DEV_IPCE2             = 0x16,
+    SM_DEV_IPCE3             = 0x17,
+    SM_DEV_SEMAPHORE         = 0x19,
+    SM_DEV_COLLISION         = 0x1a,
+    SM_DEV_INT_ENABLE        = 0x1b,
+    SM_DEV_INT_REQUEST       = 0x1c,
+    SM_DEV_PRESCALER         = 0x1d,
+    SM_DEV_TIMER             = 0x1e,
+    SM_DEV_TIMER_CTRL        = 0x1f
 };
 
 void SM_ErrorTrap(submcu_t& sm)
@@ -116,19 +116,19 @@ uint8_t SM_Read(submcu_t& sm, uint16_t address)
             case SM_DEV_UART1_MODE_STATUS:
             {
                 uint8_t ret = 0;
-                ret |= 5;
+                ret        |= 5;
                 return ret;
             }
             case SM_DEV_UART2_MODE_STATUS:
             {
                 uint8_t ret = sm.uart_rx_gotbyte << 1;
-                ret |= 5;
+                ret        |= 5;
                 return ret;
             }
             case SM_DEV_UART3_MODE_STATUS:
             {
                 uint8_t ret = 0;
-                ret |= 5;
+                ret        |= 5;
                 return ret;
             }
             case SM_DEV_UART3_DATA:
@@ -224,7 +224,7 @@ void SM_Write(submcu_t& sm, uint16_t address, uint8_t data)
     }
     else if (address >= 0x200 && address < 0x2c0)
     {
-        address &= 0xff;
+        address               &= 0xff;
         sm.access[address>>3] |= 1<<(address&7);
         sm.shared_ram[address] = data;
     }
@@ -239,7 +239,7 @@ void SM_SysWrite(submcu_t& sm, uint32_t address, uint8_t data)
     address &= 0xff;
     if (address < 0xc0)
     {
-        address &= 0xff;
+        address               &= 0xff;
         sm.access[address>>3] |= 1<<(address&7);
         sm.shared_ram[address] = data;
     }
@@ -249,7 +249,7 @@ void SM_SysWrite(submcu_t& sm, uint32_t address, uint8_t data)
         if ((address & 3) == 0) 
         {
             sm.device_mode[SM_DEV_INT_REQUEST] |= 0x10;
-            sm.device_mode[SM_DEV_SEMAPHORE] &= ~0x80;
+            sm.device_mode[SM_DEV_SEMAPHORE]   &= ~0x80;
         }
     }
     else if (address == 0xff)
@@ -320,7 +320,7 @@ uint8_t SM_SysRead(submcu_t& sm, uint32_t address)
 uint16_t SM_GetVectorAddress(submcu_t& sm, uint32_t vector)
 {
     uint16_t pc = SM_Read(sm, 0x1fec + vector * 2);
-    pc |= SM_Read(sm, 0x1fec + vector * 2 + 1) << 8;
+    pc         |= SM_Read(sm, 0x1fec + vector * 2 + 1) << 8;
     return pc;
 }
 
@@ -359,14 +359,14 @@ uint8_t SM_ReadAdvance(submcu_t& sm)
 uint16_t SM_ReadAdvance16(submcu_t& sm)
 {
     uint16_t word = SM_ReadAdvance(sm);
-    word |= SM_ReadAdvance(sm) << 8;
+    word         |= SM_ReadAdvance(sm) << 8;
     return word;
 }
 
 uint16_t SM_Read16(submcu_t& sm, uint16_t address)
 {
     uint16_t word = SM_Read(sm, address);
-    word |= SM_Read(sm, address) << 8;
+    word         |= SM_Read(sm, address) << 8;
     return word;
 }
 
@@ -522,10 +522,10 @@ void SM_Opcode_INY(submcu_t& sm, uint8_t opcode) // c8
 
 void SM_Opcode_BBC_BBS(submcu_t& sm, uint8_t opcode)
 {
-    int32_t zp = (opcode & 4) != 0;
-    int32_t bit = (opcode >> 5) & 7;
+    int32_t zp   = (opcode & 4) != 0;
+    int32_t bit  = (opcode >> 5) & 7;
     int32_t type = (opcode >> 4) & 1;
-    uint8_t val = 0;
+    uint8_t val  = 0;
 
     if (!zp)
     {
@@ -678,10 +678,10 @@ void SM_Opcode_PHA(submcu_t& sm, uint8_t opcode) // 48
 
 void SM_Opcode_SEB_CLB(submcu_t& sm, uint8_t opcode)
 {
-    int32_t zp = (opcode & 4) != 0;
-    int32_t bit = (opcode >> 5) & 7;
+    int32_t zp   = (opcode & 4) != 0;
+    int32_t bit  = (opcode >> 5) & 7;
     int32_t type = (opcode >> 4) & 1;
-    uint8_t val = 0;
+    uint8_t val  = 0;
     uint8_t dest = 0;
 
     if (!zp)
@@ -691,7 +691,7 @@ void SM_Opcode_SEB_CLB(submcu_t& sm, uint8_t opcode)
     else
     {
         dest = SM_ReadAdvance(sm);
-        val = SM_Read(sm, dest);
+        val  = SM_Read(sm, dest);
     }
 
     if (type)
@@ -712,8 +712,8 @@ void SM_Opcode_SEB_CLB(submcu_t& sm, uint8_t opcode)
 void SM_Opcode_RTI(submcu_t& sm, uint8_t opcode) // 40
 {
     (void)opcode;
-    sm.sr = SM_PopStack(sm);
-    sm.pc = SM_PopStack(sm);
+    sm.sr  = SM_PopStack(sm);
+    sm.pc  = SM_PopStack(sm);
     sm.pc |= SM_PopStack(sm) << 8;
 }
 
@@ -728,7 +728,7 @@ void SM_Opcode_BRA(submcu_t& sm, uint8_t opcode) // 80
 {
     (void)opcode;
     int8_t disp = SM_ReadAdvance(sm);
-    sm.pc += disp;
+    sm.pc      += disp;
 }
 
 void SM_Opcode_JSR(submcu_t& sm, uint8_t opcode) // 20, 02, 22
@@ -798,7 +798,7 @@ void SM_Opcode_BNE(submcu_t& sm, uint8_t opcode) // d0
 void SM_Opcode_RTS(submcu_t& sm, uint8_t opcode) // 60
 {
     (void)opcode;
-    sm.pc = SM_PopStack(sm);
+    sm.pc  = SM_PopStack(sm);
     sm.pc |= SM_PopStack(sm) << 8;
 }
 
@@ -820,7 +820,7 @@ void SM_Opcode_JMP(submcu_t& sm, uint8_t opcode) // 4c, 6c, b2
 
 void SM_Opcode_ORA(submcu_t& sm, uint8_t opcode) // 09, 05, 15, 0d, 1d, 01, 11
 {
-    uint8_t val = 0;
+    uint8_t val  = 0;
     uint8_t val2 = 0;
 
     if ((sm.sr & SM_STATUS_T) == 0)
@@ -878,7 +878,7 @@ void SM_Opcode_ORA(submcu_t& sm, uint8_t opcode) // 09, 05, 15, 0d, 1d, 01, 11
 
 void SM_Opcode_DEC(submcu_t& sm, uint8_t opcode) // 1a, c6, d6, ce, de
 {
-    uint8_t val = 0;
+    uint8_t val   = 0;
     uint16_t dest = 0;
     switch (opcode)
     {
@@ -978,7 +978,7 @@ void SM_Opcode_CLC(submcu_t& sm, uint8_t opcode) // 18
 
 void SM_Opcode_AND(submcu_t& sm, uint8_t opcode) // 29, 25, 35, 2d, 3d, 21, 31
 {
-    uint8_t val = 0;
+    uint8_t val  = 0;
     uint8_t val2 = 0;
 
     if ((sm.sr & SM_STATUS_T) == 0)
@@ -1036,7 +1036,7 @@ void SM_Opcode_AND(submcu_t& sm, uint8_t opcode) // 29, 25, 35, 2d, 3d, 21, 31
 
 void SM_Opcode_INC(submcu_t& sm, uint8_t opcode) // 3a, e6, f6, ee, fe
 {
-    uint8_t val = 0;
+    uint8_t val   = 0;
     uint16_t dest = 0;
     switch (opcode)
     {
@@ -1066,261 +1066,261 @@ void SM_Opcode_INC(submcu_t& sm, uint8_t opcode) // 3a, e6, f6, ee, fe
 void (*SM_Opcode_Table[256])(submcu_t& sm, uint8_t opcode)
 {
     SM_Opcode_NotImplemented, // 00
-    SM_Opcode_ORA, // 01
-    SM_Opcode_JSR, // 02
-    SM_Opcode_BBC_BBS, // 03
+    SM_Opcode_ORA,            // 01
+    SM_Opcode_JSR,            // 02
+    SM_Opcode_BBC_BBS,        // 03
     SM_Opcode_NotImplemented, // 04
-    SM_Opcode_ORA, // 05
+    SM_Opcode_ORA,            // 05
     SM_Opcode_NotImplemented, // 06
-    SM_Opcode_BBC_BBS, // 07
+    SM_Opcode_BBC_BBS,        // 07
     SM_Opcode_NotImplemented, // 08
-    SM_Opcode_ORA, // 09
+    SM_Opcode_ORA,            // 09
     SM_Opcode_NotImplemented, // 0a
-    SM_Opcode_SEB_CLB, // 0b
+    SM_Opcode_SEB_CLB,        // 0b
     SM_Opcode_NotImplemented, // 0c
-    SM_Opcode_ORA, // 0d
+    SM_Opcode_ORA,            // 0d
     SM_Opcode_NotImplemented, // 0e
-    SM_Opcode_SEB_CLB, // 0f
-    SM_Opcode_BPL_BMI, // 10
-    SM_Opcode_ORA, // 11
-    SM_Opcode_CLT, // 12
-    SM_Opcode_BBC_BBS, // 13
+    SM_Opcode_SEB_CLB,        // 0f
+    SM_Opcode_BPL_BMI,        // 10
+    SM_Opcode_ORA,            // 11
+    SM_Opcode_CLT,            // 12
+    SM_Opcode_BBC_BBS,        // 13
     SM_Opcode_NotImplemented, // 14
-    SM_Opcode_ORA, // 15
+    SM_Opcode_ORA,            // 15
     SM_Opcode_NotImplemented, // 16
-    SM_Opcode_BBC_BBS, // 17
-    SM_Opcode_CLC, // 18
-    SM_Opcode_ORA, // 19
-    SM_Opcode_DEC, // 1a
-    SM_Opcode_SEB_CLB, // 1b
+    SM_Opcode_BBC_BBS,        // 17
+    SM_Opcode_CLC,            // 18
+    SM_Opcode_ORA,            // 19
+    SM_Opcode_DEC,            // 1a
+    SM_Opcode_SEB_CLB,        // 1b
     SM_Opcode_NotImplemented, // 1c
-    SM_Opcode_ORA, // 1d
+    SM_Opcode_ORA,            // 1d
     SM_Opcode_NotImplemented, // 1e
-    SM_Opcode_SEB_CLB, // 1f
-    SM_Opcode_JSR, // 20
-    SM_Opcode_AND, // 21
-    SM_Opcode_JSR, // 22
-    SM_Opcode_BBC_BBS, // 23
+    SM_Opcode_SEB_CLB,        // 1f
+    SM_Opcode_JSR,            // 20
+    SM_Opcode_AND,            // 21
+    SM_Opcode_JSR,            // 22
+    SM_Opcode_BBC_BBS,        // 23
     SM_Opcode_NotImplemented, // 24
-    SM_Opcode_AND, // 25
+    SM_Opcode_AND,            // 25
     SM_Opcode_NotImplemented, // 26
-    SM_Opcode_BBC_BBS, // 27
+    SM_Opcode_BBC_BBS,        // 27
     SM_Opcode_NotImplemented, // 28
-    SM_Opcode_AND, // 29
+    SM_Opcode_AND,            // 29
     SM_Opcode_NotImplemented, // 2a
-    SM_Opcode_SEB_CLB, // 2b
+    SM_Opcode_SEB_CLB,        // 2b
     SM_Opcode_NotImplemented, // 2c
-    SM_Opcode_AND, // 2d
+    SM_Opcode_AND,            // 2d
     SM_Opcode_NotImplemented, // 2e
-    SM_Opcode_SEB_CLB, // 2f
-    SM_Opcode_BPL_BMI, // 30
-    SM_Opcode_AND, // 31
+    SM_Opcode_SEB_CLB,        // 2f
+    SM_Opcode_BPL_BMI,        // 30
+    SM_Opcode_AND,            // 31
     SM_Opcode_NotImplemented, // 32
-    SM_Opcode_BBC_BBS, // 33
+    SM_Opcode_BBC_BBS,        // 33
     SM_Opcode_NotImplemented, // 34
-    SM_Opcode_AND, // 35
+    SM_Opcode_AND,            // 35
     SM_Opcode_NotImplemented, // 36
-    SM_Opcode_BBC_BBS, // 37
-    SM_Opcode_SEC, // 38
-    SM_Opcode_AND, // 39
-    SM_Opcode_INC, // 3a
-    SM_Opcode_SEB_CLB, // 3b
-    SM_Opcode_LDM, // 3c
-    SM_Opcode_AND, // 3d
+    SM_Opcode_BBC_BBS,        // 37
+    SM_Opcode_SEC,            // 38
+    SM_Opcode_AND,            // 39
+    SM_Opcode_INC,            // 3a
+    SM_Opcode_SEB_CLB,        // 3b
+    SM_Opcode_LDM,            // 3c
+    SM_Opcode_AND,            // 3d
     SM_Opcode_NotImplemented, // 3e
-    SM_Opcode_SEB_CLB, // 3f
-    SM_Opcode_RTI, // 40
+    SM_Opcode_SEB_CLB,        // 3f
+    SM_Opcode_RTI,            // 40
     SM_Opcode_NotImplemented, // 41
-    SM_Opcode_STP, // 42
-    SM_Opcode_BBC_BBS, // 43
+    SM_Opcode_STP,            // 42
+    SM_Opcode_BBC_BBS,        // 43
     SM_Opcode_NotImplemented, // 44
     SM_Opcode_NotImplemented, // 45
     SM_Opcode_NotImplemented, // 46
-    SM_Opcode_BBC_BBS, // 47
-    SM_Opcode_PHA, // 48
+    SM_Opcode_BBC_BBS,        // 47
+    SM_Opcode_PHA,            // 48
     SM_Opcode_NotImplemented, // 49
     SM_Opcode_NotImplemented, // 4a
-    SM_Opcode_SEB_CLB, // 4b
-    SM_Opcode_JMP, // 4c
+    SM_Opcode_SEB_CLB,        // 4b
+    SM_Opcode_JMP,            // 4c
     SM_Opcode_NotImplemented, // 4d
     SM_Opcode_NotImplemented, // 4e
-    SM_Opcode_SEB_CLB, // 4f
+    SM_Opcode_SEB_CLB,        // 4f
     SM_Opcode_NotImplemented, // 50
     SM_Opcode_NotImplemented, // 51
     SM_Opcode_NotImplemented, // 52
-    SM_Opcode_BBC_BBS, // 53
+    SM_Opcode_BBC_BBS,        // 53
     SM_Opcode_NotImplemented, // 54
     SM_Opcode_NotImplemented, // 55
     SM_Opcode_NotImplemented, // 56
-    SM_Opcode_BBC_BBS, // 57
-    SM_Opcode_CLI, // 58
+    SM_Opcode_BBC_BBS,        // 57
+    SM_Opcode_CLI,            // 58
     SM_Opcode_NotImplemented, // 59
     SM_Opcode_NotImplemented, // 5a
-    SM_Opcode_SEB_CLB, // 5b
+    SM_Opcode_SEB_CLB,        // 5b
     SM_Opcode_NotImplemented, // 5c
     SM_Opcode_NotImplemented, // 5d
     SM_Opcode_NotImplemented, // 5e
-    SM_Opcode_SEB_CLB, // 5f
-    SM_Opcode_RTS, // 60
+    SM_Opcode_SEB_CLB,        // 5f
+    SM_Opcode_RTS,            // 60
     SM_Opcode_NotImplemented, // 61
     SM_Opcode_NotImplemented, // 62
-    SM_Opcode_BBC_BBS, // 63
+    SM_Opcode_BBC_BBS,        // 63
     SM_Opcode_NotImplemented, // 64
     SM_Opcode_NotImplemented, // 65
     SM_Opcode_NotImplemented, // 66
-    SM_Opcode_BBC_BBS, // 67
-    SM_Opcode_PLA, // 68
+    SM_Opcode_BBC_BBS,        // 67
+    SM_Opcode_PLA,            // 68
     SM_Opcode_NotImplemented, // 69
     SM_Opcode_NotImplemented, // 6a
-    SM_Opcode_SEB_CLB, // 6b
-    SM_Opcode_JMP, // 6c
+    SM_Opcode_SEB_CLB,        // 6b
+    SM_Opcode_JMP,            // 6c
     SM_Opcode_NotImplemented, // 6d
     SM_Opcode_NotImplemented, // 6e
-    SM_Opcode_SEB_CLB, // 6f
+    SM_Opcode_SEB_CLB,        // 6f
     SM_Opcode_NotImplemented, // 70
     SM_Opcode_NotImplemented, // 71
     SM_Opcode_NotImplemented, // 72
-    SM_Opcode_BBC_BBS, // 73
+    SM_Opcode_BBC_BBS,        // 73
     SM_Opcode_NotImplemented, // 74
     SM_Opcode_NotImplemented, // 75
     SM_Opcode_NotImplemented, // 76
-    SM_Opcode_BBC_BBS, // 77
-    SM_Opcode_SEI, // 78
+    SM_Opcode_BBC_BBS,        // 77
+    SM_Opcode_SEI,            // 78
     SM_Opcode_NotImplemented, // 79
     SM_Opcode_NotImplemented, // 7a
-    SM_Opcode_SEB_CLB, // 7b
+    SM_Opcode_SEB_CLB,        // 7b
     SM_Opcode_NotImplemented, // 7c
     SM_Opcode_NotImplemented, // 7d
     SM_Opcode_NotImplemented, // 7e
-    SM_Opcode_SEB_CLB, // 7f
-    SM_Opcode_BRA, // 80
-    SM_Opcode_STA, // 81
+    SM_Opcode_SEB_CLB,        // 7f
+    SM_Opcode_BRA,            // 80
+    SM_Opcode_STA,            // 81
     SM_Opcode_NotImplemented, // 82
-    SM_Opcode_BBC_BBS, // 83
-    SM_Opcode_STY, // 84
-    SM_Opcode_STA, // 85
-    SM_Opcode_STX, // 86
-    SM_Opcode_BBC_BBS, // 87
+    SM_Opcode_BBC_BBS,        // 83
+    SM_Opcode_STY,            // 84
+    SM_Opcode_STA,            // 85
+    SM_Opcode_STX,            // 86
+    SM_Opcode_BBC_BBS,        // 87
     SM_Opcode_NotImplemented, // 88
     SM_Opcode_NotImplemented, // 89
-    SM_Opcode_TXA, // 8a
-    SM_Opcode_SEB_CLB, // 8b
-    SM_Opcode_STY, // 8c
-    SM_Opcode_STA, // 8d
-    SM_Opcode_STX, // 8e
-    SM_Opcode_SEB_CLB, // 8f
-    SM_Opcode_BCC, // 90
-    SM_Opcode_STA, // 91
+    SM_Opcode_TXA,            // 8a
+    SM_Opcode_SEB_CLB,        // 8b
+    SM_Opcode_STY,            // 8c
+    SM_Opcode_STA,            // 8d
+    SM_Opcode_STX,            // 8e
+    SM_Opcode_SEB_CLB,        // 8f
+    SM_Opcode_BCC,            // 90
+    SM_Opcode_STA,            // 91
     SM_Opcode_NotImplemented, // 92
-    SM_Opcode_BBC_BBS, // 93
-    SM_Opcode_STY, // 94
-    SM_Opcode_STA, // 95
-    SM_Opcode_STX, // 96
-    SM_Opcode_BBC_BBS, // 97
+    SM_Opcode_BBC_BBS,        // 93
+    SM_Opcode_STY,            // 94
+    SM_Opcode_STA,            // 95
+    SM_Opcode_STX,            // 96
+    SM_Opcode_BBC_BBS,        // 97
     SM_Opcode_NotImplemented, // 98
-    SM_Opcode_STA, // 99
-    SM_Opcode_TXS, // 9a
-    SM_Opcode_SEB_CLB, // 9b
+    SM_Opcode_STA,            // 99
+    SM_Opcode_TXS,            // 9a
+    SM_Opcode_SEB_CLB,        // 9b
     SM_Opcode_NotImplemented, // 9c
-    SM_Opcode_STA, // 9d
+    SM_Opcode_STA,            // 9d
     SM_Opcode_NotImplemented, // 9e
-    SM_Opcode_SEB_CLB, // 9f
-    SM_Opcode_LDY, // a0
-    SM_Opcode_LDA, // a1
-    SM_Opcode_LDX, // a2
-    SM_Opcode_BBC_BBS, // a3
-    SM_Opcode_LDY, // a4
-    SM_Opcode_LDA, // a5
-    SM_Opcode_LDX, // a6
-    SM_Opcode_BBC_BBS, // a7
+    SM_Opcode_SEB_CLB,        // 9f
+    SM_Opcode_LDY,            // a0
+    SM_Opcode_LDA,            // a1
+    SM_Opcode_LDX,            // a2
+    SM_Opcode_BBC_BBS,        // a3
+    SM_Opcode_LDY,            // a4
+    SM_Opcode_LDA,            // a5
+    SM_Opcode_LDX,            // a6
+    SM_Opcode_BBC_BBS,        // a7
     SM_Opcode_NotImplemented, // a8
-    SM_Opcode_LDA, // a9
-    SM_Opcode_TAX, // aa
-    SM_Opcode_SEB_CLB, // ab
-    SM_Opcode_LDY, // ac
-    SM_Opcode_LDA, // ad
-    SM_Opcode_LDX, // ae
-    SM_Opcode_SEB_CLB, // af
-    SM_Opcode_BCS, // b0
-    SM_Opcode_LDA, // b1
-    SM_Opcode_JMP, // b2
-    SM_Opcode_BBC_BBS, // b3
-    SM_Opcode_LDY, // b4
-    SM_Opcode_LDA, // b5
-    SM_Opcode_LDX, // b6
-    SM_Opcode_BBC_BBS, // b7
+    SM_Opcode_LDA,            // a9
+    SM_Opcode_TAX,            // aa
+    SM_Opcode_SEB_CLB,        // ab
+    SM_Opcode_LDY,            // ac
+    SM_Opcode_LDA,            // ad
+    SM_Opcode_LDX,            // ae
+    SM_Opcode_SEB_CLB,        // af
+    SM_Opcode_BCS,            // b0
+    SM_Opcode_LDA,            // b1
+    SM_Opcode_JMP,            // b2
+    SM_Opcode_BBC_BBS,        // b3
+    SM_Opcode_LDY,            // b4
+    SM_Opcode_LDA,            // b5
+    SM_Opcode_LDX,            // b6
+    SM_Opcode_BBC_BBS,        // b7
     SM_Opcode_NotImplemented, // b8
-    SM_Opcode_LDA, // b9
+    SM_Opcode_LDA,            // b9
     SM_Opcode_NotImplemented, // ba
-    SM_Opcode_SEB_CLB, // bb
-    SM_Opcode_LDY, // bc
-    SM_Opcode_LDA, // bd
-    SM_Opcode_LDX, // be
-    SM_Opcode_SEB_CLB, // bf
-    SM_Opcode_CPY, // c0
-    SM_Opcode_CMP, // c1
+    SM_Opcode_SEB_CLB,        // bb
+    SM_Opcode_LDY,            // bc
+    SM_Opcode_LDA,            // bd
+    SM_Opcode_LDX,            // be
+    SM_Opcode_SEB_CLB,        // bf
+    SM_Opcode_CPY,            // c0
+    SM_Opcode_CMP,            // c1
     SM_Opcode_NotImplemented, // c2
-    SM_Opcode_BBC_BBS, // c3
-    SM_Opcode_CPY, // c4
-    SM_Opcode_CMP, // c5
-    SM_Opcode_DEC, // c6
-    SM_Opcode_BBC_BBS, // c7
-    SM_Opcode_INY, // c8
-    SM_Opcode_CMP, // c9
+    SM_Opcode_BBC_BBS,        // c3
+    SM_Opcode_CPY,            // c4
+    SM_Opcode_CMP,            // c5
+    SM_Opcode_DEC,            // c6
+    SM_Opcode_BBC_BBS,        // c7
+    SM_Opcode_INY,            // c8
+    SM_Opcode_CMP,            // c9
     SM_Opcode_NotImplemented, // ca
-    SM_Opcode_SEB_CLB, // cb
-    SM_Opcode_CPY, // cc
-    SM_Opcode_CMP, // cd
-    SM_Opcode_DEC, // ce
-    SM_Opcode_SEB_CLB, // cf
-    SM_Opcode_BNE, // d0
-    SM_Opcode_CMP, // d1
+    SM_Opcode_SEB_CLB,        // cb
+    SM_Opcode_CPY,            // cc
+    SM_Opcode_CMP,            // cd
+    SM_Opcode_DEC,            // ce
+    SM_Opcode_SEB_CLB,         // cf
+    SM_Opcode_BNE,            // d0
+    SM_Opcode_CMP,            // d1
     SM_Opcode_NotImplemented, // d2
-    SM_Opcode_BBC_BBS, // d3
+    SM_Opcode_BBC_BBS,        // d3
     SM_Opcode_NotImplemented, // d4
-    SM_Opcode_CMP, // d5
-    SM_Opcode_DEC, // d6
-    SM_Opcode_BBC_BBS, // d7
-    SM_Opcode_CLD, // d8
-    SM_Opcode_CMP, // d9
+    SM_Opcode_CMP,            // d5
+    SM_Opcode_DEC,            // d6
+    SM_Opcode_BBC_BBS,        // d7
+    SM_Opcode_CLD,            // d8
+    SM_Opcode_CMP,            // d9
     SM_Opcode_NotImplemented, // da
-    SM_Opcode_SEB_CLB, // db
+    SM_Opcode_SEB_CLB,        // db
     SM_Opcode_NotImplemented, // dc
-    SM_Opcode_CMP, // dd
-    SM_Opcode_DEC, // de
-    SM_Opcode_SEB_CLB, // df
-    SM_Opcode_CPX, // e0
+    SM_Opcode_CMP,            // dd
+    SM_Opcode_DEC,            // de
+    SM_Opcode_SEB_CLB,        // df
+    SM_Opcode_CPX,            // e0
     SM_Opcode_NotImplemented, // e1
     SM_Opcode_NotImplemented, // e2
-    SM_Opcode_BBC_BBS, // e3
-    SM_Opcode_CPX, // e4
+    SM_Opcode_BBC_BBS,        // e3
+    SM_Opcode_CPX,            // e4
     SM_Opcode_NotImplemented, // e5
-    SM_Opcode_INC, // e6
-    SM_Opcode_BBC_BBS, // e7
-    SM_Opcode_INX, // e8
+    SM_Opcode_INC,            // e6
+    SM_Opcode_BBC_BBS,        // e7
+    SM_Opcode_INX,            // e8
     SM_Opcode_NotImplemented, // e9
-    SM_Opcode_NOP, // ea
-    SM_Opcode_SEB_CLB, // eb
-    SM_Opcode_CPX, // ec
+    SM_Opcode_NOP,            // ea
+    SM_Opcode_SEB_CLB,        // eb
+    SM_Opcode_CPX,            // ec
     SM_Opcode_NotImplemented, // ed
-    SM_Opcode_INC, // ee
-    SM_Opcode_SEB_CLB, // ef
-    SM_Opcode_BEQ, // f0
+    SM_Opcode_INC,            // ee
+    SM_Opcode_SEB_CLB,        // ef
+    SM_Opcode_BEQ,            // f0
     SM_Opcode_NotImplemented, // f1
     SM_Opcode_NotImplemented, // f2
-    SM_Opcode_BBC_BBS, // f3
+    SM_Opcode_BBC_BBS,        // f3
     SM_Opcode_NotImplemented, // f4
     SM_Opcode_NotImplemented, // f5
-    SM_Opcode_INC, // f6
-    SM_Opcode_BBC_BBS, // f7
+    SM_Opcode_INC,            // f6
+    SM_Opcode_BBC_BBS,        // f7
     SM_Opcode_NotImplemented, // f8
     SM_Opcode_NotImplemented, // f9
     SM_Opcode_NotImplemented, // fa
-    SM_Opcode_SEB_CLB, // fb
+    SM_Opcode_SEB_CLB,        // fb
     SM_Opcode_NotImplemented, // fc
     SM_Opcode_NotImplemented, // fd
-    SM_Opcode_INC, // fe
-    SM_Opcode_SEB_CLB, // ff
+    SM_Opcode_INC,            // fe
+    SM_Opcode_SEB_CLB,        // ff
 };
 
 void SM_StartVector(submcu_t& sm, uint32_t vector)
@@ -1329,7 +1329,7 @@ void SM_StartVector(submcu_t& sm, uint32_t vector)
     SM_PushStack(sm, sm.pc & 0xff);
     SM_PushStack(sm, sm.sr);
 
-    sm.sr |= SM_STATUS_I;
+    sm.sr   |= SM_STATUS_I;
     sm.sleep = 0;
 
     sm.pc = SM_GetVectorAddress(sm, vector);
@@ -1340,40 +1340,40 @@ void SM_HandleInterrupt(submcu_t& sm)
     if (sm.sr & SM_STATUS_I)
         return;
     
-    if ((sm.device_mode[SM_DEV_UART1_CTRL] & 0x8) != 0
-        && (sm.device_mode[SM_DEV_INT_ENABLE] & 0x80) != 0
+    if ((sm.device_mode[SM_DEV_UART1_CTRL]     & 0x8)  != 0
+        && (sm.device_mode[SM_DEV_INT_ENABLE]  & 0x80) != 0
         && (sm.device_mode[SM_DEV_INT_REQUEST] & 0x80) != 0)
     {
         sm.device_mode[SM_DEV_INT_REQUEST] &= ~0x80;
         SM_StartVector(sm, SM_VECTOR_UART1_RX);
         return;
     }
-    if ((sm.device_mode[SM_DEV_UART2_CTRL] & 0x8) != 0
-        && (sm.device_mode[SM_DEV_INT_ENABLE] & 0x40) != 0
+    if ((sm.device_mode[SM_DEV_UART2_CTRL]     & 0x8)  != 0
+        && (sm.device_mode[SM_DEV_INT_ENABLE]  & 0x40) != 0
         && (sm.device_mode[SM_DEV_INT_REQUEST] & 0x40) != 0)
     {
         sm.device_mode[SM_DEV_INT_REQUEST] &= ~0x40;
         SM_StartVector(sm, SM_VECTOR_UART2_RX);
         return;
     }
-    if ((sm.device_mode[SM_DEV_UART3_CTRL] & 0x8) != 0
-        && (sm.device_mode[SM_DEV_INT_ENABLE] & 0x20) != 0
+    if ((sm.device_mode[SM_DEV_UART3_CTRL] &     0x8)  != 0
+        && (sm.device_mode[SM_DEV_INT_ENABLE] &  0x20) != 0
         && (sm.device_mode[SM_DEV_INT_REQUEST] & 0x20) != 0)
     {
         sm.device_mode[SM_DEV_INT_REQUEST] &= ~0x20;
         SM_StartVector(sm, SM_VECTOR_UART3_RX);
         return;
     }
-    if ((sm.device_mode[SM_DEV_TIMER_CTRL] & 0x80) != 0
-        && (sm.device_mode[SM_DEV_INT_ENABLE] & 0x10) != 0
+    if ((sm.device_mode[SM_DEV_TIMER_CTRL]     & 0x80) != 0
+        && (sm.device_mode[SM_DEV_INT_ENABLE]  & 0x10) != 0
         && (sm.device_mode[SM_DEV_INT_REQUEST] & 0x10) != 0)
     {
         sm.device_mode[SM_DEV_INT_REQUEST] &= ~0x10;
         SM_StartVector(sm, SM_VECTOR_IPCM0);
         return;
     }
-    if ((sm.device_mode[SM_DEV_TIMER_CTRL] & 0x40) != 0
-        && (sm.device_mode[SM_DEV_INT_ENABLE] & 0x8) != 0
+    if ((sm.device_mode[SM_DEV_TIMER_CTRL] &    0x40) != 0
+        && (sm.device_mode[SM_DEV_INT_ENABLE] &  0x8) != 0
         && (sm.device_mode[SM_DEV_INT_REQUEST] & 0x8) != 0)
     {
         sm.device_mode[SM_DEV_INT_REQUEST] &= ~0x8;
@@ -1386,27 +1386,27 @@ void SM_HandleInterrupt(submcu_t& sm)
         SM_StartVector(sm, SM_VECTOR_COLLISION);
         return;
     }
-    if (((sm.device_mode[SM_DEV_UART1_CTRL] & 0x10) == 0
+    if (((sm.device_mode[SM_DEV_UART1_CTRL] &   0x10) == 0
         || (sm.cts & 1) != 0)
-        && (sm.device_mode[SM_DEV_INT_ENABLE] & 0x4) != 0
+        && (sm.device_mode[SM_DEV_INT_ENABLE] &  0x4) != 0
         && (sm.device_mode[SM_DEV_INT_REQUEST] & 0x4) != 0)
     {
         sm.device_mode[SM_DEV_INT_REQUEST] &= ~0x4;
         SM_StartVector(sm, SM_VECTOR_UART1_TX);
         return;
     }
-    if (((sm.device_mode[SM_DEV_UART2_CTRL] & 0x10) == 0
+    if (((sm.device_mode[SM_DEV_UART2_CTRL] &   0x10) == 0
         || (sm.cts & 2) != 0)
-        && (sm.device_mode[SM_DEV_INT_ENABLE] & 0x2) != 0
+        && (sm.device_mode[SM_DEV_INT_ENABLE] &  0x2) != 0
         && (sm.device_mode[SM_DEV_INT_REQUEST] & 0x2) != 0)
     {
         sm.device_mode[SM_DEV_INT_REQUEST] &= ~0x2;
         SM_StartVector(sm, SM_VECTOR_UART2_TX);
         return;
     }
-    if (((sm.device_mode[SM_DEV_UART3_CTRL] & 0x10) == 0
+    if (((sm.device_mode[SM_DEV_UART3_CTRL] &   0x10) == 0
         || (sm.cts & 4) != 0)
-        && (sm.device_mode[SM_DEV_INT_ENABLE] & 0x1) != 0
+        && (sm.device_mode[SM_DEV_INT_ENABLE] &  0x1) != 0
         && (sm.device_mode[SM_DEV_INT_REQUEST] & 0x1) != 0)
     {
         sm.device_mode[SM_DEV_INT_REQUEST] &= ~0x1;
@@ -1455,12 +1455,12 @@ void SM_UpdateUART(submcu_t& sm)
     if (sm.cycles < mcu.uart_rx_delay)
         return;
 
-    mcu.uart_rx_byte = mcu.uart_buffer[mcu.uart_read_ptr];
-    mcu.uart_read_ptr = (mcu.uart_read_ptr + 1) % uart_buffer_size;
+    mcu.uart_rx_byte   = mcu.uart_buffer[mcu.uart_read_ptr];
+    mcu.uart_read_ptr  = (mcu.uart_read_ptr + 1) % uart_buffer_size;
     sm.uart_rx_gotbyte = 1;
     sm.device_mode[SM_DEV_INT_REQUEST] |= 0x40;
 
-    mcu.uart_rx_delay = sm.cycles + 3000 * 4;
+    mcu.uart_rx_delay  = sm.cycles + 3000 * 4;
 }
 
 void SM_UpdateSerial(submcu_t& sm)
@@ -1477,11 +1477,11 @@ void SM_UpdateSerial(submcu_t& sm)
     if(sm.cycles < sm.mcu->uart_serial_rx_delay)
         return;
 
-    sm.mcu->uart_serial_rx_byte = sm.serial_read_callback();
-    sm.uart_serial_rx_gotbyte = 1;
+    sm.mcu->uart_serial_rx_byte         = sm.serial_read_callback();
+    sm.uart_serial_rx_gotbyte           = 1;
     sm.device_mode[SM_DEV_INT_REQUEST] |= 0x80;
 
-    sm.mcu->uart_serial_rx_delay = sm.cycles + 3000 * 4;
+    sm.mcu->uart_serial_rx_delay        = sm.cycles + 3000 * 4;
 }
 
 void SM_Update(submcu_t& sm, uint64_t cycles)

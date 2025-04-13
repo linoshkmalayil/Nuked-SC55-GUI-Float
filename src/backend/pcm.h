@@ -54,25 +54,25 @@ struct PCM_Config
 struct pcm_t {
     uint32_t ram1[32][8]{};
     uint16_t ram2[32][16]{};
-    uint32_t select_channel = 0;
-    uint32_t voice_mask = 0;
-    uint32_t voice_mask_pending = 0;
+    uint32_t select_channel      = 0;
+    uint32_t voice_mask          = 0;
+    uint32_t voice_mask_pending  = 0;
     uint32_t voice_mask_updating = 0;
-    uint32_t write_latch = 0;
-    uint32_t wave_read_address = 0;
-    uint8_t wave_byte_latch = 0;
-    uint32_t read_latch = 0;
-    uint8_t config_reg_3c = 0; // SC55:c3 JV880:c0
-    uint8_t config_reg_3d = 0;
-    uint32_t irq_channel = 0;
-    uint32_t irq_assert = 0;
+    uint32_t write_latch         = 0;
+    uint32_t wave_read_address   = 0;
+    uint8_t wave_byte_latch      = 0;
+    uint32_t read_latch          = 0;
+    uint8_t config_reg_3c        = 0; // SC55:c3 JV880:c0
+    uint8_t config_reg_3d        = 0;
+    uint32_t irq_channel         = 0;
+    uint32_t irq_assert          = 0;
     PCM_Config config{};
 
-    uint32_t nfs = 0;
+    uint32_t nfs        = 0;
 
     uint32_t tv_counter = 0;
 
-    uint64_t cycles = 0;
+    uint64_t cycles     = 0;
 
     uint16_t eram[0x4000]{};
 

@@ -38,13 +38,13 @@ struct mcu_t;
 struct submcu_t;
 
 enum {
-    SM_STATUS_C = 1,
-    SM_STATUS_Z = 2,
-    SM_STATUS_I = 4,
-    SM_STATUS_D = 8,
-    SM_STATUS_B = 16,
-    SM_STATUS_T = 32,
-    SM_STATUS_V = 64,
+    SM_STATUS_C =   1,
+    SM_STATUS_Z =   2,
+    SM_STATUS_I =   4,
+    SM_STATUS_D =   8,
+    SM_STATUS_B =  16,
+    SM_STATUS_T =  32,
+    SM_STATUS_V =  64,
     SM_STATUS_N = 128
 };
 
@@ -59,15 +59,15 @@ void SM_SerialPostCallback(uint8_t data);
 void SM_SerialUpdateCallback(submcu_t& sm);
 
 struct submcu_t {
-    uint16_t pc = 0;
-    uint8_t a = 0;
-    uint8_t x = 0;
-    uint8_t y = 0;
-    uint8_t s = 0;
-    uint8_t sr = 0;
+    uint16_t pc     = 0;
+    uint8_t a       = 0;
+    uint8_t x       = 0;
+    uint8_t y       = 0;
+    uint8_t s       = 0;
+    uint8_t sr      = 0;
     uint64_t cycles = 0;
-    uint8_t sleep = 0;
-    mcu_t* mcu = nullptr;
+    uint8_t sleep   = 0;
+    mcu_t* mcu      = nullptr;
     uint8_t rom[4096]{};
 
     uint8_t ram[128]{};
@@ -78,19 +78,19 @@ struct submcu_t {
     uint8_t p1_dir = 0;
 
     uint8_t device_mode[32]{};
-    uint8_t cts = 0;
+    uint8_t cts    = 0;
 
-    uint64_t timer_cycles = 0;
+    uint64_t timer_cycles   = 0;
     uint8_t timer_prescaler = 0;
-    uint8_t timer_counter = 0;
+    uint8_t timer_counter   = 0;
 
-    uint8_t uart_rx_gotbyte = 0;
+    uint8_t uart_rx_gotbyte        = 0;
     uint8_t uart_serial_rx_gotbyte = 0;
 
     sm_serial_hasdata_callback serial_hasdata_callback = SM_SerialHasDataCallback;
-    sm_serial_read_callback serial_read_callback = SM_SerialReadCallback;
-    sm_serial_post_callback serial_post_callback = SM_SerialPostCallback;
-    sm_serial_update_callback serial_update_callback = SM_SerialUpdateCallback;
+    sm_serial_read_callback serial_read_callback       = SM_SerialReadCallback;
+    sm_serial_post_callback serial_post_callback       = SM_SerialPostCallback;
+    sm_serial_update_callback serial_update_callback   = SM_SerialUpdateCallback;
 };
 
 void SM_Init(submcu_t& sm, mcu_t& mcu);
