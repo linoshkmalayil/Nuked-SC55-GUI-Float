@@ -44,77 +44,77 @@ struct mcu_timer_t;
 struct lcd_t;
 
 enum {
-    DEV_P1DDR = 0x00,
-    DEV_P5DDR = 0x08,
-    DEV_P6DDR = 0x09,
-    DEV_P7DDR = 0x0c,
-    DEV_P7DR = 0x0e,
-    DEV_FRT1_TCR = 0x10,
-    DEV_FRT1_TCSR = 0x11,
-    DEV_FRT1_FRCH = 0x12,
-    DEV_FRT1_FRCL = 0x13,
+    DEV_P1DDR      = 0x00,
+    DEV_P5DDR      = 0x08,
+    DEV_P6DDR      = 0x09,
+    DEV_P7DDR      = 0x0c,
+    DEV_P7DR       = 0x0e,
+    DEV_FRT1_TCR   = 0x10,
+    DEV_FRT1_TCSR  = 0x11,
+    DEV_FRT1_FRCH  = 0x12,
+    DEV_FRT1_FRCL  = 0x13,
     DEV_FRT1_OCRAH = 0x14,
     DEV_FRT1_OCRAL = 0x15,
-    DEV_FRT2_TCR = 0x20,
-    DEV_FRT2_TCSR = 0x21,
-    DEV_FRT2_FRCH = 0x22,
-    DEV_FRT2_FRCL = 0x23,
+    DEV_FRT2_TCR   = 0x20,
+    DEV_FRT2_TCSR  = 0x21,
+    DEV_FRT2_FRCH  = 0x22,
+    DEV_FRT2_FRCL  = 0x23,
     DEV_FRT2_OCRAH = 0x24,
     DEV_FRT2_OCRAL = 0x25,
-    DEV_FRT3_TCR = 0x30,
-    DEV_FRT3_TCSR = 0x31,
-    DEV_FRT3_FRCH = 0x32,
-    DEV_FRT3_FRCL = 0x33,
+    DEV_FRT3_TCR   = 0x30,
+    DEV_FRT3_TCSR  = 0x31,
+    DEV_FRT3_FRCH  = 0x32,
+    DEV_FRT3_FRCL  = 0x33,
     DEV_FRT3_OCRAH = 0x34,
     DEV_FRT3_OCRAL = 0x35,
-    DEV_PWM1_TCR = 0x40,
-    DEV_PWM1_DTR = 0x41,
-    DEV_PWM2_TCR = 0x44,
-    DEV_PWM2_DTR = 0x45,
-    DEV_PWM3_TCR = 0x48,
-    DEV_PWM3_DTR = 0x49,
-    DEV_TMR_TCR = 0x50,
-    DEV_TMR_TCSR = 0x51,
-    DEV_TMR_TCORA = 0x52,
-    DEV_TMR_TCORB = 0x53,
-    DEV_TMR_TCNT = 0x54,
-    DEV_SMR = 0x58,
-    DEV_BRR = 0x59,
-    DEV_SCR = 0x5a,
-    DEV_TDR = 0x5b,
-    DEV_SSR = 0x5c,
-    DEV_RDR = 0x5d,
-    DEV_ADDRAH = 0x60,
-    DEV_ADDRAL = 0x61,
-    DEV_ADDRBH = 0x62,
-    DEV_ADDRBL = 0x63,
-    DEV_ADDRCH = 0x64,
-    DEV_ADDRCL = 0x65,
-    DEV_ADDRDH = 0x66,
-    DEV_ADDRDL = 0x67,
-    DEV_ADCSR = 0x68,
-    DEV_IPRA = 0x70,
-    DEV_IPRB = 0x71,
-    DEV_IPRC = 0x72,
-    DEV_IPRD = 0x73,
-    DEV_DTEA = 0x74,
-    DEV_DTEB = 0x75,
-    DEV_DTEC = 0x76,
-    DEV_DTED = 0x77,
-    DEV_WCR = 0x78,
-    DEV_RAME = 0x79,
-    DEV_P1CR = 0x7c,
-    DEV_P9DDR = 0x7e,
-    DEV_P9DR = 0x7f,
+    DEV_PWM1_TCR   = 0x40,
+    DEV_PWM1_DTR   = 0x41,
+    DEV_PWM2_TCR   = 0x44,
+    DEV_PWM2_DTR   = 0x45,
+    DEV_PWM3_TCR   = 0x48,
+    DEV_PWM3_DTR   = 0x49,
+    DEV_TMR_TCR    = 0x50,
+    DEV_TMR_TCSR   = 0x51,
+    DEV_TMR_TCORA  = 0x52,
+    DEV_TMR_TCORB  = 0x53,
+    DEV_TMR_TCNT   = 0x54,
+    DEV_SMR        = 0x58,
+    DEV_BRR        = 0x59,
+    DEV_SCR        = 0x5a,
+    DEV_TDR        = 0x5b,
+    DEV_SSR        = 0x5c,
+    DEV_RDR        = 0x5d,
+    DEV_ADDRAH     = 0x60,
+    DEV_ADDRAL     = 0x61,
+    DEV_ADDRBH     = 0x62,
+    DEV_ADDRBL     = 0x63,
+    DEV_ADDRCH     = 0x64,
+    DEV_ADDRCL     = 0x65,
+    DEV_ADDRDH     = 0x66,
+    DEV_ADDRDL     = 0x67,
+    DEV_ADCSR      = 0x68,
+    DEV_IPRA       = 0x70,
+    DEV_IPRB       = 0x71,
+    DEV_IPRC       = 0x72,
+    DEV_IPRD       = 0x73,
+    DEV_DTEA       = 0x74,
+    DEV_DTEB       = 0x75,
+    DEV_DTEC       = 0x76,
+    DEV_DTED       = 0x77,
+    DEV_WCR        = 0x78,
+    DEV_RAME       = 0x79,
+    DEV_P1CR       = 0x7c,
+    DEV_P9DDR      = 0x7e,
+    DEV_P9DR       = 0x7f,
 };
 
 const uint16_t sr_mask = 0x870f;
 enum {
-    STATUS_T = 0x8000,
-    STATUS_N = 0x08,
-    STATUS_Z = 0x04,
-    STATUS_V = 0x02,
-    STATUS_C = 0x01,
+    STATUS_T        = 0x8000,
+    STATUS_N        = 0x08,
+    STATUS_Z        = 0x04,
+    STATUS_V        = 0x02,
+    STATUS_C        = 0x01,
     STATUS_INT_MASK = 0x700
 };
 
@@ -178,13 +178,13 @@ enum {
     VECTOR_INTERNAL_INTERRUPT_E0, // ADI
 };
 
-static const int ROM1_SIZE = 0x8000;
-static const int ROM2_SIZE = 0x80000;
-static const int RAM_SIZE = 0x400;
-static const int SRAM_SIZE = 0x8000;
-static const int NVRAM_SIZE = 0x8000; // JV880 only
+static const int ROM1_SIZE    = 0x8000;
+static const int ROM2_SIZE    = 0x80000;
+static const int RAM_SIZE     = 0x400;
+static const int SRAM_SIZE    = 0x8000;
+static const int NVRAM_SIZE   = 0x8000; // JV880 only
 static const int CARDRAM_SIZE = 0x8000; // JV880 only
-static const int ROMSM_SIZE = 0x1000;
+static const int ROMSM_SIZE   = 0x1000;
 
 static const uint32_t uart_buffer_size = 8192;
 
@@ -226,15 +226,15 @@ void MCU_DefaultMidiCallback(void* userdata, uint8_t* message, int len);
 
 struct mcu_t {
     uint16_t r[8]{};
-    uint16_t pc = 0;
-    uint16_t sr = 0;
-    uint8_t cp = 0, dp = 0, ep = 0, tp = 0, br = 0;
-    uint8_t sleep = 0;
-    uint8_t ex_ignore = 0;
-    int32_t exception_pending = 0;
-    uint8_t interrupt_pending[INTERRUPT_SOURCE_MAX]{};
-    uint8_t trapa_pending[16]{};
-    uint64_t cycles = 0;
+    uint16_t pc                 = 0;
+    uint16_t sr                 = 0;
+    uint8_t  cp = 0, dp = 0, ep = 0, tp = 0, br = 0;
+    uint8_t  sleep              = 0;
+    uint8_t  ex_ignore          = 0;
+    int32_t  exception_pending  = 0;
+    uint8_t  interrupt_pending[INTERRUPT_SOURCE_MAX]{};
+    uint8_t  trapa_pending[16]{};
+    uint64_t cycles             = 0;
 
     uint8_t rom1[ROM1_SIZE]{};
     uint8_t rom2[ROM2_SIZE]{};
@@ -246,43 +246,43 @@ struct mcu_t {
     uint8_t dev_register[0x80]{};
 
     uint16_t ad_val[4]{};
-    uint8_t ad_nibble = 0;
+    uint8_t ad_nibble     = 0;
     Computerswitch sw_pos = Computerswitch::MIDI;
-    uint8_t io_sd = 0;
+    uint8_t io_sd         = 0;
 
-    submcu_t* sm = nullptr;
-    pcm_t* pcm = nullptr;
+    submcu_t* sm       = nullptr;
+    pcm_t* pcm         = nullptr;
     mcu_timer_t* timer = nullptr;
-    lcd_t* lcd = nullptr;
+    lcd_t* lcd         = nullptr;
 
     uint32_t uart_write_ptr = 0;
-    uint32_t uart_read_ptr = 0;
+    uint32_t uart_read_ptr  = 0;
     uint8_t uart_buffer[uart_buffer_size]{};
     uint8_t uart_tx_buffer[uart_buffer_size]{};
-    uint8_t *uart_tx_ptr = uart_tx_buffer;
+    uint8_t *uart_tx_ptr    = uart_tx_buffer;
 
-    uint8_t uart_rx_byte = 0;
+    uint8_t uart_rx_byte   = 0;
     uint64_t uart_rx_delay = 0;
     uint64_t uart_tx_delay = 0;
 
-    uint8_t uart_serial_rx_byte = 0;
+    uint8_t uart_serial_rx_byte   = 0;
     uint64_t uart_serial_rx_delay = 0;
     uint64_t uart_serial_tx_delay = 0;
 
     Romset romset = Romset::MK2;
     MK1version revision = MK1version::NOT_MK1;
 
-    int is_mk1 = 0; // 0 - SC-55mkII, SC-55ST. 1 - SC-55, CM-300/SCC-1
-    int is_cm300 = 0; // 0 - SC-55, 1 - CM-300/SCC-1
-    int is_st = 0; // 0 - SC-55mk2, 1 - SC-55ST
-    int is_jv880 = 0; // 0 - SC-55, 1 - JV880
-    int is_scb55 = 0; // 0 - sub mcu (e.g SC-55mk2), 1 - no sub mcu (e.g SCB-55)
-    int is_sc155 = 0; // 0 - SC-55(MK2), 1 - SC-155(MK2)
+    bool is_mk1   = false; // false - SC-55mkII, SC-55ST.     true - SC-55, CM-300/SCC-1
+    bool is_cm300 = false; // false - SC-55,                  true - CM-300/SCC-1
+    bool is_st    = false; // false - SC-55mk2,               true - SC-55ST
+    bool is_jv880 = false; // false - SC-55,                  true - JV880
+    bool is_scb55 = false; // false - sub mcu (e.g SC-55mk2), true - no sub mcu (e.g SCB-55)
+    bool is_sc155 = false; // false - SC-55(MK2),             true - SC-155(MK2)
 
     int rom2_mask = ROM2_SIZE - 1;
 
     int ga_int[8]{};
-    int ga_int_enable = 0;
+    int ga_int_enable  = 0;
     int ga_int_trigger = 0;
     int ga_lcd_counter = 0;
 
@@ -297,20 +297,20 @@ struct mcu_t {
 
     int ssr_rd = 0;
 
-    uint32_t operand_type = 0;
-    uint16_t operand_ea = 0;
-    uint8_t operand_ep = 0;
-    uint8_t operand_size = 0;
-    uint8_t operand_reg = 0;
-    uint8_t operand_status = 0;
-    uint16_t operand_data = 0;
+    uint32_t operand_type   = 0;
+    uint16_t operand_ea     = 0;
+    uint8_t operand_ep      = 0;
+    uint8_t operand_size    = 0;
+    uint8_t operand_reg     = 0;
+    uint8_t operand_status  = 0;
+    uint16_t operand_data   = 0;
     uint8_t opcode_extended = 0;
 
     uint16_t volume = 8250;
 
-    void* callback_userdata = nullptr;
+    void* callback_userdata             = nullptr;
     mcu_sample_callback sample_callback = MCU_DefaultSampleCallback;
-    mcu_midi_callback midi_callback = MCU_DefaultMidiCallback;
+    mcu_midi_callback midi_callback     = MCU_DefaultMidiCallback;
 };
 
 void MCU_Init(mcu_t& mcu, submcu_t& sm, pcm_t& pcm, mcu_timer_t& timer, lcd_t& lcd, Computerswitch sw);
@@ -365,7 +365,7 @@ inline void MCU_ControlRegisterWrite(mcu_t& mcu, uint32_t reg, uint32_t siz, uin
     {
         if (reg == 0)
         {
-            mcu.sr = (uint16_t)data;
+            mcu.sr  = (uint16_t)data;
             mcu.sr &= sr_mask;
         }
         else if (reg == 5) // FIXME: undocumented
@@ -507,58 +507,58 @@ inline void MCU_SetVolume(mcu_t& mcu, uint16_t volume)
 
 enum {
     // SC55
-    MCU_BUTTON_POWER = 0,
-    MCU_BUTTON_INST_L = 3,
-    MCU_BUTTON_INST_R = 4,
+    MCU_BUTTON_POWER     = 0,
+    MCU_BUTTON_INST_L    = 3,
+    MCU_BUTTON_INST_R    = 4,
     MCU_BUTTON_INST_MUTE = 5,
-    MCU_BUTTON_INST_ALL = 6,
+    MCU_BUTTON_INST_ALL  = 6,
 
-    MCU_BUTTON_MIDI_CH_L = 8,
-    MCU_BUTTON_MIDI_CH_R = 9,
-    MCU_BUTTON_CHORUS_L = 10,
-    MCU_BUTTON_CHORUS_R = 11,
-    MCU_BUTTON_PAN_L = 12,
-    MCU_BUTTON_PAN_R = 13,
-    MCU_BUTTON_PART_R = 14,
+    MCU_BUTTON_MIDI_CH_L =  8,
+    MCU_BUTTON_MIDI_CH_R =  9,
+    MCU_BUTTON_CHORUS_L  = 10,
+    MCU_BUTTON_CHORUS_R  = 11,
+    MCU_BUTTON_PAN_L     = 12,
+    MCU_BUTTON_PAN_R     = 13,
+    MCU_BUTTON_PART_R    = 14,
 
     MCU_BUTTON_KEY_SHIFT_L = 16,
     MCU_BUTTON_KEY_SHIFT_R = 17,
-    MCU_BUTTON_REVERB_L = 18,
-    MCU_BUTTON_REVERB_R = 19,
-    MCU_BUTTON_LEVEL_L = 20,
-    MCU_BUTTON_LEVEL_R = 21,
-    MCU_BUTTON_PART_L = 22,
+    MCU_BUTTON_REVERB_L    = 18,
+    MCU_BUTTON_REVERB_R    = 19,
+    MCU_BUTTON_LEVEL_L     = 20,
+    MCU_BUTTON_LEVEL_R     = 21,
+    MCU_BUTTON_PART_L      = 22,
 
     // SC155 extra buttons
-    MCU_BUTTON_USER = 1,
-    MCU_BUTTON_PART_SEL = 2,
-    MCU_BUTTON_INST_CALL = 7,
-    MCU_BUTTON_PAN = 15,
-    MCU_BUTTON_LEVEL = 23,
-    MCU_BUTTON_PART1 = 24,
-    MCU_BUTTON_PART2 = 25,
-    MCU_BUTTON_PART3 = 26,
-    MCU_BUTTON_PART4 = 27,
-    MCU_BUTTON_PART5 = 28,
-    MCU_BUTTON_PART6 = 29,
-    MCU_BUTTON_PART7 = 30,
-    MCU_BUTTON_PART8 = 31,
+    MCU_BUTTON_USER      =  1,
+    MCU_BUTTON_PART_SEL  =  2,
+    MCU_BUTTON_INST_CALL =  7,
+    MCU_BUTTON_PAN       = 15,
+    MCU_BUTTON_LEVEL     = 23,
+    MCU_BUTTON_PART1     = 24,
+    MCU_BUTTON_PART2     = 25,
+    MCU_BUTTON_PART3     = 26,
+    MCU_BUTTON_PART4     = 27,
+    MCU_BUTTON_PART5     = 28,
+    MCU_BUTTON_PART6     = 29,
+    MCU_BUTTON_PART7     = 30,
+    MCU_BUTTON_PART8     = 31,
 
     // JV880
-    MCU_BUTTON_CURSOR_L = 0,
-    MCU_BUTTON_CURSOR_R = 1,
-    MCU_BUTTON_TONE_SELECT = 2,
-    MCU_BUTTON_MUTE = 3,
-    MCU_BUTTON_DATA = 4,
-    MCU_BUTTON_MONITOR = 5,
-    MCU_BUTTON_COMPARE = 6,
-    MCU_BUTTON_ENTER = 7,
-    MCU_BUTTON_UTILITY = 8,
-    MCU_BUTTON_PREVIEW = 9,
+    MCU_BUTTON_CURSOR_L      =  0,
+    MCU_BUTTON_CURSOR_R      =  1,
+    MCU_BUTTON_TONE_SELECT   =  2,
+    MCU_BUTTON_MUTE          =  3,
+    MCU_BUTTON_DATA          =  4,
+    MCU_BUTTON_MONITOR       =  5,
+    MCU_BUTTON_COMPARE       =  6,
+    MCU_BUTTON_ENTER         =  7,
+    MCU_BUTTON_UTILITY       =  8,
+    MCU_BUTTON_PREVIEW       =  9,
     MCU_BUTTON_PATCH_PERFORM = 10,
-    MCU_BUTTON_EDIT = 11,
-    MCU_BUTTON_SYSTEM = 12,
-    MCU_BUTTON_RHYTHM = 13,
+    MCU_BUTTON_EDIT          = 11,
+    MCU_BUTTON_SYSTEM        = 12,
+    MCU_BUTTON_RHYTHM        = 13,
 };
 
 

@@ -90,8 +90,8 @@ void LCD_Write(lcd_t& lcd, uint32_t address, uint8_t data)
         if ((data & 0xe0) == 0x20)
         {
             lcd.LCD_DL = (data & 0x10) != 0;
-            lcd.LCD_N = (data & 0x8) != 0;
-            lcd.LCD_F = (data & 0x4) != 0;
+            lcd.LCD_N  = (data & 0x8)  != 0;
+            lcd.LCD_F  = (data & 0x4)  != 0;
         }
         else if ((data & 0xf8) == 0x8)
         {
@@ -102,7 +102,7 @@ void LCD_Write(lcd_t& lcd, uint32_t address, uint8_t data)
         else if ((data & 0xff) == 0x01)
         {
             lcd.LCD_DD_RAM = 0;
-            lcd.LCD_ID = 1;
+            lcd.LCD_ID     = 1;
             memset(lcd.LCD_Data, 0x20, sizeof(lcd.LCD_Data));
         }
         else if ((data & 0xff) == 0x02)
@@ -112,16 +112,16 @@ void LCD_Write(lcd_t& lcd, uint32_t address, uint8_t data)
         else if ((data & 0xfc) == 0x04)
         {
             lcd.LCD_ID = (data & 0x2) != 0;
-            lcd.LCD_S = (data & 0x1) != 0;
+            lcd.LCD_S  = (data & 0x1) != 0;
         }
         else if ((data & 0xc0) == 0x40)
         {
-            lcd.LCD_CG_RAM = (data & 0x3f);
+            lcd.LCD_CG_RAM   = (data & 0x3f);
             lcd.LCD_RAM_MODE = 0;
         }
         else if ((data & 0x80) == 0x80)
         {
-            lcd.LCD_DD_RAM = (data & 0x7f);
+            lcd.LCD_DD_RAM   = (data & 0x7f);
             lcd.LCD_RAM_MODE = 1;
         }
         else
@@ -193,14 +193,14 @@ bool LCD_Start(lcd_t& lcd)
 
     if (lcd.mcu->romset == Romset::JV880)
     {
-        lcd.width = 820;
+        lcd.width  = 820;
         lcd.height = 100;
         lcd.color1 = 0x000000;
         lcd.color2 = 0x78b500;
     }
     else
     {
-        lcd.width = 741;
+        lcd.width  = 741;
         lcd.height = 268;
         lcd.color1 = 0x000000;
         lcd.color2 = 0x0050c8;
@@ -244,9 +244,9 @@ uint32_t LCD_Fade(lcd_t& lcd, uint32_t color1, uint32_t color2) {
     uint8_t db = (color2 >> 16) & 0xFF;
     uint8_t dg = (color2 >> 8) & 0xFF;
     uint8_t dr =  color2 & 0xFF;
-    uint8_t r = (uint8_t) ((((uint32_t) sr * 2) + dr) / 3);
-    uint8_t g = (uint8_t) ((((uint32_t) sg * 2) + dg) / 3);
-    uint8_t b = (uint8_t) ((((uint32_t) sb * 2) + db) / 3);
+    uint8_t r  = (uint8_t) ((((uint32_t) sr * 2) + dr) / 3);
+    uint8_t g  = (uint8_t) ((((uint32_t) sg * 2) + dg) / 3);
+    uint8_t b  = (uint8_t) ((((uint32_t) sb * 2) + db) / 3);
     uint32_t color = ((b & 0xFF) << 16) | ((g & 0xFF) << 8) | (r & 0xFF);
 
     if (color != lcd.color1 && color != lcd.color2) {
@@ -375,7 +375,7 @@ static const uint8_t LR[2][12][11] =
 };
 
 static const int LR_xy[2][2] = {
-    { 70, 264 },
+    { 70 , 264 },
     { 232, 264 }
 };
 

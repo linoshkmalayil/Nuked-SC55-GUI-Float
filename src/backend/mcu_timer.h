@@ -37,27 +37,27 @@
 struct mcu_t;
 
 struct frt_t {
-    uint8_t tcr = 0;
-    uint8_t tcsr = 0;
-    uint16_t frc = 0;
-    uint16_t ocra = 0;
-    uint16_t ocrb = 0;
-    uint16_t icr = 0;
+    uint8_t tcr       = 0;
+    uint8_t tcsr      = 0;
+    uint16_t frc      = 0;
+    uint16_t ocra     = 0;
+    uint16_t ocrb     = 0;
+    uint16_t icr      = 0;
     uint8_t status_rd = 0;
 };
 
 struct mcu_timer_t {
-    uint8_t tcr = 0;
-    uint8_t tcsr = 0;
-    uint8_t tcora = 0;
-    uint8_t tcorb = 0;
-    uint8_t tcnt = 0;
+    uint8_t tcr       = 0;
+    uint8_t tcsr      = 0;
+    uint8_t tcora     = 0;
+    uint8_t tcorb     = 0;
+    uint8_t tcnt      = 0;
     uint8_t status_rd = 0;
 
-    mcu_t* mcu = nullptr;
+    mcu_t* mcu        = nullptr;
 
-    uint64_t cycles = 0;
-    uint8_t tempreg = 0;
+    uint64_t cycles   = 0;
+    uint8_t tempreg   = 0;
 
     frt_t frt[3]{};
 };

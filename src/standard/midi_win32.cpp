@@ -44,9 +44,9 @@
 #include <span>
 #include <string>
 
-static HMIDIIN midi_in_handle;
+static HMIDIIN  midi_in_handle;
 static HMIDIOUT midi_out_handle;
-static MIDIHDR midi_buffer;
+static MIDIHDR  midi_buffer;
 
 static uint8_t midi_in_buffer[1024];
 
@@ -133,7 +133,7 @@ void CALLBACK MIDIIN_Callback(
 
 void MIDI_PrintDevices()
 {
-    const UINT num_devices_in = midiInGetNumDevs();
+    const UINT num_devices_in  = midiInGetNumDevs();
     const UINT num_devices_out = midiOutGetNumDevs();
 
     if (num_devices_in == 0)
@@ -146,8 +146,8 @@ void MIDI_PrintDevices()
         fprintf(stderr, "No midi output devices found.\n");
     }
 
-    MMRESULT result;
-    MIDIINCAPSA device_in_caps;
+    MMRESULT     result;
+    MIDIINCAPSA  device_in_caps;
     MIDIOUTCAPSA device_out_caps;
 
     fprintf(stderr, "Known midi input devices:\n\n");
@@ -175,15 +175,15 @@ void MIDI_PrintDevices()
 
 struct MIDI_PickedDevice
 {
-    INT         device_in_id = -1;
+    INT          device_in_id  = -1;
     MIDIINCAPSA  device_in_caps;
-    INT         device_out_id = -1;
+    INT          device_out_id = -1;
     MIDIOUTCAPSA device_out_caps;
 };
 
 bool MIDI_PickDevice(std::string_view preferred_in_name, std::string_view preferred_out_name, MIDI_PickedDevice& out_picked)
 {
-    const UINT num_in_devices = midiInGetNumDevs();
+    const UINT num_in_devices  = midiInGetNumDevs();
     const UINT num_out_devices = midiOutGetNumDevs();
 
     if (num_in_devices == 0)
@@ -322,7 +322,7 @@ bool MIDI_Init(FE_Application& fe, std::string_view in_port_name_or_id, std::str
 
         fprintf(stderr, "Opened midi input port: %s\n", picked_device.device_in_caps.szPname);
 
-        midi_buffer.lpData = (LPSTR)midi_in_buffer;
+        midi_buffer.lpData         = (LPSTR)midi_in_buffer;
         midi_buffer.dwBufferLength = sizeof(midi_in_buffer);
 
         resultin = midiInPrepareHeader(midi_in_handle, &midi_buffer, sizeof(MIDIHDR));

@@ -94,7 +94,7 @@ void Emulator::StopLCD()
 void Emulator::SetSampleCallback(mcu_sample_callback callback, void* userdata)
 {
     m_mcu->callback_userdata = userdata;
-    m_mcu->sample_callback = callback;
+    m_mcu->sample_callback   = callback;
 }
 
 void Emulator::SetMidiCallback(mcu_midi_callback callback)
@@ -305,10 +305,10 @@ bool Emulator::LoadRoms(Romset romset, MK1version revision, const std::filesyste
 
     std::ifstream s_rf[ROM_SET_N_FILES];
 
-    m_mcu->romset = romset;
-    m_mcu->is_mk1 = false;
+    m_mcu->romset   = romset;
+    m_mcu->is_mk1   = false;
     m_mcu->is_cm300 = false;
-    m_mcu->is_st = false;
+    m_mcu->is_st    = false;
     m_mcu->is_jv880 = false;
     m_mcu->is_scb55 = false;
     m_mcu->is_sc155 = false;
@@ -325,12 +325,12 @@ bool Emulator::LoadRoms(Romset romset, MK1version revision, const std::filesyste
         case Romset::MK1:
         case Romset::SC155:
             m_mcu->is_mk1 = true;
-            m_mcu->is_st = false;
+            m_mcu->is_st  = false;
             if (romset == Romset::SC155)
                 m_mcu->is_sc155 = true;
             break;
         case Romset::CM300:
-            m_mcu->is_mk1 = true;
+            m_mcu->is_mk1   = true;
             m_mcu->is_cm300 = true;
             break;
         case Romset::JV880:
@@ -354,8 +354,8 @@ bool Emulator::LoadRoms(Romset romset, MK1version revision, const std::filesyste
         {
             continue;
         }
-        rpaths[i] = base_path / roms[(size_t)romset][i];
-        s_rf[i] = std::ifstream(rpaths[i].c_str(), std::ios::binary);
+        rpaths[i]     = base_path / roms[(size_t)romset][i];
+        s_rf[i]       = std::ifstream(rpaths[i].c_str(), std::ios::binary);
         bool optional = m_mcu->is_jv880 && i >= 4;
         r_ok &= optional || s_rf[i];
         if (!s_rf[i])

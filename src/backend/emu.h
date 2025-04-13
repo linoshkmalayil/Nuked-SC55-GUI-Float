@@ -48,8 +48,8 @@ struct EMU_Options
     // The backend provided here will receive callbacks from the emulator.
     // If left null, LCD processing will be skipped.
     LCD_Backend* lcd_backend = nullptr;
+    // Computer Switch for IO: Serial/MIDI, defaults to MIDI.
     Computerswitch serial_type = Computerswitch::MIDI;
-
 };
 
 enum class EMU_SystemReset {

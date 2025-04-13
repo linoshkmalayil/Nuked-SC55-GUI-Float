@@ -58,7 +58,7 @@ struct SMF_Event
     uint32_t GetTempoUS(SMF_ByteSpan bytes) const
     {
         return ((uint32_t)bytes[data_first + 2]) << 16 |
-               ((uint32_t)bytes[data_first + 3]) << 8  |
+               ((uint32_t)bytes[data_first + 3]) <<  8 |
                ((uint32_t)bytes[data_first + 4]);
     }
 

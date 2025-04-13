@@ -124,23 +124,23 @@ struct FE_Application {
 
 struct FE_Parameters
 {
-    bool help = false;
+    bool help    = false;
     bool version = false;
     std::string midiin_device;
     std::string midiout_device;
     Computerswitch serial_type = Computerswitch::MIDI;
     std::string serial_port;
     std::string audio_device;
-    uint32_t buffer_size = 512;
+    uint32_t buffer_size  = 512;
     uint32_t buffer_count = 16;
-    bool autodetect = true;
+    bool autodetect       = true;
     EMU_SystemReset reset = EMU_SystemReset::NONE;
-    size_t instances = 1;
-    Romset romset = Romset::MK2;
-    MK1version revision = MK1version::NOT_MK1;
+    size_t instances      = 1;
+    Romset romset         = Romset::MK2;
+    MK1version revision   = MK1version::NOT_MK1;
     std::optional<std::filesystem::path> rom_directory;
     AudioFormat output_format = AudioFormat::S16;
-    bool no_lcd = false;
+    bool no_lcd               = false;
     bool disable_oversampling = false;
     std::optional<uint32_t> asio_sample_rate;
 };
@@ -191,8 +191,8 @@ void FE_RouteMIDI(FE_Application& fe, std::span<const uint8_t> bytes)
         return;
     }
 
-    const bool is_sysex = first == 0xF0;
-    const uint8_t channel = first & 0x0F;
+    const bool is_sysex   = first == 0xF0;
+    const uint8_t channel = first  & 0x0F;
 
     if (is_sysex)
     {
@@ -1200,32 +1200,24 @@ LMB + MOUSE MOVEMENT (O Volume Knob) -> ADJUST VOLUME
 )";
 
     constexpr const char* JV880_CONTROLS = R"(
-Roland SC-55 mk1/mk2 Controls:
+Roland JV880 Controls:
 
-Q -> POWER
-W -> INST ALL
-E -> INST MUTE
-R -> PART L
-T -> PART R
-Y -> INST L
-U -> INST R
-I -> KEY SHIFT L
-O -> KEY SHIFT R
-P -> LEVEL L
-LEFT BRACKET -> LEVEL R
-A -> MIDI CH L
-S -> MIDI CH R
-D -> PAN L
-F -> PAN R
-G -> REVERB L
-H -> REVERB R
-J -> CHORUS L
-K -> CHORUS R
-LEFT -> PART L
-RIGHT -> PART R
-SCROLL WHEEL UP (On Volume Knob) -> INCREASE VOLUME
-SCROLL WHEEL DOWN (On Volume Knob) -> DECREASE VOLUME
-LMB + MOUSE MOVEMENT (O Volume Knob) -> ADJUST VOLUME
+P -> PREVIEW
+LEFT -> CURSOR L
+RIGHT -> CURSOR R
+TAB -> DATA
+Q -> TONE_SELECT
+A -> PATCH_PERFORM
+W -> EDIT
+E -> SYSTEM
+R -> RHYTHM
+T -> UTILITY
+S -> MUTE
+D -> MONITOR
+F -> COMPARE
+G -> ENTER
+COMMA -> ENCODER L
+PERIOD -> ENCODER R
 
 )";
 
@@ -1324,11 +1316,16 @@ int main(int argc, char *argv[])
             FE_SetSerialCallback(frontend);
         }
     }
+    else if (params.serial_type != Computerswitch::MIDI && !params.serial_port.empty())
+    {
+        fprintf(stderr, "ERROR: Serial I/O available only for SC-55mk2 and SC-55st models.\nWARNING: Continuing without Serial I/O...\n");
+        fflush(stderr);
+    }
     else
     {
         if (!params.midiout_device.empty() && params.romset == Romset::ST)
         {
-            fprintf(stderr, "MIDI Output is not available for SC-55st, continuing with only MIDI Input");
+            fprintf(stderr, "WARNING: MIDI Output is not available for SC-55st, continuing with only MIDI Input...");
             params.midiout_device = "";
         }
 
