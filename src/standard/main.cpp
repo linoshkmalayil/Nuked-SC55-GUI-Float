@@ -46,6 +46,7 @@
 #include "ringbuffer.h"
 #include "serial.h"
 #include <SDL.h>
+#include <SDL_hints.h>
 #include <optional>
 #include <thread>
 
@@ -664,8 +665,12 @@ BOOL WINAPI FE_CtrlCHandler(DWORD dwCtrlType)
 }
 #endif
 
-bool FE_Init()
+bool FE_Init(Romset romset)
 {
+    std::string name = "Nuked SC-55: ";
+    name += EMU_RomsetName(romset);
+    SDL_SetHint(SDL_HINT_APP_NAME, name.c_str());
+
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0)
     {
         fprintf(stderr, "FATAL ERROR: Failed to initialize the SDL2: %s.\n", SDL_GetError());
@@ -1302,7 +1307,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "ROM set autodetect: %s\n", EMU_RomsetName(params.romset));
     }
 
-    if (!FE_Init())
+    if (!FE_Init(params.romset))
     {
         fprintf(stderr, "FATAL ERROR: Failed to initialize frontend\n");
         return 1;
