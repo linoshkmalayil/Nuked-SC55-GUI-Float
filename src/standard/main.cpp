@@ -134,7 +134,7 @@ struct FE_Parameters
     uint32_t buffer_size  = 512;
     uint32_t buffer_count = 16;
     bool autodetect       = true;
-    EMU_SystemReset reset = EMU_SystemReset::NONE;
+    std::optional<EMU_SystemReset> reset;
     size_t instances      = 1;
     Romset romset         = Romset::MK2;
     MK1version revision   = MK1version::NOT_MK1;
@@ -778,6 +778,7 @@ enum class FE_ParseError
     ASIOSampleRateOutOfRange,
     InvalidRevision,
     SerialTypeInvalid,
+    ResetInvalid,
 };
 
 const char* FE_ParseErrorStr(FE_ParseError err)
@@ -808,6 +809,8 @@ const char* FE_ParseErrorStr(FE_ParseError err)
             return "ASIO sample rate out of range";
         case FE_ParseError::SerialTypeInvalid:
             return "Serial Type Invalid";
+        case FE_ParseError::ResetInvalid:
+            return "Reset invalid (should be none, gs, or gm)";
     }
     return "Unknown error";
 }
@@ -959,9 +962,13 @@ FE_ParseError FE_ParseCommandLine(int argc, char* argv[], FE_Parameters& result)
             {
                 result.reset = EMU_SystemReset::GS_RESET;
             }
-            else
+            else if (reader.Arg() == "none")
             {
                 result.reset = EMU_SystemReset::NONE;
+            }
+            else
+            {
+                return FE_ParseError::ResetInvalid;
             }
         }
         else if (reader.Any("-n", "--instances"))
@@ -1134,7 +1141,7 @@ Serial Port options:
    -sp, --serialport  <serial_io_port>           Set the serial port/named pipe/unix socket for serial I/O.
 
 Emulator options:
-  -r, --reset     gs|gm                         Reset system in GS or GM mode. (No GM in MK1 1.00 & 1.10)
+  -r, --reset     none|gs|gm                    Reset system in GS or GM mode. (No GM in MK1 1.00 & 1.10)
   -n, --instances <count>                       Set number of emulator instances.
   --no-lcd                                      Run without LCDs.
 
@@ -1282,6 +1289,18 @@ int main(int argc, char *argv[])
         fprintf(stderr, "ROM set autodetect: %s\n", EMU_RomsetName(params.romset));
     }
 
+    EMU_SystemReset reset = EMU_SystemReset::NONE;
+    if (params.reset)
+    {
+        reset = *params.reset;
+    }
+    else if (!params.reset && params.romset == Romset::MK2)
+    {
+        // user didn't explicitly pass a reset and we're using a buggy romset
+        fprintf(stderr, "WARNING: No reset specified with mk2 romset; using gs\n");
+        reset = EMU_SystemReset::GS_RESET;
+    }
+
     if (!FE_Init())
     {
         fprintf(stderr, "FATAL ERROR: Failed to initialize frontend\n");
@@ -1342,7 +1361,7 @@ int main(int argc, char *argv[])
 
     for (size_t i = 0; i < frontend.instances_in_use; ++i)
     {
-        frontend.instances[i].emu.PostSystemReset(params.reset);
+        frontend.instances[i].emu.PostSystemReset(reset);
     }
 
     FE_PrintControls(params.romset);
