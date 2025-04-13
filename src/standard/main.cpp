@@ -46,6 +46,7 @@
 #include "ringbuffer.h"
 #include "serial.h"
 #include <SDL.h>
+#include <SDL_hints.h>
 #include <optional>
 #include <thread>
 
@@ -143,6 +144,7 @@ struct FE_Parameters
     bool no_lcd               = false;
     bool disable_oversampling = false;
     std::optional<uint32_t> asio_sample_rate;
+    std::filesystem::path nvram_filename;
 };
 
 bool FE_AllocateInstance(FE_Application& container, FE_Instance** result)
@@ -663,8 +665,12 @@ BOOL WINAPI FE_CtrlCHandler(DWORD dwCtrlType)
 }
 #endif
 
-bool FE_Init()
+bool FE_Init(Romset romset)
 {
+    std::string name = "Nuked SC-55: ";
+    name += EMU_RomsetName(romset);
+    SDL_SetHint(SDL_HINT_APP_NAME, name.c_str());
+
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0)
     {
         fprintf(stderr, "FATAL ERROR: Failed to initialize the SDL2: %s.\n", SDL_GetError());
@@ -679,10 +685,8 @@ bool FE_Init()
     return true;
 }
 
-bool FE_CreateInstance(FE_Application& container, const std::filesystem::path& base_path, const FE_Parameters& params)
+bool FE_CreateInstance(FE_Application& container, const FE_Parameters& params, size_t instance_number)
 {
-    (void)base_path;
-
     FE_Instance* fe = nullptr;
 
     if (!FE_AllocateInstance(container, &fe))
@@ -691,22 +695,26 @@ bool FE_CreateInstance(FE_Application& container, const std::filesystem::path& b
         return false;
     }
 
-    fe->format       = params.output_format;
-    fe->buffer_size  = params.buffer_size;
-    fe->buffer_count = params.buffer_count;
+    fe->format        = params.output_format;
+    fe->buffer_size   = params.buffer_size;
+    fe->buffer_count  = params.buffer_count;
 
     if (!params.no_lcd)
     {
         fe->sdl_lcd = std::make_unique<LCD_SDL_Backend>();
     }
 
-    if (!fe->emu.Init({.lcd_backend = fe->sdl_lcd.get(), .serial_type = params.serial_type}))
+    if (!fe->emu.Init({.instance_id        = instance_number,
+                       .rom_directory      = *params.rom_directory, 
+                       .lcd_backend        = fe->sdl_lcd.get(), 
+                       .serial_type        = params.serial_type, 
+                       .nvram_basefilename = params.nvram_filename}))
     {
         fprintf(stderr, "ERROR: Failed to init emulator.\n");
         return false;
     }
 
-    if (!fe->emu.LoadRoms(params.romset, params.revision, *params.rom_directory))
+    if (!fe->emu.LoadRoms(params.romset, params.revision))
     {
         fprintf(stderr, "ERROR: Failed to load roms.\n");
         return false;
@@ -1010,6 +1018,15 @@ FE_ParseError FE_ParseCommandLine(int argc, char* argv[], FE_Parameters& result)
                 return FE_ParseError::RomDirectoryNotFound;
             }
         }
+        else if (reader.Any("--nvram"))
+        {
+            if (!reader.Next())
+            {
+                return FE_ParseError::UnexpectedEnd;
+            }
+
+            result.nvram_filename = reader.Arg();
+        }
         else if (reader.Any("--mk2"))
         {
             result.romset = Romset::MK2;
@@ -1144,6 +1161,7 @@ Emulator options:
   -r, --reset     none|gs|gm                    Reset system in GS or GM mode. (No GM in MK1 1.00 & 1.10)
   -n, --instances <count>                       Set number of emulator instances.
   --no-lcd                                      Run without LCDs.
+  --nvram <filename>                            Saves and loads NVRAM to/from disk. JV-880 only.
 
 ROM management options:
   -d, --rom-directory <dir>                     Sets the directory to load roms from.
@@ -1289,19 +1307,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "ROM set autodetect: %s\n", EMU_RomsetName(params.romset));
     }
 
-    EMU_SystemReset reset = EMU_SystemReset::NONE;
-    if (params.reset)
-    {
-        reset = *params.reset;
-    }
-    else if (!params.reset && params.romset == Romset::MK2)
-    {
-        // user didn't explicitly pass a reset and we're using a buggy romset
-        fprintf(stderr, "WARNING: No reset specified with mk2 romset; using gs\n");
-        reset = EMU_SystemReset::GS_RESET;
-    }
-
-    if (!FE_Init())
+    if (!FE_Init(params.romset))
     {
         fprintf(stderr, "FATAL ERROR: Failed to initialize frontend\n");
         return 1;
@@ -1309,7 +1315,7 @@ int main(int argc, char *argv[])
 
     for (size_t i = 0; i < params.instances; ++i)
     {
-        if (!FE_CreateInstance(frontend, base_path, params))
+        if (!FE_CreateInstance(frontend, params, i))
         {
             fprintf(stderr, "FATAL ERROR: Failed to create instance %zu\n", i);
             return 1;
@@ -1359,9 +1365,23 @@ int main(int argc, char *argv[])
         }
     }
 
-    for (size_t i = 0; i < frontend.instances_in_use; ++i)
+    if (params.reset)
     {
-        frontend.instances[i].emu.PostSystemReset(reset);
+        for (size_t i = 0; i < frontend.instances_in_use; ++i)
+        {
+            frontend.instances[i].emu.PostSystemReset(*params.reset);
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < frontend.instances_in_use; ++i)
+        {
+            if (!frontend.instances[i].emu.IsSRAMLoaded())
+            {
+                fprintf(stderr, "WARNING: No reset specified with mk2 romset; using gs\n");
+                frontend.instances[i].emu.PostSystemReset(EMU_SystemReset::GS_RESET);
+            }
+        }
     }
 
     FE_PrintControls(params.romset);

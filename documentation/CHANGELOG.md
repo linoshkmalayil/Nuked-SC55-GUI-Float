@@ -3,6 +3,25 @@
 This fork is dependent on the changes on the fork [jcmoyer/Nuked-SC55](https://github.com/jcmoyer/Nuked-SC55)
 For **FULL CHANGELOG** from please check [jcmoyer/Nuked-SC55/CHANGELOG.md](https://github.com/jcmoyer/Nuked-SC55/blob/master/CHANGELOG.md)
 
+# Version 0.5.4 (2025-04-14)
+
+Jist of changes are follows:
+- Add SRAM read and write support for SC-55mk1, SC-55mk2, JV880, SC-155, SC-155mk2
+- Add NVRAM read and write support for JV880
+- Updated `DEV_SSR`
+- Fix MIDI TX and SERIAL TX
+- SC-55mk2 now has default GS Reset
+- Added SDL Application name
+
+# Version 0.5.3 (2025-04-08)
+
+Jist of changes are follows:
+- Updated SC-55 background
+- Added Serial IO Support for SC-55mk2 and SC-55st
+- Prints controls when using in JV880 and SC-55mk1/mk2 mode.
+- Fixed bugs in MIDI Out
+- Improved volume handling in GUI
+
 # Version 0.5.2 (2025-04-03)
 
 Jist of changes are follows:

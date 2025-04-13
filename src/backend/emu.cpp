@@ -42,6 +42,13 @@
 #include <span>
 #include <vector>
 
+
+Emulator::~Emulator()
+{
+    WriteSRAM();
+    WriteNVRAM();
+}
+
 bool Emulator::Init(const EMU_Options& options)
 {
     m_options = options;
@@ -143,7 +150,7 @@ const char* rs_name_simple[(size_t)ROMSET_COUNT] = {
     "sc155mk2"
 };
 
-constexpr int ROM_SET_N_FILES = 6;
+constexpr int ROM_SET_N_FILES = 7;
 
 const char* roms[(size_t)ROMSET_COUNT][ROM_SET_N_FILES] =
 {
@@ -154,6 +161,7 @@ const char* roms[(size_t)ROMSET_COUNT][ROM_SET_N_FILES] =
         "waverom2.bin",
         "rom_sm.bin",
         "",
+        "memory.bin"
     },
 
     {
@@ -162,6 +170,7 @@ const char* roms[(size_t)ROMSET_COUNT][ROM_SET_N_FILES] =
         "waverom1.bin",
         "waverom2.bin",
         "rom_sm.bin",
+        "",
         "",
     },
 
@@ -172,6 +181,7 @@ const char* roms[(size_t)ROMSET_COUNT][ROM_SET_N_FILES] =
         "sc55_waverom2.bin",
         "sc55_waverom3.bin",
         "",
+        "sc55_memory.bin",
     },
 
     {
@@ -180,6 +190,7 @@ const char* roms[(size_t)ROMSET_COUNT][ROM_SET_N_FILES] =
         "cm300_waverom1.bin",
         "cm300_waverom2.bin",
         "cm300_waverom3.bin",
+        "",
         "",
     },
 
@@ -190,6 +201,7 @@ const char* roms[(size_t)ROMSET_COUNT][ROM_SET_N_FILES] =
         "jv880_waverom2.bin",
         "jv880_waverom_expansion.bin",
         "jv880_waverom_pcmcard.bin",
+        "jv880_memory.bin"
     },
 
     {
@@ -199,12 +211,14 @@ const char* roms[(size_t)ROMSET_COUNT][ROM_SET_N_FILES] =
         "scb55_waverom2.bin",
         "",
         "",
+        "",
     },
 
     {
         "rlp3237_rom1.bin",
         "rlp3237_rom2.bin",
         "rlp3237_waverom1.bin",
+        "",
         "",
         "",
         "",
@@ -217,6 +231,7 @@ const char* roms[(size_t)ROMSET_COUNT][ROM_SET_N_FILES] =
         "sc155_waverom2.bin",
         "sc155_waverom3.bin",
         "",
+        "sc155_memory.bin"
     },
 
     {
@@ -226,6 +241,7 @@ const char* roms[(size_t)ROMSET_COUNT][ROM_SET_N_FILES] =
         "waverom2.bin",
         "rom_sm.bin",
         "",
+        "memory.bin",
     },
 };
 
@@ -293,14 +309,32 @@ bool EMU_ReadStreamExact(std::ifstream& s, std::span<uint8_t> into, std::streams
     return EMU_ReadStreamExact(s, into.data(), byte_count);
 }
 
+bool EMU_WriteStreamExact(std::ofstream& s, void* offrom, std::streamsize byte_count)
+{
+    auto start = s.tellp();
+    if (s.write((char*)offrom, byte_count))
+    {
+        auto end = s.tellp();
+        return (end - start) == byte_count;
+    }
+    return false;
+}
+
+bool EMU_WriteStreamExact(std::ofstream& s, std::span<uint8_t> offrom, std::streamsize byte_count)
+{
+    return EMU_WriteStreamExact(s, offrom.data(), byte_count);
+}
+
 std::streamsize EMU_ReadStreamUpTo(std::ifstream& s, void* into, std::streamsize byte_count)
 {
     s.read((char*)into, byte_count);
     return s.gcount();
 }
 
-bool Emulator::LoadRoms(Romset romset, MK1version revision, const std::filesystem::path& base_path)
+bool Emulator::LoadRoms(Romset romset, MK1version revision)
 {
+    const std::filesystem::path& base_path = m_options.rom_directory;
+
     std::vector<uint8_t> tempbuf(0x800000);
 
     std::ifstream s_rf[ROM_SET_N_FILES];
@@ -356,7 +390,7 @@ bool Emulator::LoadRoms(Romset romset, MK1version revision, const std::filesyste
         }
         rpaths[i]     = base_path / roms[(size_t)romset][i];
         s_rf[i]       = std::ifstream(rpaths[i].c_str(), std::ios::binary);
-        bool optional = m_mcu->is_jv880 && i >= 4;
+        bool optional = (m_mcu->is_jv880 && i >= 4) || i == 6;
         r_ok &= optional || s_rf[i];
         if (!s_rf[i])
         {
@@ -500,6 +534,19 @@ bool Emulator::LoadRoms(Romset romset, MK1version revision, const std::filesyste
         }
     }
 
+    //Initialize empty RAM
+    for (int i=0; i<RAM_SIZE; i++)
+    {
+        m_mcu->ram[i] = 0;
+    }
+
+    ReadSRAM();
+
+    if (m_mcu->is_jv880)
+    {
+        ReadNVRAM();
+    }
+
     MCU_PatchROM(*m_mcu);
 
     return true;
@@ -566,4 +613,82 @@ void Emulator::PostSystemReset(EMU_SystemReset reset)
 void Emulator::Step()
 {
     MCU_Step(*m_mcu);
+}
+
+void Emulator::ReadSRAM()
+{
+    // append instance number so that multiple instances don't clobber each other's sram
+    std::filesystem::path sram_path = m_options.rom_directory / roms[(size_t)m_mcu->romset][6];
+    sram_path                      += std::to_string(m_options.instance_id);
+    
+    std::ifstream s_rf = std::ifstream(sram_path.generic_string().c_str(), std::ios::binary);
+    if(!s_rf || !EMU_ReadStreamExact(s_rf, m_mcu->sram, SRAM_SIZE))
+    {
+        fprintf(stderr, "WARNING: Failed reading SRAM: %s\n", sram_path.generic_string().c_str());
+        is_sram_loaded = false;
+
+        return;
+    }
+    is_sram_loaded = true;
+}
+
+void Emulator::WriteSRAM()
+{
+    // emulator was constructed, but never init
+    if (!m_mcu)
+    {
+        return;
+    }
+
+    // append instance number so that multiple instances don't clobber each other's sram
+    std::filesystem::path sram_path = m_options.rom_directory / roms[(size_t)m_mcu->romset][6];
+    sram_path                      += std::to_string(m_options.instance_id);
+    
+    std::ofstream s_wf = std::ofstream(sram_path.generic_string().c_str(), std::ios::binary);
+    if(!s_wf || !EMU_WriteStreamExact(s_wf, m_mcu->sram, SRAM_SIZE))
+    {
+        fprintf(stderr, "WARNING: Failed writing SRAM: %s\n", sram_path.generic_string().c_str());
+    }
+}
+
+void Emulator::ReadNVRAM()
+{
+    if (!m_options.nvram_basefilename.empty() && m_mcu->is_jv880)
+    {
+        // append instance number so that multiple instances don't clobber each other's nvram
+        std::filesystem::path nvram_file = m_options.nvram_basefilename;
+        nvram_file                      += std::to_string(m_options.instance_id);
+
+        std::ifstream file(nvram_file, std::ios::binary);
+        if(!file || !EMU_ReadStreamExact(file, m_mcu->nvram, NVRAM_SIZE))
+        {
+            fprintf(stderr, "WARNING: Failed reading NVRAM: %s\n", nvram_file.generic_string().c_str());
+            is_nvram_loaded = false;
+
+            return;
+        }
+        is_nvram_loaded = true;
+    }
+}
+
+void Emulator::WriteNVRAM()
+{
+    // emulator was constructed, but never init
+    if (!m_mcu)
+    {
+        return;
+    }
+
+    if (!m_options.nvram_basefilename.empty() && m_mcu->is_jv880)
+    {
+        // append instance number so that multiple instances don't clobber each other's nvram
+        std::filesystem::path nvram_file = m_options.nvram_basefilename;
+        nvram_file                      += std::to_string(m_options.instance_id);
+
+        std::ofstream file(nvram_file, std::ios::binary);
+        if(!file || !EMU_WriteStreamExact(file, m_mcu->nvram, NVRAM_SIZE))
+        {
+            fprintf(stderr, "WARNING: Failed writing NVRAM: %s\n", nvram_file.generic_string().c_str());
+        }
+    }
 }

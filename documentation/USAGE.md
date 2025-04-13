@@ -181,6 +181,7 @@ Emulator options:
   -r, --reset     gs|gm                         Reset system in GS or GM mode.
   -n, --instances <count>                       Set number of emulator instances.
   --no-lcd                                      Run without LCDs.
+  --nvram <filename>                            Saves and loads NVRAM to/from disk. JV-880 only.
 
 ROM management options:
   -d, --rom-directory <dir>                     Sets the directory to load roms from.
@@ -217,12 +218,23 @@ Emulator options:
   -r, --reset     gs|gm        Send GS or GM reset before rendering.
   -n, --instances <count>      Number of emulators to use (increases effective polyphony, but
                                takes longer to render)
+  --nvram <filename>           Saves and loads NVRAM to/from disk. JV-880 only.
 
 ROM management options:
   -d, --rom-directory <dir>    Sets the directory to load roms from. Romset will be autodetected when
                                not also passing --romset.
   --romset <name>              Sets the romset to load. Same as frontend's romsets without '--'
 ```
+
+### Regarding SRAM and NVRAM
+
+With version 0.5.4, the emulator supports SRAM saving for SC-55mk1, SC-55mk2, JV880, SC-155, SC-155mk2
+and NVRAM read and write support for JV880.
+
+JV880 needs NVRAM file passed via `--nvram`.
+
+Also the file where SRAM and NVRAM will be saved will have a suffix incidicating the corresponding
+emulator instance. Do not that the implementation of JV880 NVRAM has a [bug](https://github.com/jcmoyer/Nuked-SC55/issues/36#issuecomment-2781603485)
 
 ### Regarding Buffer Size
 
