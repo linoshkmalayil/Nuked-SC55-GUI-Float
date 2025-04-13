@@ -348,8 +348,8 @@ void SERIAL_Update(submcu_t& sm)
         return;
     }
 
-    s_handler->SerialRead();
-    s_handler->SerialWrite();
+    s_handler->ReadSerialPort();
+    s_handler->WriteSerialPort();
 }
 
 bool SERIAL_HasData() 
