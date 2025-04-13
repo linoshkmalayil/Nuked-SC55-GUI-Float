@@ -42,6 +42,13 @@
 #include <span>
 #include <vector>
 
+
+Emulator::~Emulator()
+{
+    WriteSRAM();
+    WriteNVRAM();
+}
+
 bool Emulator::Init(const EMU_Options& options)
 {
     m_options = options;
@@ -324,8 +331,10 @@ std::streamsize EMU_ReadStreamUpTo(std::ifstream& s, void* into, std::streamsize
     return s.gcount();
 }
 
-bool Emulator::LoadRoms(Romset romset, MK1version revision, const std::filesystem::path& base_path)
+bool Emulator::LoadRoms(Romset romset, MK1version revision)
 {
+    const std::filesystem::path& base_path = m_options.rom_directory;
+
     std::vector<uint8_t> tempbuf(0x800000);
 
     std::ifstream s_rf[ROM_SET_N_FILES];
@@ -525,20 +534,17 @@ bool Emulator::LoadRoms(Romset romset, MK1version revision, const std::filesyste
         }
     }
 
-    // Read SRAM dump
+    //Initialize empty RAM
     for (int i=0; i<RAM_SIZE; i++)
     {
         m_mcu->ram[i] = 0;
     }
 
-    if(!s_rf[6] || !EMU_ReadStreamExact(s_rf[6], m_mcu->sram, SRAM_SIZE))
+    ReadSRAM();
+
+    if (m_mcu->is_jv880)
     {
-        fprintf(stderr, "WARNING: Failed to read the SRAM. Will be initialized as blank memory.\n");
-        fflush(stderr);
-        for (int i=0; i<SRAM_SIZE; i++)
-        {
-            m_mcu->sram[i] = 0;
-        }
+        ReadNVRAM();
     }
 
     MCU_PatchROM(*m_mcu);
@@ -609,18 +615,80 @@ void Emulator::Step()
     MCU_Step(*m_mcu);
 }
 
-bool Emulator::WriteSRAM(const std::filesystem::path& base_path)
+void Emulator::ReadSRAM()
 {
-    std::filesystem::path sram_path = base_path / roms[(size_t)m_mcu->romset][6];
+    // append instance number so that multiple instances don't clobber each other's sram
+    std::filesystem::path sram_path = m_options.rom_directory / roms[(size_t)m_mcu->romset][6];
+    sram_path                      += std::to_string(m_options.instance_id);
     
-    std::ofstream s_wf = std::ofstream(sram_path.c_str(), std::ios::binary);
-    if(!s_wf || !EMU_WriteStreamExact(s_wf, m_mcu->sram, SRAM_SIZE))
+    std::ifstream s_rf = std::ifstream(sram_path.generic_string().c_str(), std::ios::binary);
+    if(!s_rf || !EMU_ReadStreamExact(s_rf, m_mcu->sram, SRAM_SIZE))
     {
-        fprintf(stderr, "Failed saving SRAM\n");
-        s_wf.close();
-        return false;
+        fprintf(stderr, "WARNING: Failed reading SRAM: %s\n", sram_path.generic_string().c_str());
+        is_sram_loaded = false;
+
+        return;
+    }
+    is_sram_loaded = true;
+}
+
+void Emulator::WriteSRAM()
+{
+    // emulator was constructed, but never init
+    if (!m_mcu)
+    {
+        return;
     }
 
-    s_wf.close();
-    return true;
+    // append instance number so that multiple instances don't clobber each other's sram
+    std::filesystem::path sram_path = m_options.rom_directory / roms[(size_t)m_mcu->romset][6];
+    sram_path                      += std::to_string(m_options.instance_id);
+    
+    std::ofstream s_wf = std::ofstream(sram_path.generic_string().c_str(), std::ios::binary);
+    if(!s_wf || !EMU_WriteStreamExact(s_wf, m_mcu->sram, SRAM_SIZE))
+    {
+        fprintf(stderr, "WARNING: Failed writing SRAM: %s\n", sram_path.generic_string().c_str());
+    }
+}
+
+void Emulator::ReadNVRAM()
+{
+    if (!m_options.nvram_basefilename.empty() && m_mcu->is_jv880)
+    {
+        // append instance number so that multiple instances don't clobber each other's nvram
+        std::filesystem::path nvram_file = m_options.nvram_basefilename;
+        nvram_file                      += std::to_string(m_options.instance_id);
+
+        std::ifstream file(nvram_file, std::ios::binary);
+        if(!file || !EMU_ReadStreamExact(file, m_mcu->nvram, NVRAM_SIZE))
+        {
+            fprintf(stderr, "WARNING: Failed reading NVRAM: %s\n", nvram_file.generic_string().c_str());
+            is_nvram_loaded = false;
+
+            return;
+        }
+        is_nvram_loaded = true;
+    }
+}
+
+void Emulator::WriteNVRAM()
+{
+    // emulator was constructed, but never init
+    if (!m_mcu)
+    {
+        return;
+    }
+
+    if (!m_options.nvram_basefilename.empty() && m_mcu->is_jv880)
+    {
+        // append instance number so that multiple instances don't clobber each other's nvram
+        std::filesystem::path nvram_file = m_options.nvram_basefilename;
+        nvram_file                      += std::to_string(m_options.instance_id);
+
+        std::ofstream file(nvram_file, std::ios::binary);
+        if(!file || !EMU_WriteStreamExact(file, m_mcu->nvram, NVRAM_SIZE))
+        {
+            fprintf(stderr, "WARNING: Failed writing NVRAM: %s\n", nvram_file.generic_string().c_str());
+        }
+    }
 }

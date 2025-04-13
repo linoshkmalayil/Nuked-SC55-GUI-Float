@@ -45,11 +45,17 @@
 
 struct EMU_Options
 {
+    // ID for Multi-Instance emulation. For SRAM and NVRAM saving.
+    size_t instance_id = 0;
+    //Path to ROM directory.
+    std::filesystem::path rom_directory;
     // The backend provided here will receive callbacks from the emulator.
     // If left null, LCD processing will be skipped.
     LCD_Backend* lcd_backend = nullptr;
     // Computer Switch for IO: Serial/MIDI, defaults to MIDI.
     Computerswitch serial_type = Computerswitch::MIDI;
+    // If not empty, nvram will be saved to and loaded from here. JV-880 only.
+    std::filesystem::path nvram_basefilename;
 };
 
 enum class EMU_SystemReset {
@@ -61,6 +67,14 @@ enum class EMU_SystemReset {
 struct Emulator {
 public:
     Emulator() = default;
+
+    virtual ~Emulator();
+ 
+    Emulator& operator=(Emulator&&) = default;
+    Emulator(Emulator&&)            = default;
+
+    Emulator(const Emulator&)            = delete;
+    Emulator& operator=(const Emulator&) = delete;
 
     bool Init(const EMU_Options& options);
 
@@ -79,7 +93,7 @@ public:
     void SetSerialPostCallback(sm_serial_post_callback callback);
     void SetSerialUpdateCallback(sm_serial_update_callback callback);
 
-    bool LoadRoms(Romset romset, MK1version revision, const std::filesystem::path& base_path);
+    bool LoadRoms(Romset romset, MK1version revision = MK1version::NOT_MK1);
 
     void PostMIDI(uint8_t data_byte);
     void PostMIDI(std::span<const uint8_t> data);
@@ -88,7 +102,8 @@ public:
 
     void Step();
 
-    bool WriteSRAM(const std::filesystem::path& base_path);
+    bool IsSRAMLoaded()  { return is_sram_loaded;  }
+    bool IsNVRAMLoaded() { return is_nvram_loaded; }
 
     mcu_t& GetMCU() { return *m_mcu; }
     pcm_t& GetPCM() { return *m_pcm; }
@@ -101,6 +116,15 @@ private:
     std::unique_ptr<lcd_t>       m_lcd;
     std::unique_ptr<pcm_t>       m_pcm;
     EMU_Options                  m_options;
+
+    bool is_sram_loaded  = false;
+    bool is_nvram_loaded = false;
+
+    void ReadNVRAM();
+    void WriteNVRAM();
+
+    void ReadSRAM();
+    void WriteSRAM();
 };
 
 Romset EMU_DetectRomset(const std::filesystem::path& base_path);
