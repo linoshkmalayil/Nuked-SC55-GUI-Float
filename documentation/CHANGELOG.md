@@ -8,10 +8,11 @@ For **FULL CHANGELOG** from please check [jcmoyer/Nuked-SC55/CHANGELOG.md](https
 Jist of changes are follows:
 - Add SRAM read and write support for SC-55mk1, SC-55mk2, JV880, SC-155, SC-155mk2
 - Add NVRAM read and write support for JV880
-- Updated `DEV_SSR`
-- Fix MIDI TX and SERIAL TX
-- SC-55mk2 now has default GS Reset
+- Updated `DEV_SSR` value to be SC-55 accurate
+- Fixed MIDI TX and SERIAL TX
+- SC-55mk2 now has default GS Reset if SRAM read fails
 - Added SDL Application name
+- Added LCD Fade effect
 
 # Version 0.5.3 (2025-04-08)
 
