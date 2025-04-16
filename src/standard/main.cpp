@@ -1376,9 +1376,9 @@ int main(int argc, char *argv[])
     {
         for (size_t i = 0; i < frontend.instances_in_use; ++i)
         {
-            if (!frontend.instances[i].emu.IsSRAMLoaded())
+            if (!frontend.instances[i].emu.IsSRAMLoaded() && params.romset == Romset::MK2)
             {
-                fprintf(stderr, "WARNING: No reset specified with mk2 romset; using gs\n");
+                fprintf(stderr, "WARNING: No reset specified with mk2 romset, defaulting to GS Reset\n");
                 frontend.instances[i].emu.PostSystemReset(EMU_SystemReset::GS_RESET);
             }
         }
