@@ -647,6 +647,8 @@ void FE_Run(FE_Application& fe)
     for (size_t i = 0; i < fe.instances_in_use; ++i)
     {
         fe.instances[i].running = false;
+        // Quick fix on preventing the LCD_SDL_Backend::Stop() from segfaulting (FIXME)
+        fe.instances[i].sdl_lcd->Stop();
         fe.instances[i].thread.join();
     }
 }
@@ -1376,9 +1378,9 @@ int main(int argc, char *argv[])
     {
         for (size_t i = 0; i < frontend.instances_in_use; ++i)
         {
-            if (!frontend.instances[i].emu.IsSRAMLoaded())
+            if (!frontend.instances[i].emu.IsSRAMLoaded() && params.romset == Romset::MK2)
             {
-                fprintf(stderr, "WARNING: No reset specified with mk2 romset; using gs\n");
+                fprintf(stderr, "WARNING: No reset specified with mk2 romset, defaulting to GS Reset\n");
                 frontend.instances[i].emu.PostSystemReset(EMU_SystemReset::GS_RESET);
             }
         }

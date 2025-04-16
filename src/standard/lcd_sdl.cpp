@@ -196,6 +196,40 @@ void LCD_SDL_Backend::Stop()
 
 void LCD_SDL_Backend::HandleEvent(const SDL_Event& sdl_event)
 {
+    // Do not respond if not acting on a particular window
+    switch (sdl_event.type)
+    {
+        case SDL_MOUSEBUTTONUP:
+        case SDL_MOUSEBUTTONDOWN:
+        case SDL_MOUSEMOTION:        
+        case SDL_MOUSEWHEEL:        
+        case SDL_KEYDOWN:
+        case SDL_KEYUP:
+            if (sdl_event.key.windowID != SDL_GetWindowID(m_window))
+            {
+                return;
+            }
+            break;
+        case SDL_WINDOWEVENT:
+            if (sdl_event.window.windowID != SDL_GetWindowID(m_window))
+            {
+                return;
+            }
+            break;
+        default:
+            break;
+    }
+
+    // JV880 Encoder dial
+    if (sdl_event.type == SDL_KEYDOWN && m_lcd->mcu->romset == Romset::JV880)
+    {
+        if (sdl_event.key.keysym.scancode == SDL_SCANCODE_COMMA)
+            MCU_EncoderTrigger(*m_lcd->mcu, 0);
+        if (sdl_event.key.keysym.scancode == SDL_SCANCODE_PERIOD)
+            MCU_EncoderTrigger(*m_lcd->mcu, 1);
+    }
+
+    // GUI Controls for SC-55
     if ((m_lcd->mcu->romset == Romset::MK1 || m_lcd->mcu->romset == Romset::MK2) && background_enabled) 
     {
         switch (sdl_event.type)
@@ -277,33 +311,7 @@ void LCD_SDL_Backend::HandleEvent(const SDL_Event& sdl_event)
         }
     }
 
-    switch (sdl_event.type)
-    {
-    case SDL_KEYDOWN:
-    case SDL_KEYUP:
-        if (sdl_event.key.windowID != SDL_GetWindowID(m_window))
-        {
-            return;
-        }
-        break;
-    case SDL_WINDOWEVENT:
-        if (sdl_event.window.windowID != SDL_GetWindowID(m_window))
-        {
-            return;
-        }
-        break;
-    default:
-        break;
-    }
-
-    if (sdl_event.type == SDL_KEYDOWN)
-    {
-        if (sdl_event.key.keysym.scancode == SDL_SCANCODE_COMMA)
-            MCU_EncoderTrigger(*m_lcd->mcu, 0);
-        if (sdl_event.key.keysym.scancode == SDL_SCANCODE_PERIOD)
-            MCU_EncoderTrigger(*m_lcd->mcu, 1);
-    }
-
+    // Keyboard control
     switch (sdl_event.type)
     {
         case SDL_WINDOWEVENT:

@@ -3,6 +3,14 @@
 This fork is dependent on the changes on the fork [jcmoyer/Nuked-SC55](https://github.com/jcmoyer/Nuked-SC55)
 For **FULL CHANGELOG** from please check [jcmoyer/Nuked-SC55/CHANGELOG.md](https://github.com/jcmoyer/Nuked-SC55/blob/master/CHANGELOG.md)
 
+# Version 0.5.5 (2025-04-16)
+
+Jist of changes are follows:
+- Fixed issue with Windows Builds crashing with Segmentation Fault when exiting
+- Fixed GUI to have instance based interaction instead of global
+- Fixed GS Reset to check for MK2 model
+- Reworked icon (Added SVG and ICO formats)
+
 # Version 0.5.4 (2025-04-14)
 
 Jist of changes are follows:
