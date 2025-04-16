@@ -647,6 +647,8 @@ void FE_Run(FE_Application& fe)
     for (size_t i = 0; i < fe.instances_in_use; ++i)
     {
         fe.instances[i].running = false;
+        // Quick fix on preventing the LCD_SDL_Backend::Stop() from segfaulting (FIXME)
+        fe.instances[i].sdl_lcd->Stop();
         fe.instances[i].thread.join();
     }
 }
