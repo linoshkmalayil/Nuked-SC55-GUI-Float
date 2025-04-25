@@ -209,5 +209,5 @@ target_enable_conversion_warnings(nuked-sc55-render)
 # Installables
 #==============================================================================
 install(TARGETS nuked-sc55-render)
-install(FILES data/sc55mkII_background.bmp DESTINATION ${CMAKE_INSTALL_DATADIR}/nuked-sc55)
-install(FILES data/SC55-icon.ico DESTINATION ${CMAKE_INSTALL_DATADIR}/nuked-sc55)
+install(FILES data/sc55_background.bmp DESTINATION ${CMAKE_INSTALL_DATADIR}/nuked-sc55)
+install(FILES data/nuked-icon-ico.ico DESTINATION ${CMAKE_INSTALL_DATADIR}/nuked-sc55)

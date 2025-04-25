@@ -1,4 +1,5 @@
 #include "lcd_sdl.h"
+#include "path_util.h"
 #include "emu.h"
 #include "mcu.h"
 #include <string>
@@ -122,7 +123,7 @@ bool LCD_SDL_Backend::Start(lcd_t& lcd)
 
     if(m_lcd->mcu->romset == Romset::MK1 || m_lcd->mcu->romset == Romset::MK2)
     {
-        m_image = SDL_LoadBMP("sc55_background.bmp");
+        m_image = SDL_LoadBMP((const char*)(base_path / "sc55_background.bmp").u8string().c_str());
         if(m_image)
         {
             background_enabled = true;

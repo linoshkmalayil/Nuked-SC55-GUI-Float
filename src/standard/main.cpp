@@ -57,6 +57,8 @@
 #include <Windows.h>
 #endif
 
+std::filesystem::path base_path = P_GetProcessPath().parent_path();
+
 template <typename ElemT>
 size_t FE_CalcRingbufferSizeBytes(uint32_t buffer_size, uint32_t buffer_count)
 {
@@ -1288,8 +1290,6 @@ int main(int argc, char *argv[])
     FE_FixupParameters(params);
 
     FE_Application frontend;
-
-    std::filesystem::path base_path = P_GetProcessPath().parent_path();
 
     if (std::filesystem::exists(base_path / "../share/nuked-sc55"))
         base_path = base_path / "../share/nuked-sc55";
