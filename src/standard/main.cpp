@@ -499,7 +499,7 @@ void FE_SetMIDIOutCallback(FE_Application& fe)
 {
     for(size_t i = 0; i < fe.instances_in_use; i++)
     {
-        fe.instances[i].emu.SetMidiCallback(MIDI_SetMIDIOutCallBack);
+        fe.instances[i].emu.SetMidiOutCallback(MIDI_MIDIOutCallBack);
     }
 }
 

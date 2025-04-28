@@ -394,9 +394,9 @@ void MIDI_PostSysExMessage(uint8_t *message, int len) {
     }
 }
 
-void MIDI_SetMIDIOutCallBack(void* userdata, uint8_t* message, int len)
+void MIDI_MIDIOutCallBack(void* userdata, uint8_t* message, int len)
 {
     (void)userdata;
-    MIDI_PostShortMessage(message, len);
+    MIDI_PostSysExMessage(message, len);
 
 }

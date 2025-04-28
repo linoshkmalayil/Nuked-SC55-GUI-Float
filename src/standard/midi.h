@@ -43,4 +43,4 @@ void MIDI_Quit(void);
 void MIDI_PrintDevices();
 void MIDI_PostShortMessage(uint8_t *message, int len);
 void MIDI_PostSysExMessage(uint8_t *message, int len);
-void MIDI_SetMIDIOutCallBack(void* userdata, uint8_t* message, int len);
+void MIDI_MIDIOutCallBack(void* userdata, uint8_t* message, int len);

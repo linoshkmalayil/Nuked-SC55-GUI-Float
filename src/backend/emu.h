@@ -86,7 +86,7 @@ public:
     void StopLCD();
 
     void SetSampleCallback(mcu_sample_callback callback, void* userdata);
-    void SetMidiCallback(mcu_midi_callback callback);
+    void SetMidiOutCallback(mcu_midiout_callback callback);
 
     void SetSerialHasDataCallback(sm_serial_hasdata_callback callback);
     void SetSerialReadCallback(sm_serial_read_callback callback);
