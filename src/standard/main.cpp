@@ -187,6 +187,12 @@ void FE_RouteMIDI(FE_Application& fe, std::span<const uint8_t> bytes)
         return;
     }
 
+    for (auto byte:bytes)
+    {
+        fprintf(stderr, "%02x ", byte);
+    }
+    fprintf(stderr, "\n");
+
     uint8_t first = bytes[0];
 
     if (first < 0x80)
@@ -205,6 +211,55 @@ void FE_RouteMIDI(FE_Application& fe, std::span<const uint8_t> bytes)
     else
     {
         FE_SendMIDI(fe, channel % fe.instances_in_use, bytes);
+    }
+}
+
+void FE_SendSerial(FE_Application& fe, size_t n, std::span<const uint8_t> bytes)
+{
+    fe.instances[n].emu.PostSerial(bytes);
+}
+
+void FE_BroadcastSerial(FE_Application& fe, std::span<const uint8_t> bytes)
+{
+    for (size_t i = 0; i < fe.instances_in_use; ++i)
+    {
+        FE_SendSerial(fe, i, bytes);
+    }
+}
+
+void FE_RouteSerial(FE_Application& fe)
+{
+    std::span<const uint8_t> bytes = SERIAL_ReadData();
+
+    if (bytes.size() == 0)
+    {
+        return;
+    }
+
+    uint8_t first = bytes[0];
+
+    /*for (auto byte:bytes)
+    {
+        fprintf(stderr, "%02x ", byte);
+    }
+    fprintf(stderr, "\n");*/
+
+    if (first < 0x80)
+    {
+        fprintf(stderr, "FE_RouteSerial received data byte %02x\n", first);
+        return;
+    }
+
+    const bool is_sysex   = first == 0xF0;
+    const uint8_t channel = first  & 0x0F;
+
+    if (is_sysex)
+    {
+        FE_BroadcastSerial(fe, bytes);
+    }
+    else
+    {
+        FE_SendSerial(fe, channel % fe.instances_in_use, bytes);
     }
 }
 
@@ -509,10 +564,7 @@ void FE_SetSerialCallback(FE_Application& fe)
 {
     for(size_t i = 0; i < fe.instances_in_use; i++)
     {
-        fe.instances[i].emu.SetSerialHasDataCallback(SERIAL_HasData);
-        fe.instances[i].emu.SetSerialReadCallback(SERIAL_ReadUART);
         fe.instances[i].emu.SetSerialPostCallback(SERIAL_PostUART);
-        fe.instances[i].emu.SetSerialUpdateCallback(SERIAL_Update);
     }
 }
 
@@ -607,6 +659,9 @@ void FE_EventLoop(FE_Application& fe)
                 }
             }
         }
+        
+        SERIAL_Update();
+        FE_RouteSerial(fe);
 
         SDL_Delay(15);
     }

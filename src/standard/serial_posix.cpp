@@ -172,6 +172,7 @@ bool SERIAL_Init(FE_Application& fe, std::string_view serial_port)
     if (!s_handler->SerialOpen(serial_port))
     {
         delete s_handler;
+        s_handler = nullptr;
         return false;
     }
 
@@ -181,10 +182,8 @@ bool SERIAL_Init(FE_Application& fe, std::string_view serial_port)
     return true;
 }
 
-void SERIAL_Update(submcu_t& sm)
+void SERIAL_Update()
 {
-    (void)sm;
-
     if (!s_handler || !s_handler->IsSerialInit())
     {
         return;
@@ -223,24 +222,70 @@ bool SERIAL_HasData()
     return !read_buffer.empty();
 }
 
-uint8_t SERIAL_ReadUART()
+std::span<uint8_t> Extract_midi_buffer()
+{
+    static std::vector<uint8_t> midi_buffer;
+    static size_t expected_size;
+
+    if (read_buffer[0] == 0xF0)
+    {
+        uint8_t byte_count = 0;
+        while (read_buffer[byte_count++]!=0xF7)
+            midi_buffer.push_back(read_buffer[byte_count-1]);
+
+        std::span<uint8_t> sysex_data = midi_buffer;
+        read_buffer.erase(read_buffer.begin(), read_buffer.begin()+byte_count);
+        midi_buffer.clear();
+
+        return sysex_data;
+    }
+
+    if (midi_buffer.empty() && (read_buffer[0] >= 0xC0 && read_buffer[0] <= 0XDF))
+        expected_size = 2;
+    else if(midi_buffer.empty() && read_buffer[0] >= 0x80)
+        expected_size = 3;
+
+    size_t remaining_size = expected_size - midi_buffer.size();
+    if (remaining_size)
+    {
+        for (size_t i=0; i<remaining_size; i++)
+        {
+            if (read_buffer.cbegin() != read_buffer.cend())
+            {
+                midi_buffer.push_back(*read_buffer.cbegin());
+                read_buffer.erase(read_buffer.begin());
+            }
+                
+        }
+    }
+    
+    if(midi_buffer.size() == expected_size)
+    {
+        std::span<uint8_t> midi_data = midi_buffer;
+        midi_buffer.clear();
+
+        return midi_data;
+    }
+
+    return std::span<uint8_t>();
+}
+
+std::span<uint8_t> SERIAL_ReadData()
 {
     if (!s_handler || !s_handler->IsSerialInit())
     {
-        return 0;
+        return std::span<uint8_t>();
     }
 
     if (!read_buffer.empty())
     {
-        uint8_t read_byte = *read_buffer.cbegin();
-        read_buffer.erase(read_buffer.begin());
-
-        return read_byte;
+        std::span<uint8_t> serial_data = Extract_midi_buffer();   
+        return serial_data;
     }
     else
     {
         s_handler->SetReadPending(false);
-        return 0;
+        return std::span<uint8_t>();
     }
 }
 

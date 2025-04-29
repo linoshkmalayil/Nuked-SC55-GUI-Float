@@ -109,21 +109,9 @@ void Emulator::SetMidiOutCallback(mcu_midiout_callback callback)
     m_mcu->midiout_callback = callback;
 }
 
-void Emulator::SetSerialHasDataCallback(sm_serial_hasdata_callback callback)
-{
-    m_sm->serial_hasdata_callback = callback;
-}
-void Emulator::SetSerialReadCallback(sm_serial_read_callback callback)
-{
-    m_sm->serial_read_callback = callback;
-}
 void Emulator::SetSerialPostCallback(sm_serial_post_callback callback)
 {
     m_sm->serial_post_callback = callback;
-}
-void Emulator::SetSerialUpdateCallback(sm_serial_update_callback callback)
-{
-    m_sm->serial_update_callback = callback;
 }
 
 const char* rs_name[(size_t)ROMSET_COUNT] = {
@@ -585,6 +573,19 @@ void Emulator::PostMIDI(std::span<const uint8_t> data)
     for (uint8_t byte : data)
     {
         PostMIDI(byte);
+    }
+}
+
+void Emulator::PostSerial(uint8_t byte)
+{
+    SM_PostSerial(*m_sm, byte);
+}
+
+void Emulator::PostSerial(std::span<const uint8_t> data)
+{
+    for(auto byte : data)
+    {
+        PostSerial(byte);
     }
 }
 

@@ -33,6 +33,7 @@
  */
 #pragma once
 #include <cstdint>
+#include <vector>
 
 struct mcu_t;
 struct submcu_t;
@@ -87,6 +88,8 @@ struct submcu_t {
     uint8_t uart_rx_gotbyte        = 0;
     uint8_t uart_serial_rx_gotbyte = 0;
 
+    std::vector<uint8_t> serial_buffer;
+
     sm_serial_hasdata_callback serial_hasdata_callback = SM_SerialHasDataCallback;
     sm_serial_read_callback serial_read_callback       = SM_SerialReadCallback;
     sm_serial_post_callback serial_post_callback       = SM_SerialPostCallback;
@@ -99,3 +102,4 @@ void SM_Update(submcu_t& sm, uint64_t cycles);
 void SM_SysWrite(submcu_t& sm, uint32_t address, uint8_t data);
 uint8_t SM_SysRead(submcu_t& sm, uint32_t address);
 void SM_PostUART(submcu_t& sm, uint8_t data);
+void SM_PostSerial(submcu_t& sm, uint8_t byte);
