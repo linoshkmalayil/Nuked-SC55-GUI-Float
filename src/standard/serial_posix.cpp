@@ -222,15 +222,15 @@ bool SERIAL_HasData()
     return !read_buffer.empty();
 }
 
-std::span<uint8_t> Extract_midi_buffer()
+std::span<uint8_t> ExtractMIDIBuffer()
 {
     static std::vector<uint8_t> midi_buffer;
     static size_t expected_size;
 
-    if (read_buffer[0] == 0xF0)
+    if (*read_buffer.cbegin() == 0xF0)
     {
         uint8_t byte_count = 0;
-        while (read_buffer[byte_count++]!=0xF7)
+        while (*(read_buffer.cbegin() + byte_count++) != 0xF7)
             midi_buffer.push_back(read_buffer[byte_count-1]);
 
         std::span<uint8_t> sysex_data = midi_buffer;
@@ -240,9 +240,9 @@ std::span<uint8_t> Extract_midi_buffer()
         return sysex_data;
     }
 
-    if (midi_buffer.empty() && (read_buffer[0] >= 0xC0 && read_buffer[0] <= 0XDF))
+    if (midi_buffer.empty() && (*read_buffer.cbegin() >= 0xC0 && *read_buffer.cbegin() <= 0XDF))
         expected_size = 2;
-    else if(midi_buffer.empty() && read_buffer[0] >= 0x80)
+    else if(midi_buffer.empty() && *read_buffer.cbegin() >= 0x80)
         expected_size = 3;
 
     size_t remaining_size = expected_size - midi_buffer.size();
@@ -279,7 +279,7 @@ std::span<uint8_t> SERIAL_ReadData()
 
     if (!read_buffer.empty())
     {
-        std::span<uint8_t> serial_data = Extract_midi_buffer();   
+        std::span<uint8_t> serial_data = ExtractMIDIBuffer();   
         return serial_data;
     }
     else

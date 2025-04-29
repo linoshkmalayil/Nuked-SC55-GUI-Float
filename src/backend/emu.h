@@ -98,6 +98,7 @@ public:
     void PostSerial(std::span<const uint8_t> data);
 
     void PostSystemReset(EMU_SystemReset reset);
+    void PostSystemResetSerial(EMU_SystemReset reset);
 
     void Step();
 

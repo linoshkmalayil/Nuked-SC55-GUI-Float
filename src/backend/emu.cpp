@@ -611,6 +611,25 @@ void Emulator::PostSystemReset(EMU_SystemReset reset)
     }
 }
 
+void Emulator::PostSystemResetSerial(EMU_SystemReset reset)
+{
+    if (m_mcu->revision == MK1version::REVISION_SC55_100 || m_mcu->revision == MK1version::REVISION_SC55_110)
+        fprintf(stderr, "WARNING: GM Reset not supported by SC-55mk1 verion 1.00 & 1.10, will be interpreted as GS Reset\n");
+
+    switch (reset)
+    {
+        case EMU_SystemReset::NONE:
+            // explicitly do nothing
+            break;
+        case EMU_SystemReset::GS_RESET:
+            PostSerial(GS_RESET_SEQ);
+            break;
+        case EMU_SystemReset::GM_RESET:
+            PostSerial(GM_RESET_SEQ);
+            break;
+    }
+}
+
 void Emulator::Step()
 {
     MCU_Step(*m_mcu);

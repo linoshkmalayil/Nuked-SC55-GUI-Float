@@ -238,11 +238,11 @@ void FE_RouteSerial(FE_Application& fe)
 
     uint8_t first = bytes[0];
 
-    /*for (auto byte:bytes)
+    for (auto byte:bytes)
     {
         fprintf(stderr, "%02x ", byte);
     }
-    fprintf(stderr, "\n");*/
+    fprintf(stderr, "\n");
 
     if (first < 0x80)
     {
@@ -1424,9 +1424,19 @@ int main(int argc, char *argv[])
 
     if (params.reset)
     {
-        for (size_t i = 0; i < frontend.instances_in_use; ++i)
+        if(params.serial_type != Computerswitch::MIDI)
         {
-            frontend.instances[i].emu.PostSystemReset(*params.reset);
+            for (size_t i = 0; i < frontend.instances_in_use; ++i)
+            {
+                frontend.instances[i].emu.PostSystemResetSerial(*params.reset);
+            }    
+        }
+        else
+        {
+            for (size_t i = 0; i < frontend.instances_in_use; ++i)
+            {
+                frontend.instances[i].emu.PostSystemReset(*params.reset);
+            }
         }
     }
     else
