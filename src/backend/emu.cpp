@@ -104,9 +104,9 @@ void Emulator::SetSampleCallback(mcu_sample_callback callback, void* userdata)
     m_mcu->sample_callback   = callback;
 }
 
-void Emulator::SetMidiCallback(mcu_midi_callback callback)
+void Emulator::SetMidiOutCallback(mcu_midiout_callback callback)
 {
-    m_mcu->midi_callback = callback;
+    m_mcu->midiout_callback = callback;
 }
 
 void Emulator::SetSerialHasDataCallback(sm_serial_hasdata_callback callback)

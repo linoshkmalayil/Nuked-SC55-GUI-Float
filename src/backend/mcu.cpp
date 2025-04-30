@@ -796,7 +796,7 @@ void MCU_DefaultSampleCallback(void* userdata, const AudioFrame<int32_t>& frame)
     (void)frame;
 }
 
-void MCU_DefaultMidiCallback(void* userdata, uint8_t* message, int len)
+void MCU_DefaultMidiOutCallback(void* userdata, uint8_t* message, int len)
 {
     (void)userdata;
     (void)message;
@@ -926,7 +926,7 @@ void MCU_UpdateUART(mcu_t& mcu)
         if (*(mcu.uart_tx_ptr - 1) == 0xF7) 
         {
             len = mcu.uart_tx_ptr - tx_buffer;
-            mcu.midi_callback(mcu.callback_userdata, tx_buffer, len);
+            mcu.midiout_callback(mcu.callback_userdata, tx_buffer, len);
             mcu.uart_tx_ptr = mcu.uart_tx_buffer;
         }
     } 
@@ -951,7 +951,7 @@ void MCU_UpdateUART(mcu_t& mcu)
         }
         if (mcu.uart_tx_ptr - tx_buffer >= len) 
         {
-            mcu.midi_callback(mcu.callback_userdata, tx_buffer, len);
+            mcu.midiout_callback(mcu.callback_userdata, tx_buffer, len);
             mcu.uart_tx_ptr = mcu.uart_tx_buffer;
         }
     }
