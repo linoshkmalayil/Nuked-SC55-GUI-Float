@@ -16,10 +16,13 @@
 std::vector<uint8_t> read_buffer;
 std::vector<uint8_t> write_buffer;
 
+std::vector<std::span<uint8_t>> midi_data;
+
 std::thread linux_io_thread;
 std::mutex  linux_io_mutex;
 bool        thread_run = false;
 void        Linux_IO_Serial();
+void        ExtractMIDIBuffer();
 
 class Serial_Handler
 {
@@ -210,6 +213,8 @@ void SERIAL_Update()
         s_handler->Write(write_buffer);
         s_handler->SetWritePending(false);
     }
+
+    ExtractMIDIBuffer();
 }
 
 bool SERIAL_HasData()
@@ -222,8 +227,11 @@ bool SERIAL_HasData()
     return !read_buffer.empty();
 }
 
-std::span<uint8_t> ExtractMIDIBuffer()
+void ExtractMIDIBuffer()
 {
+    if (read_buffer.empty())
+        return;
+
     static std::vector<uint8_t> midi_buffer;
     static size_t expected_size;
 
@@ -233,11 +241,11 @@ std::span<uint8_t> ExtractMIDIBuffer()
         while (*(read_buffer.cbegin() + byte_count++) != 0xF7)
             midi_buffer.push_back(read_buffer[byte_count-1]);
 
-        std::span<uint8_t> sysex_data = midi_buffer;
+        std::span<uint8_t> sysex_message = midi_buffer;
         read_buffer.erase(read_buffer.begin(), read_buffer.begin()+byte_count);
         midi_buffer.clear();
 
-        return sysex_data;
+        midi_data.push_back(sysex_message);
     }
 
     if (midi_buffer.empty() && (*read_buffer.cbegin() >= 0xC0 && *read_buffer.cbegin() <= 0XDF))
@@ -255,19 +263,16 @@ std::span<uint8_t> ExtractMIDIBuffer()
                 midi_buffer.push_back(*read_buffer.cbegin());
                 read_buffer.erase(read_buffer.begin());
             }
-                
         }
     }
     
     if(midi_buffer.size() == expected_size)
     {
-        std::span<uint8_t> midi_data = midi_buffer;
+        std::span<uint8_t> midi_message = midi_buffer;
         midi_buffer.clear();
 
-        return midi_data;
+        midi_data.push_back(midi_message);
     }
-
-    return std::span<uint8_t>();
 }
 
 std::span<uint8_t> SERIAL_ReadData()
@@ -277,9 +282,11 @@ std::span<uint8_t> SERIAL_ReadData()
         return std::span<uint8_t>();
     }
 
-    if (!read_buffer.empty())
+    if (!midi_data.empty())
     {
-        std::span<uint8_t> serial_data = ExtractMIDIBuffer();   
+        std::span<uint8_t> serial_data = *midi_data.cbegin();
+        midi_data.erase(midi_data.cbegin());
+
         return serial_data;
     }
     else

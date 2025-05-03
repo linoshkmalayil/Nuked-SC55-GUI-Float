@@ -618,7 +618,7 @@ bool FE_HandleGlobalEvent(FE_Application& fe, const SDL_Event& ev)
     }
 }
 
-void FE_EventLoop(FE_Application& fe)
+void FE_EventLoop(FE_Application& fe, bool Is_Serial = false)
 {
     while (fe.running)
     {
@@ -660,14 +660,17 @@ void FE_EventLoop(FE_Application& fe)
             }
         }
         
-        SERIAL_Update();
-        FE_RouteSerial(fe);
+        if (Is_Serial)
+        {
+            SERIAL_Update();
+            FE_RouteSerial(fe);
+        }
 
         SDL_Delay(15);
     }
 }
 
-void FE_Run(FE_Application& fe)
+void FE_Run(FE_Application& fe, bool Is_Serial = false)
 {
     fe.running = true;
 
@@ -699,7 +702,7 @@ void FE_Run(FE_Application& fe)
         }
     }
 
-    FE_EventLoop(fe);
+    FE_EventLoop(fe, Is_Serial);
 
     for (size_t i = 0; i < fe.instances_in_use; ++i)
     {
@@ -1453,7 +1456,10 @@ int main(int argc, char *argv[])
 
     FE_PrintControls(params.romset);
 
-    FE_Run(frontend);
+    if (params.serial_type != Computerswitch::MIDI)
+        FE_Run(frontend, true);
+    else
+        FE_Run(frontend, false);
 
     FE_Quit(frontend);
 

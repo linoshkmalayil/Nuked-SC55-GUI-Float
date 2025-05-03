@@ -1465,9 +1465,10 @@ void SM_UpdateUART(submcu_t& sm)
     mcu.uart_rx_delay  = sm.cycles + 3000 * 4;
 }
 
-void SM_PostSerial(submcu_t& sm, uint8_t byte)
+void SM_PostSerial(submcu_t& sm, uint8_t data)
 {
-    sm.serial_buffer.push_back(byte);
+    sm.serial_buffer[sm.serial_write_ptr] = data;
+    sm.serial_write_ptr = (sm.serial_write_ptr + 1) % sm.serial_buffer_size;
 }
 
 void SM_UpdateSerial(submcu_t& sm)
@@ -1475,7 +1476,7 @@ void SM_UpdateSerial(submcu_t& sm)
     if((sm.device_mode[SM_DEV_UART1_CTRL]&4) == 0)
         return;
 
-    if(sm.serial_buffer.empty()) //No byte
+    if(sm.serial_read_ptr == sm.serial_write_ptr) //No byte
         return;
 
     if(sm.uart_serial_rx_gotbyte)
@@ -1484,8 +1485,8 @@ void SM_UpdateSerial(submcu_t& sm)
     if(sm.cycles < sm.mcu->uart_serial_rx_delay)
         return;
 
-    sm.mcu->uart_serial_rx_byte         = *sm.serial_buffer.cbegin();
-    sm.serial_buffer.erase(sm.serial_buffer.begin());
+    sm.mcu->uart_serial_rx_byte         = sm.serial_buffer[sm.serial_read_ptr];
+    sm.serial_read_ptr = (sm.serial_read_ptr + 1) % sm.serial_buffer_size;
 
     sm.uart_serial_rx_gotbyte           = 1;
     sm.device_mode[SM_DEV_INT_REQUEST] |= 0x80;
@@ -1514,24 +1515,7 @@ void SM_Update(submcu_t& sm, uint64_t cycles)
     }
 }
 
-bool SM_SerialHasDataCallback()
-{
-    return false;
-}
-
-uint8_t SM_SerialReadCallback()
-{
-    return 0;
-}
-
 void SM_SerialPostCallback(uint8_t data)
 {
     (void)data;
-}
-
-void SM_SerialUpdateCallback(submcu_t& sm)
-{
-    (void)sm;
-    
-    return;
 }
