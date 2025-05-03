@@ -790,6 +790,7 @@ enum class FE_ParseError
     ASIOSampleRateOutOfRange,
     InvalidRevision,
     SerialTypeInvalid,
+    SerialInstanceInvalid,
     ResetInvalid,
 };
 
@@ -821,6 +822,8 @@ const char* FE_ParseErrorStr(FE_ParseError err)
             return "ASIO sample rate out of range";
         case FE_ParseError::SerialTypeInvalid:
             return "Serial Type Invalid";
+        case FE_ParseError::SerialInstanceInvalid:
+            return "Multiple Instances not supported with Serial Mode";
         case FE_ParseError::ResetInvalid:
             return "Reset invalid (should be none, gs, or gm)";
     }
@@ -999,6 +1002,11 @@ FE_ParseError FE_ParseCommandLine(int argc, char* argv[], FE_Parameters& result)
             {
                 return FE_ParseError::InstancesOutOfRange;
             }
+
+            if (result.serial_type != Computerswitch::MIDI && result.instances > 1)
+            {
+                return FE_ParseError::SerialInstanceInvalid;
+            }
         }
         else if (reader.Any("--no-lcd"))
         {
@@ -1163,7 +1171,7 @@ Serial Port options:
 
 Emulator options:
   -r, --reset     none|gs|gm                    Reset system in GS or GM mode. (No GM in MK1 1.00 & 1.10)
-  -n, --instances <count>                       Set number of emulator instances.
+  -n, --instances <count>                       Set number of emulator instances. (MIDI IO only)
   --no-lcd                                      Run without LCDs.
   --nvram <filename>                            Saves and loads NVRAM to/from disk. JV-880 only.
 
