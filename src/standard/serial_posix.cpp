@@ -16,10 +16,13 @@
 std::vector<uint8_t> read_buffer;
 std::vector<uint8_t> write_buffer;
 
+std::vector<std::span<uint8_t>> midi_data;
+
 std::thread linux_io_thread;
 std::mutex  linux_io_mutex;
 bool        thread_run = false;
 void        Linux_IO_Serial();
+void        ExtractMIDIBuffer();
 
 class Serial_Handler
 {
@@ -172,6 +175,7 @@ bool SERIAL_Init(FE_Application& fe, std::string_view serial_port)
     if (!s_handler->SerialOpen(serial_port))
     {
         delete s_handler;
+        s_handler = nullptr;
         return false;
     }
 
@@ -181,10 +185,8 @@ bool SERIAL_Init(FE_Application& fe, std::string_view serial_port)
     return true;
 }
 
-void SERIAL_Update(submcu_t& sm)
+void SERIAL_Update()
 {
-    (void)sm;
-
     if (!s_handler || !s_handler->IsSerialInit())
     {
         return;
@@ -211,6 +213,8 @@ void SERIAL_Update(submcu_t& sm)
         s_handler->Write(write_buffer);
         s_handler->SetWritePending(false);
     }
+
+    ExtractMIDIBuffer();
 }
 
 bool SERIAL_HasData()
@@ -223,24 +227,72 @@ bool SERIAL_HasData()
     return !read_buffer.empty();
 }
 
-uint8_t SERIAL_ReadUART()
+void ExtractMIDIBuffer()
+{
+    if (read_buffer.empty())
+        return;
+
+    static std::vector<uint8_t> midi_buffer;
+    static size_t expected_size;
+
+    if (*read_buffer.cbegin() == 0xF0)
+    {
+        uint8_t byte_count = 0;
+        while (*(read_buffer.cbegin() + byte_count++) != 0xF7)
+            midi_buffer.push_back(read_buffer[byte_count-1]);
+
+        std::span<uint8_t> sysex_message = midi_buffer;
+        read_buffer.erase(read_buffer.begin(), read_buffer.begin()+byte_count);
+        midi_buffer.clear();
+
+        midi_data.push_back(sysex_message);
+    }
+
+    if (midi_buffer.empty() && (*read_buffer.cbegin() >= 0xC0 && *read_buffer.cbegin() <= 0XDF))
+        expected_size = 2;
+    else if(midi_buffer.empty() && *read_buffer.cbegin() >= 0x80)
+        expected_size = 3;
+
+    size_t remaining_size = expected_size - midi_buffer.size();
+    if (remaining_size)
+    {
+        for (size_t i=0; i<remaining_size; i++)
+        {
+            if (read_buffer.cbegin() != read_buffer.cend())
+            {
+                midi_buffer.push_back(*read_buffer.cbegin());
+                read_buffer.erase(read_buffer.begin());
+            }
+        }
+    }
+    
+    if(midi_buffer.size() == expected_size)
+    {
+        std::span<uint8_t> midi_message = midi_buffer;
+        midi_buffer.clear();
+
+        midi_data.push_back(midi_message);
+    }
+}
+
+std::span<uint8_t> SERIAL_ReadData()
 {
     if (!s_handler || !s_handler->IsSerialInit())
     {
-        return 0;
+        return std::span<uint8_t>();
     }
 
-    if (!read_buffer.empty())
+    if (!midi_data.empty())
     {
-        uint8_t read_byte = *read_buffer.cbegin();
-        read_buffer.erase(read_buffer.begin());
+        std::span<uint8_t> serial_data = *midi_data.cbegin();
+        midi_data.erase(midi_data.cbegin());
 
-        return read_byte;
+        return serial_data;
     }
     else
     {
         s_handler->SetReadPending(false);
-        return 0;
+        return std::span<uint8_t>();
     }
 }
 

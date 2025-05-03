@@ -187,6 +187,12 @@ void FE_RouteMIDI(FE_Application& fe, std::span<const uint8_t> bytes)
         return;
     }
 
+    for (auto byte:bytes)
+    {
+        fprintf(stderr, "%02x ", byte);
+    }
+    fprintf(stderr, "\n");
+
     uint8_t first = bytes[0];
 
     if (first < 0x80)
@@ -205,6 +211,55 @@ void FE_RouteMIDI(FE_Application& fe, std::span<const uint8_t> bytes)
     else
     {
         FE_SendMIDI(fe, channel % fe.instances_in_use, bytes);
+    }
+}
+
+void FE_SendSerial(FE_Application& fe, size_t n, std::span<const uint8_t> bytes)
+{
+    fe.instances[n].emu.PostSerial(bytes);
+}
+
+void FE_BroadcastSerial(FE_Application& fe, std::span<const uint8_t> bytes)
+{
+    for (size_t i = 0; i < fe.instances_in_use; ++i)
+    {
+        FE_SendSerial(fe, i, bytes);
+    }
+}
+
+void FE_RouteSerial(FE_Application& fe)
+{
+    std::span<const uint8_t> bytes = SERIAL_ReadData();
+
+    if (bytes.size() == 0)
+    {
+        return;
+    }
+
+    uint8_t first = bytes[0];
+
+    for (auto byte:bytes)
+    {
+        fprintf(stderr, "%02x ", byte);
+    }
+    fprintf(stderr, "\n");
+
+    if (first < 0x80)
+    {
+        fprintf(stderr, "FE_RouteSerial received data byte %02x\n", first);
+        return;
+    }
+
+    const bool is_sysex   = first == 0xF0;
+    const uint8_t channel = first  & 0x0F;
+
+    if (is_sysex)
+    {
+        FE_BroadcastSerial(fe, bytes);
+    }
+    else
+    {
+        FE_SendSerial(fe, channel % fe.instances_in_use, bytes);
     }
 }
 
@@ -509,10 +564,7 @@ void FE_SetSerialCallback(FE_Application& fe)
 {
     for(size_t i = 0; i < fe.instances_in_use; i++)
     {
-        fe.instances[i].emu.SetSerialHasDataCallback(SERIAL_HasData);
-        fe.instances[i].emu.SetSerialReadCallback(SERIAL_ReadUART);
         fe.instances[i].emu.SetSerialPostCallback(SERIAL_PostUART);
-        fe.instances[i].emu.SetSerialUpdateCallback(SERIAL_Update);
     }
 }
 
@@ -566,7 +618,7 @@ bool FE_HandleGlobalEvent(FE_Application& fe, const SDL_Event& ev)
     }
 }
 
-void FE_EventLoop(FE_Application& fe)
+void FE_EventLoop(FE_Application& fe, bool Is_Serial = false)
 {
     while (fe.running)
     {
@@ -607,12 +659,18 @@ void FE_EventLoop(FE_Application& fe)
                 }
             }
         }
+        
+        if (Is_Serial)
+        {
+            SERIAL_Update();
+            FE_RouteSerial(fe);
+        }
 
         SDL_Delay(15);
     }
 }
 
-void FE_Run(FE_Application& fe)
+void FE_Run(FE_Application& fe, bool Is_Serial = false)
 {
     fe.running = true;
 
@@ -644,7 +702,7 @@ void FE_Run(FE_Application& fe)
         }
     }
 
-    FE_EventLoop(fe);
+    FE_EventLoop(fe, Is_Serial);
 
     for (size_t i = 0; i < fe.instances_in_use; ++i)
     {
@@ -1369,9 +1427,19 @@ int main(int argc, char *argv[])
 
     if (params.reset)
     {
-        for (size_t i = 0; i < frontend.instances_in_use; ++i)
+        if(params.serial_type != Computerswitch::MIDI)
         {
-            frontend.instances[i].emu.PostSystemReset(*params.reset);
+            for (size_t i = 0; i < frontend.instances_in_use; ++i)
+            {
+                frontend.instances[i].emu.PostSystemResetSerial(*params.reset);
+            }    
+        }
+        else
+        {
+            for (size_t i = 0; i < frontend.instances_in_use; ++i)
+            {
+                frontend.instances[i].emu.PostSystemReset(*params.reset);
+            }
         }
     }
     else
@@ -1388,7 +1456,10 @@ int main(int argc, char *argv[])
 
     FE_PrintControls(params.romset);
 
-    FE_Run(frontend);
+    if (params.serial_type != Computerswitch::MIDI)
+        FE_Run(frontend, true);
+    else
+        FE_Run(frontend, false);
 
     FE_Quit(frontend);
 

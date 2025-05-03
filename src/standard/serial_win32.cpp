@@ -1,7 +1,7 @@
 #include "serial.h"
 #include <cstdio>
 #include <cstdlib>
-#include <string>
+#include <vector>
 #include <windows.h>
 
 #define BUFFER_SIZE 4096
@@ -20,14 +20,26 @@ class Serial_Handler
 
         bool HasData() { return read_ptr < read_end; }
 
+        std::span<uint8_t> ExtractMIDIBuffer();
+
         uint8_t Read()
         {
-            if (read_ptr < read_end) 
+            if (HasData()) 
             {
                 return *read_ptr++;
             }
             return 0;
         }
+
+        std::span<uint8_t> ReadData()
+        {
+            if (HasData()) 
+            {
+                return ExtractMIDIBuffer();
+            }
+            return std::span<uint8_t>();
+        }
+
         void Write(uint8_t data)
         {
             if (write_end == write_ptr - 1) {
@@ -317,6 +329,48 @@ void Serial_Handler::WriteSerialPort()
     }
 }
 
+std::span<uint8_t> Serial_Handler::ExtractMIDIBuffer()
+{
+    static std::vector<uint8_t> midi_buffer;
+    static size_t expected_size;
+
+    if (*read_ptr == 0xF0)
+    {
+        while (*read_ptr != 0xF7)
+            midi_buffer.push_back(*read_ptr++);
+
+        std::span<uint8_t> sysex_data = midi_buffer;
+        midi_buffer.clear();
+    
+        return sysex_data;
+    }
+
+    if (midi_buffer.empty() && (*read_ptr >= 0xC0 && *read_ptr <= 0xDF))
+        expected_size = 2;
+    else if(midi_buffer.empty() && *read_ptr >= 0x80)
+        expected_size = 3;
+
+    size_t remaining_size = expected_size - midi_buffer.size();
+    if (remaining_size)
+    {
+        for(size_t i=0; i<remaining_size; i++)
+        {
+            if (read_ptr < read_end)
+                midi_buffer.push_back(*read_ptr++);
+        }
+    }
+
+    if(midi_buffer.size() == expected_size)
+    {
+        std::span<uint8_t> midi_data = midi_buffer;
+        midi_buffer.clear();
+
+        return midi_data;
+    }
+
+    return std::span<uint8_t>();
+}
+
 Serial_Handler *s_handler = nullptr;
 
 bool SERIAL_Init(FE_Application& fe, std::string_view serial_port)
@@ -337,6 +391,17 @@ bool SERIAL_Init(FE_Application& fe, std::string_view serial_port)
     }
 
     return true;
+}
+
+void SERIAL_Update()
+{
+    if (!s_handler || !s_handler->IsSerialInit())
+    {
+        return;
+    }
+
+    s_handler->ReadSerialPort();
+    s_handler->WriteSerialPort();
 }
 
 void SERIAL_Update(submcu_t& sm)
@@ -360,6 +425,16 @@ bool SERIAL_HasData()
     }
     
     return s_handler->HasData();
+}
+
+std::span<uint8_t> SERIAL_ReadData()
+{
+    if (!s_handler || !s_handler->IsSerialInit())
+    {
+        return std::span<uint8_t>();
+    }
+
+    return s_handler->ReadData();
 }
 
 uint8_t SERIAL_ReadUART() 

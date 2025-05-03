@@ -48,15 +48,9 @@ enum {
     SM_STATUS_N = 128
 };
 
-typedef bool (*sm_serial_hasdata_callback)();
-typedef uint8_t (*sm_serial_read_callback)();
 typedef void (*sm_serial_post_callback)(uint8_t data);
-typedef void (*sm_serial_update_callback)(submcu_t& sm);
 
-bool SM_SerialHasDataCallback();
-uint8_t SM_SerialReadCallback();
 void SM_SerialPostCallback(uint8_t data);
-void SM_SerialUpdateCallback(submcu_t& sm);
 
 struct submcu_t {
     uint16_t pc     = 0;
@@ -87,10 +81,12 @@ struct submcu_t {
     uint8_t uart_rx_gotbyte        = 0;
     uint8_t uart_serial_rx_gotbyte = 0;
 
-    sm_serial_hasdata_callback serial_hasdata_callback = SM_SerialHasDataCallback;
-    sm_serial_read_callback serial_read_callback       = SM_SerialReadCallback;
+    uint8_t serial_buffer[4096]{};
+    uint32_t serial_read_ptr  = 0;
+    uint32_t serial_write_ptr = 0;
+    const uint32_t serial_buffer_size = 4096;
+
     sm_serial_post_callback serial_post_callback       = SM_SerialPostCallback;
-    sm_serial_update_callback serial_update_callback   = SM_SerialUpdateCallback;
 };
 
 void SM_Init(submcu_t& sm, mcu_t& mcu);
@@ -99,3 +95,4 @@ void SM_Update(submcu_t& sm, uint64_t cycles);
 void SM_SysWrite(submcu_t& sm, uint32_t address, uint8_t data);
 uint8_t SM_SysRead(submcu_t& sm, uint32_t address);
 void SM_PostUART(submcu_t& sm, uint8_t data);
+void SM_PostSerial(submcu_t& sm, uint8_t byte);

@@ -109,21 +109,9 @@ void Emulator::SetMidiOutCallback(mcu_midiout_callback callback)
     m_mcu->midiout_callback = callback;
 }
 
-void Emulator::SetSerialHasDataCallback(sm_serial_hasdata_callback callback)
-{
-    m_sm->serial_hasdata_callback = callback;
-}
-void Emulator::SetSerialReadCallback(sm_serial_read_callback callback)
-{
-    m_sm->serial_read_callback = callback;
-}
 void Emulator::SetSerialPostCallback(sm_serial_post_callback callback)
 {
     m_sm->serial_post_callback = callback;
-}
-void Emulator::SetSerialUpdateCallback(sm_serial_update_callback callback)
-{
-    m_sm->serial_update_callback = callback;
 }
 
 const char* rs_name[(size_t)ROMSET_COUNT] = {
@@ -588,6 +576,19 @@ void Emulator::PostMIDI(std::span<const uint8_t> data)
     }
 }
 
+void Emulator::PostSerial(uint8_t byte)
+{
+    SM_PostSerial(*m_sm, byte);
+}
+
+void Emulator::PostSerial(std::span<const uint8_t> data)
+{
+    for(auto byte : data)
+    {
+        PostSerial(byte);
+    }
+}
+
 constexpr uint8_t GM_RESET_SEQ[] = { 0xF0, 0x7E, 0x7F, 0x09, 0x01, 0xF7 };
 constexpr uint8_t GS_RESET_SEQ[] = { 0xF0, 0x41, 0x10, 0x42, 0x12, 0x40, 0x00, 0x7F, 0x00, 0x41, 0xF7 };
 
@@ -606,6 +607,25 @@ void Emulator::PostSystemReset(EMU_SystemReset reset)
             break;
         case EMU_SystemReset::GM_RESET:
             PostMIDI(GM_RESET_SEQ);
+            break;
+    }
+}
+
+void Emulator::PostSystemResetSerial(EMU_SystemReset reset)
+{
+    if (m_mcu->revision == MK1version::REVISION_SC55_100 || m_mcu->revision == MK1version::REVISION_SC55_110)
+        fprintf(stderr, "WARNING: GM Reset not supported by SC-55mk1 verion 1.00 & 1.10, will be interpreted as GS Reset\n");
+
+    switch (reset)
+    {
+        case EMU_SystemReset::NONE:
+            // explicitly do nothing
+            break;
+        case EMU_SystemReset::GS_RESET:
+            PostSerial(GS_RESET_SEQ);
+            break;
+        case EMU_SystemReset::GM_RESET:
+            PostSerial(GM_RESET_SEQ);
             break;
     }
 }
