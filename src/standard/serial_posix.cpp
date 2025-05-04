@@ -172,6 +172,8 @@ bool SERIAL_Init(FE_Application& fe, std::string_view serial_port)
     if (!s_handler->SerialOpen(serial_port))
     {
         delete s_handler;
+        s_handler = nullptr;
+
         return false;
     }
 

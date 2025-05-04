@@ -98,7 +98,10 @@ public:
     void PostMIDI(uint8_t data_byte);
     void PostMIDI(std::span<const uint8_t> data);
 
+    void PostSerial(std::span<const uint8_t> data);
+
     void PostSystemReset(EMU_SystemReset reset);
+    void PostSerialSystemReset(EMU_SystemReset reset);
 
     void Step();
 

@@ -179,7 +179,7 @@ Audio options:
 
 Emulator options:
   -r, --reset     gs|gm                         Reset system in GS or GM mode.
-  -n, --instances <count>                       Set number of emulator instances.
+  -n, --instances <count>                       Set number of emulator instances. (MIDI IO Only)
   --no-lcd                                      Run without LCDs.
   --nvram <filename>                            Saves and loads NVRAM to/from disk. JV-880 only.
 
@@ -225,6 +225,15 @@ ROM management options:
                                not also passing --romset.
   --romset <name>              Sets the romset to load. Same as frontend's romsets without '--'
 ```
+
+### Regarding Serial IO
+
+With version 0.5.3, the emulator support Serial IO for SC-55mkII and SC-55st. Currently Serial IO doesn't
+support multiple instances at the moment. (Multi-Instance support is being worked on)
+So when attempting to launch multi-instance with serial mode will cause it not to launch with the 
+error `error: Multiple Instances not supported with Serial Mode`.
+
+Regarding Setting up Virtual serial IO. Please read these instructions for [Linux](VIRTUAL_SERIAL_SETUP.md#linux) and [Windows](VIRTUAL_SERIAL_SETUP.md#windows).
 
 ### Regarding SRAM and NVRAM
 

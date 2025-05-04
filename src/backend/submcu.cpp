@@ -78,6 +78,10 @@ enum {
     SM_DEV_TIMER_CTRL        = 0x1f
 };
 
+uint8_t serial_reset_buffer[16];
+uint32_t reset_seq_size   = 0;
+uint32_t serial_reset_ptr = 0;
+
 void SM_ErrorTrap(submcu_t& sm)
 {
     fprintf(stderr, "%.4x\n", sm.pc);
@@ -1470,16 +1474,19 @@ void SM_UpdateSerial(submcu_t& sm)
     if((sm.device_mode[SM_DEV_UART1_CTRL]&4) == 0)
         return;
 
-    if(!sm.serial_hasdata_callback()) //No byte
-        return;
-
     if(sm.uart_serial_rx_gotbyte)
         return;
 
     if(sm.cycles < sm.mcu->uart_serial_rx_delay)
         return;
 
-    sm.mcu->uart_serial_rx_byte         = sm.serial_read_callback();
+    if (serial_reset_ptr != reset_seq_size) // Reset Bytes present
+        sm.mcu->uart_serial_rx_byte     = serial_reset_buffer[serial_reset_ptr++];
+    else if (sm.serial_hasdata_callback())  // Bytes from Serial Read available
+        sm.mcu->uart_serial_rx_byte         = sm.serial_read_callback();
+    else                                    // No Bytes from any Serial Source
+        return;
+
     sm.uart_serial_rx_gotbyte           = 1;
     sm.device_mode[SM_DEV_INT_REQUEST] |= 0x80;
 
@@ -1506,6 +1513,12 @@ void SM_Update(submcu_t& sm, uint64_t cycles)
         SM_UpdateUART(sm);
         SM_UpdateSerial(sm);
     }
+}
+
+void SM_PostSerialReset(submcu_t &sm, uint8_t data)
+{
+    (void)sm;
+    serial_reset_buffer[reset_seq_size++] = data;
 }
 
 bool SM_SerialHasDataCallback()
