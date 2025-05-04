@@ -15,6 +15,22 @@ function(add_render_test romset filename sha256)
     )
 endfunction()
 
+function(add_render_test_multi_instance romset filename instances sha256)
+     add_test(
+         NAME "Render ${romset} ${filename} instances=${instances}"
+         COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_runner.py
+             --render-exe $<TARGET_FILE:nuked-sc55-render>
+             --sha256 ${sha256}
+             --
+             ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
+             --rom-directory ${NUKED_TEST_ROMDIR}
+             --romset ${romset}
+             --reset gm
+             --instances ${instances}
+         COMMAND_EXPAND_LISTS
+     )
+ endfunction()
+
 add_render_test("mk2" "avmidi/01.mid" "d9577413d5523f9826062a547d9cbc8013feb4797fb459dad3a50801115c4ecc")
 add_render_test("mk2" "avmidi/02.mid" "b02968423b12391152e95f80615d149c6aa47f788ec11cbe2ef05bd46d68fd2f")
 add_render_test("mk2" "avmidi/03.mid" "ba78d3bb21bc9266fb1ec51dc88efde08c23e9c2dc23e59ef929a64cdc9e575d")
@@ -88,3 +104,5 @@ add_render_test("mk1" "avmidi/31.mid" "645c73fb6a086a446e68beafc2afd2026b7eabcf8
 add_render_test("mk1" "avmidi/32.mid" "d04559f84dc491cdfbe383f89e3b1cf14c4abb292fcb261fdbf486601a36aa86")
 
 add_render_test("mk2" "issue_18/issue_18.mid" "4453907c5db6a35024e20d76909867a5396a069a83d204e65f785adc59897414")
+
+add_render_test_multi_instance("mk2" "issue_42/anacrusis.mid" 2 "8db9e6e53d0d1d070919492638d942e24932387020dfb55be873cf78e2c8bdd5")
