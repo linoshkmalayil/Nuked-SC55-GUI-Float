@@ -3,6 +3,14 @@
 This fork is dependent on the changes on the fork [jcmoyer/Nuked-SC55](https://github.com/jcmoyer/Nuked-SC55)
 For **FULL CHANGELOG** from please check [jcmoyer/Nuked-SC55/CHANGELOG.md](https://github.com/jcmoyer/Nuked-SC55/blob/master/CHANGELOG.md)
 
+# Version 0.5.5.1 (2025-05-05)
+StopGap release
+
+Jist of changes are follows
+- Added Stopgap fix to prevent multi-instance launch when using Serial Mode with mkII and st. (Will be reverted once https://github.com/linoshkmalayil/Nuked-SC55-GUI-Float/issues/32 is solved)
+- Added resetting when using Serial Mode.
+- Fixed renderer desync when using multiple instances and one of the instances received midi data starting later than tick 0.
+
 # Version 0.5.5 (2025-04-16)
 
 Jist of changes are follows:

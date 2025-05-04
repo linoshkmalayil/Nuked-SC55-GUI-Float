@@ -232,8 +232,8 @@ With version 0.5.3, the emulator support Serial IO for SC-55mkII and SC-55st. Cu
 support multiple instances at the moment. (Multi-Instance support is being worked on)
 So when attempting to launch multi-instance with serial mode will cause it not to launch with the 
 error `error: Multiple Instances not supported with Serial Mode`.
-Also `-r --reset` doesn't work with serial mode as the parameter feeds to MIDI input. (Serial Mode reset is
-also being worked on)
+
+Regarding Setting up Virtual serial IO. Please read these instructions for [Linux](VIRTUAL_SERIAL_SETUP.md#linux) and [Windows](VIRTUAL_SERIAL_SETUP.md#windows).
 
 ### Regarding SRAM and NVRAM
 
