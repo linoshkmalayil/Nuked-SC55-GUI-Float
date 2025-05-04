@@ -23,12 +23,12 @@ endif()
 #==============================================================================
 # Dependencies
 #==============================================================================
-find_package(SDL2)
+find_package(SDL3)
  
-if(SDL2_FOUND)
-    message(STATUS "SDL2 FOUND - building standard frontend")
+if(SDL3_FOUND)
+    message(STATUS "SDL3 FOUND - building standard frontend")
 else()
-    message(STATUS "SDL2 NOT FOUND - the standard frontend will not be built!")
+    message(STATUS "SDL3 NOT FOUND - the standard frontend will not be built!")
 endif()
 
 if(NOT WIN32)
@@ -105,7 +105,7 @@ target_enable_warnings(nuked-sc55-backend)
 #==============================================================================
 # Standard frontend
 #==============================================================================
-if(SDL2_FOUND)
+if(SDL3_FOUND)
     add_executable(nuked-sc55)
     target_sources(nuked-sc55
         PRIVATE
@@ -135,11 +135,11 @@ if(SDL2_FOUND)
         target_sources(nuked-sc55 PRIVATE src/standard/serial_posix.cpp)
     endif()
 
-    if(TARGET SDL2::SDL2main)
-        target_link_libraries(nuked-sc55 PRIVATE SDL2::SDL2main)
+    if(TARGET SDL3::SDL3main)
+        target_link_libraries(nuked-sc55 PRIVATE SDL3::SDL3main)
     endif()
 
-    target_link_libraries(nuked-sc55 PRIVATE SDL2::SDL2 nuked-sc55-backend)
+    target_link_libraries(nuked-sc55 PRIVATE SDL3::SDL3 nuked-sc55-backend)
     target_compile_features(nuked-sc55 PRIVATE cxx_std_23)
     target_enable_warnings(nuked-sc55)
     target_enable_conversion_warnings(nuked-sc55)

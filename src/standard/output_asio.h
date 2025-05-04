@@ -2,7 +2,7 @@
 
 #include "output_common.h"
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 bool Out_ASIO_QueryOutputs(AudioOutputList& list);
 
