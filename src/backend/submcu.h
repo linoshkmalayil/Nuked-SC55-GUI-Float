@@ -98,4 +98,5 @@ void SM_Reset(submcu_t& sm);
 void SM_Update(submcu_t& sm, uint64_t cycles);
 void SM_SysWrite(submcu_t& sm, uint32_t address, uint8_t data);
 uint8_t SM_SysRead(submcu_t& sm, uint32_t address);
+void SM_PostSerialReset(submcu_t &sm, uint8_t data);
 void SM_PostUART(submcu_t& sm, uint8_t data);

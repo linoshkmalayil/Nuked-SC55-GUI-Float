@@ -1377,9 +1377,16 @@ int main(int argc, char *argv[])
 
     if (params.reset)
     {
-        for (size_t i = 0; i < frontend.instances_in_use; ++i)
+        if (params.serial_type != Computerswitch::MIDI)
         {
-            frontend.instances[i].emu.PostSystemReset(*params.reset);
+            frontend.instances[0].emu.PostSerialSystemReset(*params.reset);
+        }
+        else
+        {
+            for (size_t i = 0; i < frontend.instances_in_use; ++i)
+            {
+                frontend.instances[i].emu.PostSystemReset(*params.reset);
+            }
         }
     }
     else

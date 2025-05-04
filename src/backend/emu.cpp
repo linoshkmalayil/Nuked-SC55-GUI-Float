@@ -588,6 +588,14 @@ void Emulator::PostMIDI(std::span<const uint8_t> data)
     }
 }
 
+void Emulator::PostSerial(std::span<const uint8_t> data)
+{
+    for (uint8_t byte : data)
+    {
+        SM_PostSerialReset(*m_sm, byte);
+    }
+}
+
 constexpr uint8_t GM_RESET_SEQ[] = { 0xF0, 0x7E, 0x7F, 0x09, 0x01, 0xF7 };
 constexpr uint8_t GS_RESET_SEQ[] = { 0xF0, 0x41, 0x10, 0x42, 0x12, 0x40, 0x00, 0x7F, 0x00, 0x41, 0xF7 };
 
@@ -606,6 +614,22 @@ void Emulator::PostSystemReset(EMU_SystemReset reset)
             break;
         case EMU_SystemReset::GM_RESET:
             PostMIDI(GM_RESET_SEQ);
+            break;
+    }
+}
+
+void Emulator::PostSerialSystemReset(EMU_SystemReset reset)
+{
+    switch (reset)
+    {
+        case EMU_SystemReset::NONE:
+            // explicitly do nothing
+            break;
+        case EMU_SystemReset::GS_RESET:
+            PostSerial(GS_RESET_SEQ);
+            break;
+        case EMU_SystemReset::GM_RESET:
+            PostSerial(GM_RESET_SEQ);
             break;
     }
 }
