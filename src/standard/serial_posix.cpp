@@ -16,7 +16,7 @@
 std::vector<uint8_t> read_buffer;
 std::vector<uint8_t> write_buffer;
 
-std::vector<std::span<uint8_t>> midi_data;
+std::vector<std::vector<uint8_t>> midi_data;
 
 std::thread linux_io_thread;
 std::mutex  linux_io_mutex;
@@ -237,15 +237,17 @@ void ExtractMIDIBuffer()
 
     if (*read_buffer.cbegin() == 0xF0)
     {
-        uint8_t byte_count = 0;
-        while (*(read_buffer.cbegin() + byte_count++) != 0xF7)
-            midi_buffer.push_back(read_buffer[byte_count-1]);
+        while (*read_buffer.cbegin() != 0xF7)
+        {
+            midi_buffer.push_back(*read_buffer.cbegin());
+            read_buffer.erase(read_buffer.begin());
+        }
+        // To include the 0xF7 byte
+        midi_buffer.push_back(*read_buffer.cbegin());
+        read_buffer.erase(read_buffer.begin());
 
-        std::span<uint8_t> sysex_message = midi_buffer;
-        read_buffer.erase(read_buffer.begin(), read_buffer.begin()+byte_count);
+        midi_data.push_back(midi_buffer);
         midi_buffer.clear();
-
-        midi_data.push_back(sysex_message);
     }
 
     if (midi_buffer.empty() && (*read_buffer.cbegin() >= 0xC0 && *read_buffer.cbegin() <= 0XDF))
@@ -268,31 +270,29 @@ void ExtractMIDIBuffer()
     
     if(midi_buffer.size() == expected_size)
     {
-        std::span<uint8_t> midi_message = midi_buffer;
+        midi_data.push_back(midi_buffer);
         midi_buffer.clear();
-
-        midi_data.push_back(midi_message);
     }
 }
 
-std::span<uint8_t> SERIAL_ReadData()
+std::vector<uint8_t> SERIAL_ReadData()
 {
     if (!s_handler || !s_handler->IsSerialInit())
     {
-        return std::span<uint8_t>();
+        return std::vector<uint8_t>();
     }
 
     if (!midi_data.empty())
     {
-        std::span<uint8_t> serial_data = *midi_data.cbegin();
-        midi_data.erase(midi_data.cbegin());
+        std::vector<uint8_t> serial_data = *midi_data.cbegin();
+        midi_data.erase(midi_data.begin());
 
         return serial_data;
     }
     else
     {
         s_handler->SetReadPending(false);
-        return std::span<uint8_t>();
+        return std::vector<uint8_t>();
     }
 }
 

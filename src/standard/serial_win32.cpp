@@ -20,7 +20,7 @@ class Serial_Handler
 
         bool HasData() { return read_ptr < read_end; }
 
-        std::span<uint8_t> ExtractMIDIBuffer();
+        std::vector<uint8_t> ExtractMIDIBuffer();
 
         uint8_t Read()
         {
@@ -31,13 +31,13 @@ class Serial_Handler
             return 0;
         }
 
-        std::span<uint8_t> ReadData()
+        std::vector<uint8_t> ReadData()
         {
             if (HasData()) 
             {
                 return ExtractMIDIBuffer();
             }
-            return std::span<uint8_t>();
+            return std::vector<uint8_t>();
         }
 
         void Write(uint8_t data)
@@ -329,7 +329,7 @@ void Serial_Handler::WriteSerialPort()
     }
 }
 
-std::span<uint8_t> Serial_Handler::ExtractMIDIBuffer()
+std::vector<uint8_t> Serial_Handler::ExtractMIDIBuffer()
 {
     static std::vector<uint8_t> midi_buffer;
     static size_t expected_size;
@@ -339,7 +339,7 @@ std::span<uint8_t> Serial_Handler::ExtractMIDIBuffer()
         while (*read_ptr != 0xF7)
             midi_buffer.push_back(*read_ptr++);
 
-        std::span<uint8_t> sysex_data = midi_buffer;
+        std::vector<uint8_t> sysex_data = midi_buffer;
         midi_buffer.clear();
     
         return sysex_data;
@@ -362,13 +362,13 @@ std::span<uint8_t> Serial_Handler::ExtractMIDIBuffer()
 
     if(midi_buffer.size() == expected_size)
     {
-        std::span<uint8_t> midi_data = midi_buffer;
+        std::vector<uint8_t> midi_data = midi_buffer;
         midi_buffer.clear();
 
         return midi_data;
     }
 
-    return std::span<uint8_t>();
+    return std::vector<uint8_t>();
 }
 
 Serial_Handler *s_handler = nullptr;
@@ -427,11 +427,11 @@ bool SERIAL_HasData()
     return s_handler->HasData();
 }
 
-std::span<uint8_t> SERIAL_ReadData()
+std::vector<uint8_t> SERIAL_ReadData()
 {
     if (!s_handler || !s_handler->IsSerialInit())
     {
-        return std::span<uint8_t>();
+        return std::vector<uint8_t>();
     }
 
     return s_handler->ReadData();

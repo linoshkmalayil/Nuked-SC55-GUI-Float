@@ -229,7 +229,7 @@ void FE_BroadcastSerial(FE_Application& fe, std::span<const uint8_t> bytes)
 
 void FE_RouteSerial(FE_Application& fe)
 {
-    std::span<const uint8_t> bytes = SERIAL_ReadData();
+    std::vector<uint8_t> bytes = SERIAL_ReadData();
 
     if (bytes.size() == 0)
     {
