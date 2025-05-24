@@ -248,6 +248,8 @@ void ExtractMIDIBuffer()
 
         midi_data.push_back(midi_buffer);
         midi_buffer.clear();
+
+        return;
     }
 
     if (midi_buffer.empty() && (*read_buffer.cbegin() >= 0xC0 && *read_buffer.cbegin() <= 0XDF))
@@ -272,6 +274,8 @@ void ExtractMIDIBuffer()
     {
         midi_data.push_back(midi_buffer);
         midi_buffer.clear();
+
+        return;
     }
 }
 
