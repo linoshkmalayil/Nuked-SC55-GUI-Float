@@ -6,6 +6,8 @@
 
 #define BUFFER_SIZE 4096
 
+std::vector<std::vector<uint8_t>> midi_data;
+
 class Serial_Handler
 {
     public:
@@ -20,7 +22,8 @@ class Serial_Handler
 
         bool HasData() { return read_ptr < read_end; }
 
-        std::vector<uint8_t> ExtractMIDIBuffer();
+        // std::vector<uint8_t> ExtractMIDIBuffer();
+        void ExtractMIDIBuffer();
 
         uint8_t Read()
         {
@@ -35,7 +38,10 @@ class Serial_Handler
         {
             if (HasData()) 
             {
-                return ExtractMIDIBuffer();
+                std::vector<uint8_t> serial_data = *midi_data.cbegin();
+                midi_data.erase(midi_data.begin());
+
+                return serial_data;
             }
             return std::vector<uint8_t>();
         }
@@ -329,8 +335,11 @@ void Serial_Handler::WriteSerialPort()
     }
 }
 
-std::vector<uint8_t> Serial_Handler::ExtractMIDIBuffer()
+void Serial_Handler::ExtractMIDIBuffer()
 {
+    if (read_ptr == read_end)
+        return;
+
     static std::vector<uint8_t> midi_buffer;
     static size_t expected_size;
 
@@ -338,11 +347,13 @@ std::vector<uint8_t> Serial_Handler::ExtractMIDIBuffer()
     {
         while (*read_ptr != 0xF7)
             midi_buffer.push_back(*read_ptr++);
-
-        std::vector<uint8_t> sysex_data = midi_buffer;
+        // To include the last 0xF7 byte
+        midi_buffer.push_back(*read_ptr++);
+        
+        midi_data.push_back(midi_buffer);
         midi_buffer.clear();
-    
-        return sysex_data;
+
+        return;
     }
 
     if (midi_buffer.empty() && (*read_ptr >= 0xC0 && *read_ptr <= 0xDF))
@@ -362,13 +373,11 @@ std::vector<uint8_t> Serial_Handler::ExtractMIDIBuffer()
 
     if(midi_buffer.size() == expected_size)
     {
-        std::vector<uint8_t> midi_data = midi_buffer;
+        midi_data.push_back(midi_buffer);
         midi_buffer.clear();
 
-        return midi_data;
+        return;
     }
-
-    return std::vector<uint8_t>();
 }
 
 Serial_Handler *s_handler = nullptr;
@@ -402,6 +411,7 @@ void SERIAL_Update()
 
     s_handler->ReadSerialPort();
     s_handler->WriteSerialPort();
+    s_handler->ExtractMIDIBuffer();
 }
 
 void SERIAL_Update(submcu_t& sm)
