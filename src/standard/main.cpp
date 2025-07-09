@@ -119,6 +119,7 @@ const size_t FE_MAX_INSTANCES = 16;
 struct FE_Application {
     FE_Instance instances[FE_MAX_INSTANCES];
     size_t instances_in_use = 0;
+    size_t current_instance = 0;
 
     AudioOutput audio_output{};
 
@@ -214,52 +215,37 @@ void FE_RouteMIDI(FE_Application& fe, std::span<const uint8_t> bytes)
     }
 }
 
-void FE_SendSerial(FE_Application& fe, size_t n, std::span<const uint8_t> bytes)
+void FE_SendSerial(FE_Application& fe, size_t n, const uint8_t byte)
 {
-    fe.instances[n].emu.PostSerial(bytes);
+    fe.instances[n].emu.PostSerial(byte);
 }
 
-void FE_BroadcastSerial(FE_Application& fe, std::span<const uint8_t> bytes)
+void FE_BroadcastSerial(FE_Application& fe, const uint8_t byte)
 {
     for (size_t i = 0; i < fe.instances_in_use; ++i)
     {
-        FE_SendSerial(fe, i, bytes);
+        FE_SendSerial(fe, i, byte);
     }
 }
 
 void FE_RouteSerial(FE_Application& fe)
 {
-    std::vector<uint8_t> bytes = SERIAL_ReadData();
+    uint8_t byte = SERIAL_ReadUART();
 
-    if (bytes.size() == 0)
+    if (byte == 0xF0)
+        fe.current_instance = 16; //Broadcast
+    else if (byte >= 0x80 && byte <= 0xDF)
     {
-        return;
+        fe.current_instance = (byte  & 0x0F) % fe.instances_in_use;
     }
 
-    uint8_t first = bytes[0];
-
-    for (auto byte:bytes)
+    if (fe.current_instance == 16)
     {
-        fprintf(stderr, "%02x ", byte);
-    }
-    fprintf(stderr, "\n");
-
-    if (first < 0x80)
-    {
-        fprintf(stderr, "FE_RouteSerial received data byte %02x\n", first);
-        return;
-    }
-
-    const bool is_sysex   = first == 0xF0;
-    const uint8_t channel = first  & 0x0F;
-
-    if (is_sysex)
-    {
-        FE_BroadcastSerial(fe, bytes);
+        FE_BroadcastSerial(fe, byte);
     }
     else
     {
-        FE_SendSerial(fe, channel % fe.instances_in_use, bytes);
+        FE_SendSerial(fe, fe.current_instance, byte);
     }
 }
 

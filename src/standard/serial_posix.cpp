@@ -16,13 +16,10 @@
 std::vector<uint8_t> read_buffer;
 std::vector<uint8_t> write_buffer;
 
-std::vector<std::vector<uint8_t>> midi_data;
-
 std::thread linux_io_thread;
 std::mutex  linux_io_mutex;
 bool        thread_run = false;
 void        Linux_IO_Serial();
-void        ExtractMIDIBuffer();
 
 class Serial_Handler
 {
@@ -213,8 +210,6 @@ void SERIAL_Update()
         s_handler->Write(write_buffer);
         s_handler->SetWritePending(false);
     }
-
-    ExtractMIDIBuffer();
 }
 
 bool SERIAL_HasData()
@@ -227,76 +222,24 @@ bool SERIAL_HasData()
     return !read_buffer.empty();
 }
 
-void ExtractMIDIBuffer()
-{
-    if (read_buffer.empty())
-        return;
-
-    static std::vector<uint8_t> midi_buffer;
-    static size_t expected_size;
-
-    if (*read_buffer.cbegin() == 0xF0)
-    {
-        while (*read_buffer.cbegin() != 0xF7)
-        {
-            midi_buffer.push_back(*read_buffer.cbegin());
-            read_buffer.erase(read_buffer.begin());
-        }
-        // To include the 0xF7 byte
-        midi_buffer.push_back(*read_buffer.cbegin());
-        read_buffer.erase(read_buffer.begin());
-
-        midi_data.push_back(midi_buffer);
-        midi_buffer.clear();
-
-        return;
-    }
-
-    if (midi_buffer.empty() && (*read_buffer.cbegin() >= 0xC0 && *read_buffer.cbegin() <= 0XDF))
-        expected_size = 2;
-    else if(midi_buffer.empty() && *read_buffer.cbegin() >= 0x80)
-        expected_size = 3;
-
-    size_t remaining_size = expected_size - midi_buffer.size();
-    if (remaining_size)
-    {
-        for (size_t i=0; i<remaining_size; i++)
-        {
-            if (read_buffer.cbegin() != read_buffer.cend())
-            {
-                midi_buffer.push_back(*read_buffer.cbegin());
-                read_buffer.erase(read_buffer.begin());
-            }
-        }
-    }
-    
-    if(midi_buffer.size() == expected_size)
-    {
-        midi_data.push_back(midi_buffer);
-        midi_buffer.clear();
-
-        return;
-    }
-}
-
-std::vector<uint8_t> SERIAL_ReadData()
+uint8_t SERIAL_ReadUART()
 {
     if (!s_handler || !s_handler->IsSerialInit())
     {
-        return std::vector<uint8_t>();
+        return 0;
     }
 
-    if (!midi_data.empty())
+    if (!read_buffer.empty())
     {
-        std::vector<uint8_t> serial_data = *midi_data.cbegin();
-        midi_data.erase(midi_data.begin());
+        uint8_t read_byte = *read_buffer.cbegin();
+        read_buffer.erase(read_buffer.begin());
 
-        return serial_data;
+        return read_byte;
     }
     else
     {
         s_handler->SetReadPending(false);
-        return std::vector<uint8_t>();
+        return 0;
     }
 }
 
