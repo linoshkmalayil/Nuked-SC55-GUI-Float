@@ -2,6 +2,7 @@
 #include "path_util.h"
 #include "emu.h"
 #include "mcu.h"
+#include <math.h>
 #include <string>
 
 const SDL_Rect lcd_button_regions_sc55[32] = {
@@ -133,22 +134,18 @@ bool LCD_SDL_Backend::Start(lcd_t& lcd)
     }
 
     m_window = SDL_CreateWindow(title.c_str(),
-                                SDL_WINDOWPOS_UNDEFINED,
-                                SDL_WINDOWPOS_UNDEFINED,
                                 screen_width,
                                 screen_height,
-                                SDL_WINDOW_SHOWN);
+                                0);
     if (!m_window)
         return false;
 
-    m_renderer = SDL_CreateRenderer(m_window, -1, 0);
+    m_renderer = SDL_CreateRenderer(m_window, title.c_str());
     if (!m_renderer)
         return false;
 
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "BEST");
-
     m_texture = SDL_CreateTexture(
-        m_renderer, SDL_PIXELFORMAT_BGR888, SDL_TEXTUREACCESS_STREAMING, (int32_t)m_lcd->width, (int32_t)m_lcd->height);
+        m_renderer, SDL_PIXELFORMAT_RGBX32, SDL_TEXTUREACCESS_STREAMING, (int32_t)m_lcd->width, (int32_t)m_lcd->height);
     if (!m_texture)
         return false;
 
@@ -172,7 +169,7 @@ void LCD_SDL_Backend::Stop()
 
     if(m_image)
     {
-        SDL_FreeSurface(m_image);
+        SDL_DestroySurface(m_image);
         m_image = nullptr;
     }
 
@@ -200,18 +197,18 @@ void LCD_SDL_Backend::HandleEvent(const SDL_Event& sdl_event)
     // Do not respond if not acting on a particular window
     switch (sdl_event.type)
     {
-        case SDL_MOUSEBUTTONUP:
-        case SDL_MOUSEBUTTONDOWN:
-        case SDL_MOUSEMOTION:        
-        case SDL_MOUSEWHEEL:        
-        case SDL_KEYDOWN:
-        case SDL_KEYUP:
+        case SDL_EVENT_MOUSE_BUTTON_UP:
+        case SDL_EVENT_MOUSE_BUTTON_DOWN:
+        case SDL_EVENT_MOUSE_MOTION:        
+        case SDL_EVENT_MOUSE_WHEEL:        
+        case SDL_EVENT_KEY_DOWN:
+        case SDL_EVENT_KEY_UP:
             if (sdl_event.key.windowID != SDL_GetWindowID(m_window))
             {
                 return;
             }
             break;
-        case SDL_WINDOWEVENT:
+        case SDL_EVENT_WINDOW_SHOWN:
             if (sdl_event.window.windowID != SDL_GetWindowID(m_window))
             {
                 return;
@@ -222,11 +219,11 @@ void LCD_SDL_Backend::HandleEvent(const SDL_Event& sdl_event)
     }
 
     // JV880 Encoder dial
-    if (sdl_event.type == SDL_KEYDOWN && m_lcd->mcu->romset == Romset::JV880)
+    if (sdl_event.type == SDL_EVENT_KEY_DOWN && m_lcd->mcu->romset == Romset::JV880)
     {
-        if (sdl_event.key.keysym.scancode == SDL_SCANCODE_COMMA)
+        if (sdl_event.key.scancode == SDL_SCANCODE_COMMA)
             MCU_EncoderTrigger(*m_lcd->mcu, 0);
-        if (sdl_event.key.keysym.scancode == SDL_SCANCODE_PERIOD)
+        if (sdl_event.key.scancode == SDL_SCANCODE_PERIOD)
             MCU_EncoderTrigger(*m_lcd->mcu, 1);
     }
 
@@ -235,11 +232,11 @@ void LCD_SDL_Backend::HandleEvent(const SDL_Event& sdl_event)
     {
         switch (sdl_event.type)
         {
-        case SDL_MOUSEBUTTONUP:
-        case SDL_MOUSEBUTTONDOWN: {
+        case SDL_EVENT_MOUSE_BUTTON_UP:
+        case SDL_EVENT_MOUSE_BUTTON_DOWN: {
             if (sdl_event.button.button == 1) {
                 if (drag_volume_knob || (sdl_event.button.x >= 153 && sdl_event.button.x <= 212 && sdl_event.button.y >= 42 && sdl_event.button.y <= 101)) {
-                    drag_volume_knob = (sdl_event.type == SDL_MOUSEBUTTONDOWN) || (drag_volume_knob && sdl_event.type != SDL_MOUSEBUTTONUP);
+                    drag_volume_knob = (sdl_event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) || (drag_volume_knob && sdl_event.type != SDL_EVENT_MOUSE_BUTTON_UP);
                 }
                 if (sdl_event.button.clicks == 2 && (sdl_event.button.x >= 153 && sdl_event.button.x <= 212 && sdl_event.button.y >= 42 && sdl_event.button.y <= 101)) {
                     m_lcd->volume = 0.8f;
@@ -257,14 +254,14 @@ void LCD_SDL_Backend::HandleEvent(const SDL_Event& sdl_event)
                     mask |= 1 << i;
                 }
             }
-            if (sdl_event.type == SDL_MOUSEBUTTONDOWN)
+            if (sdl_event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
                 button_pressed |= mask;
             else
                 button_pressed &= ~mask;
             m_lcd->mcu->button_pressed = button_pressed;
             break;
         }
-        case SDL_MOUSEMOTION:
+        case SDL_EVENT_MOUSE_MOTION:
             if (drag_volume_knob) {
                 float angle = (float) (atan2(sdl_event.motion.y - 72, sdl_event.motion.x - 183) + 270.0f / 180.0f * M_PI);
                 if (isnan(angle)) {
@@ -293,8 +290,8 @@ void LCD_SDL_Backend::HandleEvent(const SDL_Event& sdl_event)
                 LCD_VolumeChanged(*m_lcd);
             }
             break;
-        case SDL_MOUSEWHEEL:
-            if (sdl_event.wheel.mouseX >= 153 && sdl_event.wheel.mouseX <= 212 && sdl_event.wheel.mouseY >= 42 && sdl_event.wheel.mouseY <= 101) {
+        case SDL_EVENT_MOUSE_WHEEL:
+            if (sdl_event.wheel.mouse_x >= 153 && sdl_event.wheel.mouse_x <= 212 && sdl_event.wheel.mouse_x >= 42 && sdl_event.wheel.mouse_x <= 101) {
                 int32_t relval = sdl_event.wheel.y;
                 if (relval > 10) { // Maximum ±2dB incremental
                     relval = 10;
@@ -315,15 +312,12 @@ void LCD_SDL_Backend::HandleEvent(const SDL_Event& sdl_event)
     // Keyboard control
     switch (sdl_event.type)
     {
-        case SDL_WINDOWEVENT:
-            if (sdl_event.window.event == SDL_WINDOWEVENT_CLOSE)
-            {
-                m_quit_requested = true;
-            }
+        case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+            m_quit_requested = true;
             break;
 
-        case SDL_KEYDOWN:
-        case SDL_KEYUP: {
+        case SDL_EVENT_KEY_DOWN:
+        case SDL_EVENT_KEY_UP: {
             if (sdl_event.key.repeat)
                 break;
 
@@ -335,11 +329,11 @@ void LCD_SDL_Backend::HandleEvent(const SDL_Event& sdl_event)
                 (m_lcd->mcu->is_jv880 ? sizeof(button_map_jv880) : sizeof(button_map_sc55)) / sizeof(button_map_sc55[0]);
             for (size_t i = 0; i < button_size; i++)
             {
-                if (button_map[i][0] == sdl_event.key.keysym.scancode)
+                if (button_map[i][0] == sdl_event.key.scancode)
                     mask |= (1 << button_map[i][1]);
             }
 
-            if (sdl_event.type == SDL_KEYDOWN)
+            if (sdl_event.type == SDL_EVENT_KEY_DOWN)
                 button_pressed |= mask;
             else
                 button_pressed &= ~mask;
@@ -456,12 +450,12 @@ void LCD_SDL_Backend::Render()
     SDL_UpdateTexture(m_texture, &rect, m_lcd->buffer, lcd_width_max * 4);
 
     if ((m_lcd->mcu->romset == Romset::MK1 || m_lcd->mcu->romset == Romset::MK2) && background_enabled) {
-        SDL_Rect srcrect, dstrect;
+        SDL_FRect srcrect, dstrect;
         srcrect.x =    0;
         srcrect.y =    0;
         srcrect.w = 2240;
         srcrect.h =  466;
-        SDL_RenderCopy(m_renderer, m_background, &srcrect, NULL);
+        SDL_RenderTexture(m_renderer, m_background, &srcrect, NULL);
         if((m_lcd->button_enable & 1) != 0 || (m_lcd->button_enable & 2) != 0) {
             srcrect.x =   0;
             srcrect.y = 466;
@@ -472,11 +466,11 @@ void LCD_SDL_Backend::Render()
             dstrect.h =  26;
             if ((m_lcd->button_enable & 1) != 0) { // ALL
                 dstrect.y = 35;
-                SDL_RenderCopy(m_renderer, m_background, &srcrect, &dstrect);
+                SDL_RenderTexture(m_renderer, m_background, &srcrect, &dstrect);
             }
             if ((m_lcd->button_enable & 2) != 0) { // MUTE
                 dstrect.y = 82;
-                SDL_RenderCopy(m_renderer, m_background, &srcrect, &dstrect);
+                SDL_RenderTexture(m_renderer, m_background, &srcrect, &dstrect);
             }
         }
         if ((m_lcd->button_enable & 4) != 0) { // STANDBY
@@ -488,7 +482,7 @@ void LCD_SDL_Backend::Render()
             dstrect.y =  42;
             dstrect.w =  10;
             dstrect.h =  10;
-            SDL_RenderCopy(m_renderer, m_background, &srcrect, &dstrect);
+            SDL_RenderTexture(m_renderer, m_background, &srcrect, &dstrect);
         }
         { // Volume
             srcrect.x =  54;
@@ -499,7 +493,7 @@ void LCD_SDL_Backend::Render()
             dstrect.y =  42;
             dstrect.w =  59;
             dstrect.h =  59;
-            SDL_RenderCopyEx(m_renderer, m_background, &srcrect, &dstrect, (m_lcd->volume - 0.5f) * 300.0, NULL, SDL_FLIP_NONE);
+            SDL_RenderTextureRotated(m_renderer, m_background, &srcrect, &dstrect, (m_lcd->volume - 0.5f) * 300.0, NULL, SDL_FLIP_NONE);
         }
         {
             int type = 1;
@@ -533,7 +527,7 @@ void LCD_SDL_Backend::Render()
                 dstrect.y = 195;
                 dstrect.w = 131;
                 dstrect.h =  25;
-                SDL_RenderCopy(m_renderer, m_background, &srcrect, &dstrect);
+                SDL_RenderTexture(m_renderer, m_background, &srcrect, &dstrect);
             }
             if (type == -1 || type == 3) {
                 if (type == -1) {
@@ -549,7 +543,7 @@ void LCD_SDL_Backend::Render()
                 dstrect.y = 174;
                 dstrect.w = 100;
                 dstrect.h =  52;
-                SDL_RenderCopy(m_renderer, m_background, &srcrect, &dstrect);
+                SDL_RenderTexture(m_renderer, m_background, &srcrect, &dstrect);
             }
         }
         srcrect.x =   0;
@@ -560,10 +554,10 @@ void LCD_SDL_Backend::Render()
         dstrect.y =  49;
         dstrect.w = 370;
         dstrect.h = 134;
-        SDL_RenderCopy(m_renderer, m_texture, &srcrect, &dstrect);
+        SDL_RenderTexture(m_renderer, m_texture, &srcrect, &dstrect);
     }
     else {
-        SDL_RenderCopy(m_renderer, m_texture, NULL, NULL);
+        SDL_RenderTexture(m_renderer, m_texture, NULL, NULL);
     }
     SDL_RenderPresent(m_renderer);
 }

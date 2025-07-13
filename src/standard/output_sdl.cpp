@@ -2,7 +2,7 @@
 
 #include "audio_sdl.h"
 #include "cast.h"
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 // one per instance
 const size_t MAX_STREAMS = 16;
