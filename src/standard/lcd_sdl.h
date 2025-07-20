@@ -1,7 +1,7 @@
 #pragma once
 
 #include "lcd.h"
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 class LCD_SDL_Backend : public LCD_Backend
 {

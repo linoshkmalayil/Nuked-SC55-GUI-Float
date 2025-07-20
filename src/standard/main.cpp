@@ -45,8 +45,8 @@
 #include "pcm.h"
 #include "ringbuffer.h"
 #include "serial.h"
-#include <SDL.h>
-#include <SDL_hints.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_hints.h>
 #include <optional>
 #include <thread>
 
