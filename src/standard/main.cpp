@@ -209,35 +209,35 @@ void FE_RouteMIDI(FE_Application& fe, std::span<const uint8_t> bytes)
     }
 }
 
-void FE_SendSerial(FE_Application& fe, size_t n, const uint8_t byte)
+void FE_SendSerial(FE_Application& fe, size_t n, const uint8_t sbyte)
 {
-    fe.instances[n].emu.PostSerial(byte);
+    fe.instances[n].emu.PostSerial(sbyte);
 }
 
-void FE_BroadcastSerial(FE_Application& fe, const uint8_t byte)
+void FE_BroadcastSerial(FE_Application& fe, const uint8_t sbyte)
 {
     for (size_t i = 0; i < fe.instances_in_use; ++i)
     {
-        FE_SendSerial(fe, i, byte);
+        FE_SendSerial(fe, i, sbyte);
     }
 }
 
-void FE_RouteSerial(FE_Application& fe, uint8_t byte)
+void FE_RouteSerial(FE_Application& fe, uint8_t sbyte)
 {
-    if (byte == 0xF0)
+    if (sbyte == 0xF0)
         fe.current_instance = 16; //Broadcast
-    else if (byte >= 0x80 && byte <= 0xDF)
+    else if (sbyte >= 0x80 && sbyte <= 0xDF)
     {
-        fe.current_instance = (byte  & 0x0F) % fe.instances_in_use;
+        fe.current_instance = (sbyte  & 0x0F) % fe.instances_in_use;
     }
 
     if (fe.current_instance == 16)
     {
-        FE_BroadcastSerial(fe, byte);
+        FE_BroadcastSerial(fe, sbyte);
     }
     else
     {
-        FE_SendSerial(fe, fe.current_instance, byte);
+        FE_SendSerial(fe, fe.current_instance, sbyte);
     }
 }
 

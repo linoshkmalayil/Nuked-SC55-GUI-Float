@@ -194,18 +194,6 @@ bool MIDI_PickDevice(std::string_view preferred_in_name, std::string_view prefer
 
     MMRESULT result;
 
-    if (preferred_in_name.size() == 0)
-    {
-        // default to first device
-        result = midiInGetDevCapsA(0, &out_picked.device_in_caps, sizeof(MIDIINCAPSA));
-        if (result != MMSYSERR_NOERROR)
-        {
-            fprintf(stderr, "midiInGetDevCapsA failed\n");
-            return false;
-        }
-        out_picked.device_in_id = 0;
-    }
-
     if (preferred_out_name.size() == 0)
     {
         // default to first device
@@ -223,6 +211,20 @@ bool MIDI_PickDevice(std::string_view preferred_in_name, std::string_view prefer
         {
             fprintf(stderr, "No midi output\n");
         }
+    }
+
+    if (preferred_in_name.size() == 0)
+    {
+        // default to first device
+        result = midiInGetDevCapsA(0, &out_picked.device_in_caps, sizeof(MIDIINCAPSA));
+        if (result != MMSYSERR_NOERROR)
+        {
+            fprintf(stderr, "midiInGetDevCapsA failed\n");
+            return false;
+        }
+        out_picked.device_in_id = 0;
+
+        return true;
     }
 
     for (UINT i = 0; i < num_in_devices; ++i)
@@ -255,38 +257,32 @@ bool MIDI_PickDevice(std::string_view preferred_in_name, std::string_view prefer
     }
 
     // user provided a number
-    if (out_picked.device_in_id < 0)
+    if (UINT device_in_id; TryParse(preferred_in_name, device_in_id))
     {
-        if (UINT device_in_id; TryParse(preferred_in_name, device_in_id))
+        if (device_in_id < num_in_devices)
         {
-            if (device_in_id < num_in_devices)
+            result = midiInGetDevCaps(device_in_id, &out_picked.device_in_caps, sizeof(MIDIINCAPSA));
+            if (result != MMSYSERR_NOERROR)
             {
-                result = midiInGetDevCaps(device_in_id, &out_picked.device_in_caps, sizeof(MIDIINCAPSA));
-                if (result != MMSYSERR_NOERROR)
-                {
-                    fprintf(stderr, "midiInGetDevCapsA failed\n");
-                    return false;
-                }
-                out_picked.device_in_id = device_in_id;
+                fprintf(stderr, "midiInGetDevCapsA failed\n");
+                return false;
             }
+            out_picked.device_in_id = device_in_id;
         }
     }
-    if (out_picked.device_out_id < 0)
+    if (UINT device_out_id; TryParse(preferred_out_name, device_out_id))
     {
-        if (UINT device_out_id; TryParse(preferred_out_name, device_out_id))
+        if (device_out_id < num_out_devices)
         {
-            if (device_out_id < num_out_devices)
+            result = midiOutGetDevCaps(device_out_id, &out_picked.device_out_caps, sizeof(MIDIOUTCAPSA));
+            if (result != MMSYSERR_NOERROR)
             {
-                result = midiOutGetDevCaps(device_out_id, &out_picked.device_out_caps, sizeof(MIDIOUTCAPSA));
-                if (result != MMSYSERR_NOERROR)
-                {
-                    fprintf(stderr, "midiOutGetDevCapsA failed\n");
-                    return false;
-                }
-                out_picked.device_out_id = device_out_id;
+                fprintf(stderr, "midiOutGetDevCapsA failed\n");
+                return false;
             }
-        
+            out_picked.device_out_id = device_out_id;
         }
+    
     }
     
     if (out_picked.device_in_id < 0)

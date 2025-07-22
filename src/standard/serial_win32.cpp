@@ -419,8 +419,8 @@ void SERIAL_Read_Updater(FE_Application& fe, serial_read_callback read_callback)
 
         if(SERIAL_HasData())
         {
-            uint8_t byte = SERIAL_ReadUART();
-            read_callback(fe, byte);        
+            uint8_t sbyte = SERIAL_ReadUART();
+            read_callback(fe, sbyte);        
         }
     }
 }
