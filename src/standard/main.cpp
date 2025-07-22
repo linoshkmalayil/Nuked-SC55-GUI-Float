@@ -825,7 +825,6 @@ enum class FE_ParseError
     ASIOSampleRateOutOfRange,
     InvalidRevision,
     SerialTypeInvalid,
-    SerialInstanceInvalid,
     ResetInvalid,
 };
 
@@ -857,8 +856,6 @@ const char* FE_ParseErrorStr(FE_ParseError err)
             return "ASIO sample rate out of range";
         case FE_ParseError::SerialTypeInvalid:
             return "Serial Type Invalid";
-        case FE_ParseError::SerialInstanceInvalid:
-            return "Multiple Instances not supported with Serial Mode";
         case FE_ParseError::ResetInvalid:
             return "Reset invalid (should be none, gs, or gm)";
     }
@@ -1036,11 +1033,6 @@ FE_ParseError FE_ParseCommandLine(int argc, char* argv[], FE_Parameters& result)
             if (result.instances < 1 || result.instances > 16)
             {
                 return FE_ParseError::InstancesOutOfRange;
-            }
-
-            if (result.serial_type != Computerswitch::MIDI && result.instances > 1)
-            {
-                return FE_ParseError::SerialInstanceInvalid;
             }
         }
         else if (reader.Any("--no-lcd"))
