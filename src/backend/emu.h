@@ -88,16 +88,14 @@ public:
     void SetSampleCallback(mcu_sample_callback callback, void* userdata);
     void SetMidiOutCallback(mcu_midiout_callback callback);
 
-    void SetSerialHasDataCallback(sm_serial_hasdata_callback callback);
-    void SetSerialReadCallback(sm_serial_read_callback callback);
     void SetSerialPostCallback(sm_serial_post_callback callback);
-    void SetSerialUpdateCallback(sm_serial_update_callback callback);
 
     bool LoadRoms(Romset romset, MK1version revision = MK1version::NOT_MK1);
 
     void PostMIDI(uint8_t data_byte);
     void PostMIDI(std::span<const uint8_t> data);
 
+    void PostSerial(uint8_t byte);
     void PostSerial(std::span<const uint8_t> data);
 
     void PostSystemReset(EMU_SystemReset reset);

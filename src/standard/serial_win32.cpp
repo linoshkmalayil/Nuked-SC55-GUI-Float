@@ -3,8 +3,17 @@
 #include <cstdlib>
 #include <string>
 #include <windows.h>
+#include <thread>
 
 #define BUFFER_SIZE 4096
+
+typedef void (*serial_read_callback)(FE_Application& fe, uint8_t data);
+void FE_RouteSerial(FE_Application& fe, uint8_t byte);
+
+std::thread serial_read_thread;
+std::mutex  serial_io_mutex;
+bool        thread_run = false;
+void        SERIAL_Read_Updater(FE_Application& fe, serial_read_callback read_callback);
 
 class Serial_Handler
 {
@@ -338,12 +347,15 @@ bool SERIAL_Init(FE_Application& fe, std::string_view serial_port)
         return false;
     }
 
+    thread_run         = true;
+    serial_read_thread = std::thread(&SERIAL_Read_Updater, std::ref(fe), std::ref(FE_RouteSerial));
+
     return true;
 }
 
-void SERIAL_Update(submcu_t& sm)
+void SERIAL_Update()
 {
-    (void)sm;
+    std::lock_guard<std::mutex> lock(serial_io_mutex);
 
     if (!s_handler || !s_handler->IsSerialInit())
     {
@@ -388,10 +400,27 @@ void SERIAL_Quit()
 {
     if(s_handler)
     {
+        thread_run = false;
+        serial_read_thread.join();
+
         s_handler->SerialClose();
         delete s_handler;
         s_handler = nullptr;
     }
 
     return;
+}
+
+void SERIAL_Read_Updater(FE_Application& fe, serial_read_callback read_callback)
+{
+    while (thread_run)
+    {
+        std::lock_guard<std::mutex> lock(serial_io_mutex);
+
+        if(SERIAL_HasData())
+        {
+            uint8_t byte = SERIAL_ReadUART();
+            read_callback(fe, byte);        
+        }
+    }
 }

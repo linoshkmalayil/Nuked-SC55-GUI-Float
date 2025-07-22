@@ -119,6 +119,7 @@ const size_t FE_MAX_INSTANCES = 16;
 struct FE_Application {
     FE_Instance instances[FE_MAX_INSTANCES];
     size_t instances_in_use = 0;
+    size_t current_instance = 0;
 
     AudioOutput audio_output{};
 
@@ -205,6 +206,38 @@ void FE_RouteMIDI(FE_Application& fe, std::span<const uint8_t> bytes)
     else
     {
         FE_SendMIDI(fe, channel % fe.instances_in_use, bytes);
+    }
+}
+
+void FE_SendSerial(FE_Application& fe, size_t n, const uint8_t byte)
+{
+    fe.instances[n].emu.PostSerial(byte);
+}
+
+void FE_BroadcastSerial(FE_Application& fe, const uint8_t byte)
+{
+    for (size_t i = 0; i < fe.instances_in_use; ++i)
+    {
+        FE_SendSerial(fe, i, byte);
+    }
+}
+
+void FE_RouteSerial(FE_Application& fe, uint8_t byte)
+{
+    if (byte == 0xF0)
+        fe.current_instance = 16; //Broadcast
+    else if (byte >= 0x80 && byte <= 0xDF)
+    {
+        fe.current_instance = (byte  & 0x0F) % fe.instances_in_use;
+    }
+
+    if (fe.current_instance == 16)
+    {
+        FE_BroadcastSerial(fe, byte);
+    }
+    else
+    {
+        FE_SendSerial(fe, fe.current_instance, byte);
     }
 }
 
@@ -509,10 +542,7 @@ void FE_SetSerialCallback(FE_Application& fe)
 {
     for(size_t i = 0; i < fe.instances_in_use; i++)
     {
-        fe.instances[i].emu.SetSerialHasDataCallback(SERIAL_HasData);
-        fe.instances[i].emu.SetSerialReadCallback(SERIAL_ReadUART);
         fe.instances[i].emu.SetSerialPostCallback(SERIAL_PostUART);
-        fe.instances[i].emu.SetSerialUpdateCallback(SERIAL_Update);
     }
 }
 
@@ -566,7 +596,7 @@ bool FE_HandleGlobalEvent(FE_Application& fe, const SDL_Event& ev)
     }
 }
 
-void FE_EventLoop(FE_Application& fe)
+void FE_EventLoop(FE_Application& fe, bool Is_Serial = false)
 {
     while (fe.running)
     {
@@ -608,11 +638,16 @@ void FE_EventLoop(FE_Application& fe)
             }
         }
 
+        if (Is_Serial)
+        {
+            SERIAL_Update();
+        }
+
         SDL_Delay(15);
     }
 }
 
-void FE_Run(FE_Application& fe)
+void FE_Run(FE_Application& fe, bool Is_Serial = false)
 {
     fe.running = true;
 
@@ -644,7 +679,7 @@ void FE_Run(FE_Application& fe)
         }
     }
 
-    FE_EventLoop(fe);
+    FE_EventLoop(fe, Is_Serial);
 
     for (size_t i = 0; i < fe.instances_in_use; ++i)
     {
@@ -790,7 +825,6 @@ enum class FE_ParseError
     ASIOSampleRateOutOfRange,
     InvalidRevision,
     SerialTypeInvalid,
-    SerialInstanceInvalid,
     ResetInvalid,
 };
 
@@ -822,8 +856,6 @@ const char* FE_ParseErrorStr(FE_ParseError err)
             return "ASIO sample rate out of range";
         case FE_ParseError::SerialTypeInvalid:
             return "Serial Type Invalid";
-        case FE_ParseError::SerialInstanceInvalid:
-            return "Multiple Instances not supported with Serial Mode";
         case FE_ParseError::ResetInvalid:
             return "Reset invalid (should be none, gs, or gm)";
     }
@@ -1001,11 +1033,6 @@ FE_ParseError FE_ParseCommandLine(int argc, char* argv[], FE_Parameters& result)
             if (result.instances < 1 || result.instances > 16)
             {
                 return FE_ParseError::InstancesOutOfRange;
-            }
-
-            if (result.serial_type != Computerswitch::MIDI && result.instances > 1)
-            {
-                return FE_ParseError::SerialInstanceInvalid;
             }
         }
         else if (reader.Any("--no-lcd"))
@@ -1377,9 +1404,12 @@ int main(int argc, char *argv[])
 
     if (params.reset)
     {
-        if (params.serial_type != Computerswitch::MIDI)
+        if(params.serial_type != Computerswitch::MIDI)
         {
-            frontend.instances[0].emu.PostSerialSystemReset(*params.reset);
+            for (size_t i = 0; i < frontend.instances_in_use; ++i)
+            {
+                frontend.instances[i].emu.PostSerialSystemReset(*params.reset);
+            }    
         }
         else
         {
@@ -1403,7 +1433,10 @@ int main(int argc, char *argv[])
 
     FE_PrintControls(params.romset);
 
-    FE_Run(frontend);
+    if (params.serial_type != Computerswitch::MIDI)
+        FE_Run(frontend, true);
+    else
+        FE_Run(frontend, false);
 
     FE_Quit(frontend);
 
