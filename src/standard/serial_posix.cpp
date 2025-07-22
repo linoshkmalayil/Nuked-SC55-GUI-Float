@@ -17,7 +17,7 @@ std::vector<uint8_t> read_buffer;
 std::vector<uint8_t> write_buffer;
 
 typedef void (*serial_read_callback)(FE_Application& fe, uint8_t data);
-void FE_RouteSerial(FE_Application& fe, uint8_t byte);
+void FE_RouteSerial(FE_Application& fe, uint8_t sbyte);
 
 std::thread linux_io_thread;
 std::thread serial_read_thread;
@@ -310,8 +310,8 @@ void SERIAL_Read_Updater(FE_Application& fe, serial_read_callback read_callback)
 
         if(SERIAL_HasData())
         {
-            uint8_t byte = SERIAL_ReadUART();
-            read_callback(fe, byte);        
+            uint8_t sbyte = SERIAL_ReadUART();
+            read_callback(fe, sbyte);        
         }
     }
 }
