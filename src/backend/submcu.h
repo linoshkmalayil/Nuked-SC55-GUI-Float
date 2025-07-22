@@ -87,10 +87,12 @@ struct submcu_t {
     uint8_t uart_rx_gotbyte        = 0;
     uint8_t uart_serial_rx_gotbyte = 0;
 
-    sm_serial_hasdata_callback serial_hasdata_callback = SM_SerialHasDataCallback;
-    sm_serial_read_callback serial_read_callback       = SM_SerialReadCallback;
-    sm_serial_post_callback serial_post_callback       = SM_SerialPostCallback;
-    sm_serial_update_callback serial_update_callback   = SM_SerialUpdateCallback;
+    uint8_t serial_buffer[1024]{};
+    uint32_t serial_read_ptr  = 0;
+    uint32_t serial_write_ptr = 0;
+    const uint32_t serial_buffer_size = 1024;
+
+    sm_serial_post_callback serial_post_callback = SM_SerialPostCallback;
 };
 
 void SM_Init(submcu_t& sm, mcu_t& mcu);
@@ -98,5 +100,5 @@ void SM_Reset(submcu_t& sm);
 void SM_Update(submcu_t& sm, uint64_t cycles);
 void SM_SysWrite(submcu_t& sm, uint32_t address, uint8_t data);
 uint8_t SM_SysRead(submcu_t& sm, uint32_t address);
-void SM_PostSerialReset(submcu_t &sm, uint8_t data);
 void SM_PostUART(submcu_t& sm, uint8_t data);
+void SM_PostSerial(submcu_t &sm, uint8_t data);

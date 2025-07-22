@@ -78,10 +78,6 @@ enum {
     SM_DEV_TIMER_CTRL        = 0x1f
 };
 
-uint8_t serial_reset_buffer[16];
-uint32_t reset_seq_size   = 0;
-uint32_t serial_reset_ptr = 0;
-
 void SM_ErrorTrap(submcu_t& sm)
 {
     fprintf(stderr, "%.4x\n", sm.pc);
@@ -1452,6 +1448,7 @@ void SM_UpdateUART(submcu_t& sm)
 
     if ((sm.device_mode[SM_DEV_UART2_CTRL] & 4) == 0) // RX disabled
         return;
+
     if (mcu.uart_write_ptr == mcu.uart_read_ptr) // no byte
         return;
 
@@ -1463,6 +1460,7 @@ void SM_UpdateUART(submcu_t& sm)
 
     mcu.uart_rx_byte   = mcu.uart_buffer[mcu.uart_read_ptr];
     mcu.uart_read_ptr  = (mcu.uart_read_ptr + 1) % uart_buffer_size;
+
     sm.uart_rx_gotbyte = 1;
     sm.device_mode[SM_DEV_INT_REQUEST] |= 0x40;
 
@@ -1471,21 +1469,17 @@ void SM_UpdateUART(submcu_t& sm)
 
 void SM_UpdateSerial(submcu_t& sm)
 {
-    if((sm.device_mode[SM_DEV_UART1_CTRL]&4) == 0)
+    if ((sm.device_mode[SM_DEV_UART1_CTRL] & 4) == 0)
         return;
 
-    if(sm.uart_serial_rx_gotbyte)
+    if (sm.serial_write_ptr == sm.serial_read_ptr) // No byte
         return;
 
-    if(sm.cycles < sm.mcu->uart_serial_rx_delay)
+    if (sm.uart_serial_rx_gotbyte)
         return;
 
-    if (serial_reset_ptr != reset_seq_size) // Reset Bytes present
-        sm.mcu->uart_serial_rx_byte     = serial_reset_buffer[serial_reset_ptr++];
-    else if (sm.serial_hasdata_callback())  // Bytes from Serial Read available
-        sm.mcu->uart_serial_rx_byte         = sm.serial_read_callback();
-    else                                    // No Bytes from any Serial Source
-        return;
+    sm.mcu->uart_serial_rx_byte = sm.serial_buffer[sm.serial_read_ptr];
+    sm.serial_read_ptr          = (sm.serial_read_ptr + 1) % sm.serial_buffer_size;
 
     sm.uart_serial_rx_gotbyte           = 1;
     sm.device_mode[SM_DEV_INT_REQUEST] |= 0x80;
@@ -1509,36 +1503,18 @@ void SM_Update(submcu_t& sm, uint64_t cycles)
         sm.cycles += 12 * 4; // FIXME
         
         SM_UpdateTimer(sm);
-        sm.serial_update_callback(sm);
         SM_UpdateUART(sm);
         SM_UpdateSerial(sm);
     }
 }
 
-void SM_PostSerialReset(submcu_t &sm, uint8_t data)
+void SM_PostSerial(submcu_t& sm, uint8_t data)
 {
-    (void)sm;
-    serial_reset_buffer[reset_seq_size++] = data;
-}
-
-bool SM_SerialHasDataCallback()
-{
-    return false;
-}
-
-uint8_t SM_SerialReadCallback()
-{
-    return 0;
+    sm.serial_buffer[sm.serial_write_ptr] = data;
+    sm.serial_write_ptr = (sm.serial_write_ptr + 1) % sm.serial_buffer_size;
 }
 
 void SM_SerialPostCallback(uint8_t data)
 {
     (void)data;
-}
-
-void SM_SerialUpdateCallback(submcu_t& sm)
-{
-    (void)sm;
-    
-    return;
 }
