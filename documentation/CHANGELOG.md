@@ -3,6 +3,18 @@
 This fork is dependent on the changes on the fork [jcmoyer/Nuked-SC55](https://github.com/jcmoyer/Nuked-SC55)
 For **FULL CHANGELOG** from please check [jcmoyer/Nuked-SC55/CHANGELOG.md](https://github.com/jcmoyer/Nuked-SC55/blob/master/CHANGELOG.md)
 
+# Version 0.5.6 (2025-05-06)
+
+Jist of changes are follows
+- Fixed multi-instance Serial Mode. (Hence related changes from 5.5.1 are reverted)
+- Reworked Resetting when using Serial Mode.
+- Fixed Audio Clipping Issue using [jcmoyer's solution](https://github.com/nukeykt/Nuked-SC55/issues/101#issuecomment-2433588784)
+- Reworked Volume control code
+- Updated WIN32 MIDI Port selection routine which fixes following bugs:
+  - Incorrectly using the Last available MIDI Port name when using the first available MIDI Port when no port parameter is passed.
+  - Fixes issue where port numbers couldn't be passed as arguments.
+
+
 # Version 0.5.5.1 (2025-05-05)
 StopGap release
 
