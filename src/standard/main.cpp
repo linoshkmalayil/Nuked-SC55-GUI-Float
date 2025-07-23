@@ -1172,6 +1172,19 @@ FE_ParseError FE_ParseCommandLine(int argc, char* argv[], FE_Parameters& result)
     return FE_ParseError::Success;
 }
 
+// TODO: Rename to FE_SetVolume
+void Out_SDL_SetVolume(float vol)
+{
+    if (vol > 2.0f) {
+        vol = 2.0f;
+    }
+    if (vol < 0.0f) {
+        vol = 0.0f;
+    }
+    volume = vol;
+    volume_fp = (uint32_t)(vol * UINT16_MAX);
+}
+
 void FE_Usage()
 {
     constexpr const char* USAGE_STR = R"(Usage: %s [options]

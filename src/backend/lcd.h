@@ -81,7 +81,7 @@ struct lcd_t {
 
     uint32_t buffer[lcd_height_max][lcd_width_max]{};
 
-    float volume = 0.775f;
+    float volume = 0.8f;
 
     std::mutex mutex;
 
