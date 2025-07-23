@@ -26,6 +26,7 @@ Here `<serialgroup>` must be the group name who owns the serial ports. (`dialout
 
 **NOTE:**
 - If you are using DOSBox or MS-DOS in 86Box, [DOSMID](https://dosmid.sourceforge.net/) is one MIDI player that supports Serial Mode MIDI playback.
+- If your guest OS is Windows, You can use [Serial MIDI Driver](https://www.roland.com/us/support/by_product/all/general_apps_tools/aebc8c95-4e18-4c9f-8a27-a5a2819557f4/). Both Roland and Yamaha's Serial MIDI drivers are compatible and working.
 - If you are running MS-DOS on 86Box make sure to run `MODE COM<port>:<baudrate>,N,8,1,P` to configure the serial port. (Baudrate of 9600 is the common value)
 - In Windows incase the playback stutters, please run the following in Powershell: 
 ```
@@ -34,3 +35,16 @@ $port.Open()
 $port.Close()
 ```
 This occurs because Nuked-SC55 doesn't explicitly set the Baudrate when opening the Serial Port. And running these commands in powershell simply sets the serial port mode, opens and closes it. (Baudrate of 9600 is the common value)
+
+## Windows and 86Box
+
+This method does not require any Virtual Serial Port drivers.
+1. Go to **Ports (COM & LPT)** -> **Serial port passthrough** -> **Configure**.
+2. Set **Passthrough Mode** to **Named Pipe (Server)**.
+3. Change the pipe name to any preferred name (e.g `\\.\pipe\86Box\SC55`).
+4. Start 86Box.
+5. Connect the Nuked SC-55 to the port corresponding to the named pipe you created (e.g `\\.\pipe\86Box\SC55`).
+6. Run Serial MIDI playback on your Serial Application.
+
+**NOTE:**
+- If you restart either 86Box or Nuked-SC55, both 86Box and Nuked-SC55 must be restarted.
