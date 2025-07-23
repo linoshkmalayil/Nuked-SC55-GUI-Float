@@ -2,6 +2,7 @@
 #include "path_util.h"
 #include "emu.h"
 #include "mcu.h"
+#include "output_sdl.h"
 #include <string>
 
 const SDL_Rect lcd_button_regions_sc55[32] = {
@@ -89,9 +90,9 @@ void LCD_VolumeChanged(lcd_t& lcd) {
     }
     if (lcd.volume != 0.0f) {
         float vol = powf(10.0f, (-80.0f * (1.0f - lcd.volume)) / 20.0f); // or volume ^ 8 (0 < volume < 1)
-        MCU_SetVolume(*lcd.mcu, (uint16_t) (vol * UINT16_MAX));
+        Out_SDL_SetVolume(vol);
     } else {
-        MCU_SetVolume(*lcd.mcu, 0);
+        Out_SDL_SetVolume(0.0f);
     }
 }
 

@@ -7,6 +7,7 @@
 // one per instance
 const size_t MAX_STREAMS = 16;
 
+
 struct SDLOutput
 {
     SDL_AudioSpec requested_spec{};
@@ -158,4 +159,16 @@ void Out_SDL_AddSource(RingbufferView& view)
     g_output.views[g_output.stream_count] = &view;
 
     ++g_output.stream_count;
+}
+
+void Out_SDL_SetVolume(float vol)
+{
+    if (vol > 2.0f) {
+        vol = 2.0f;
+    }
+    if (vol < 0.0f) {
+        vol = 0.0f;
+    }
+    volume = vol;
+    volume_fp = (uint32_t) (vol * UINT16_MAX);
 }

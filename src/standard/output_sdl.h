@@ -14,3 +14,5 @@ bool Out_SDL_Start();
 void Out_SDL_Stop();
 
 void Out_SDL_AddSource(RingbufferView& view);
+
+void Out_SDL_SetVolume(float vol);
