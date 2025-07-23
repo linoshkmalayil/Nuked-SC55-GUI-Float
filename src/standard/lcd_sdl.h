@@ -1,5 +1,6 @@
 #pragma once
 
+#include "audio.h"
 #include "lcd.h"
 #include <SDL.h>
 
@@ -17,6 +18,8 @@ public:
 
     bool IsQuitRequested() const;
 
+    AudioVolume GetSDLVolume() { return lcd_sdl_volume; }
+
 private:
     lcd_t*        m_lcd        = nullptr;
     SDL_Window*   m_window     = nullptr;
@@ -24,6 +27,8 @@ private:
     SDL_Texture*  m_texture    = nullptr;
     SDL_Surface*  m_image      = nullptr;
     SDL_Texture*  m_background = nullptr;
+    AudioVolume   lcd_sdl_volume{};
+
 
     uint32_t drag_volume_knob  = 0;
     bool background_enabled    = false;

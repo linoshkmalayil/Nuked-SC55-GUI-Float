@@ -15,4 +15,4 @@ void Out_SDL_Stop();
 
 void Out_SDL_AddSource(RingbufferView& view);
 
-void Out_SDL_SetVolume(float vol);
+void Out_SDL_SetVolume(float vol, AudioVolume &volume_control);

@@ -247,7 +247,7 @@ void FE_ReceiveSampleSDL(void* userdata, const AudioFrame<int32_t>& in)
     FE_Instance& fe = *(FE_Instance*)userdata;
 
     AudioFrame<SampleT>* out = (AudioFrame<SampleT>*)fe.chunk_first;
-    Normalize(in, *out);
+    Normalize(in, *out, fe.sdl_lcd->GetSDLVolume());
     fe.chunk_first = out + 1;
 
     if (fe.chunk_first == fe.chunk_last)
@@ -264,7 +264,7 @@ void FE_ReceiveSampleASIO(void* userdata, const AudioFrame<int32_t>& in)
     FE_Instance& fe = *(FE_Instance*)userdata;
 
     AudioFrame<SampleT>* out = (AudioFrame<SampleT>*)fe.chunk_first;
-    Normalize(in, *out);
+    Normalize(in, *out, fe.sdl_lcd->GetSDLVolume());
     fe.chunk_first = out + 1;
 
     if (fe.chunk_first == fe.chunk_last)
@@ -1172,19 +1172,6 @@ FE_ParseError FE_ParseCommandLine(int argc, char* argv[], FE_Parameters& result)
     return FE_ParseError::Success;
 }
 
-// TODO: Rename to FE_SetVolume
-void Out_SDL_SetVolume(float vol)
-{
-    if (vol > 2.0f) {
-        vol = 2.0f;
-    }
-    if (vol < 0.0f) {
-        vol = 0.0f;
-    }
-    volume = vol;
-    volume_fp = (uint32_t)(vol * UINT16_MAX);
-}
-
 void FE_Usage()
 {
     constexpr const char* USAGE_STR = R"(Usage: %s [options]
@@ -1211,7 +1198,7 @@ Serial Port options:
 
 Emulator options:
   -r, --reset     none|gs|gm                    Reset system in GS or GM mode. (No GM in MK1 1.00 & 1.10)
-  -n, --instances <count>                       Set number of emulator instances. (MIDI IO only)
+  -n, --instances <count>                       Set number of emulator instances.
   --no-lcd                                      Run without LCDs.
   --nvram <filename>                            Saves and loads NVRAM to/from disk. JV-880 only.
 

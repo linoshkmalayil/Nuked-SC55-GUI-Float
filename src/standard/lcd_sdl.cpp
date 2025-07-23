@@ -81,7 +81,7 @@ const int button_map_jv880[][2] = {
     {SDL_SCANCODE_G,     MCU_BUTTON_ENTER},
 };
 
-void LCD_VolumeChanged(lcd_t& lcd) {
+void LCD_VolumeChanged(lcd_t& lcd, AudioVolume &lcd_sdl_volume) {
     if (lcd.volume > 1.0f) {
         lcd.volume = 1.0f;
     }
@@ -90,9 +90,9 @@ void LCD_VolumeChanged(lcd_t& lcd) {
     }
     if (lcd.volume != 0.0f) {
         float vol = powf(10.0f, (-80.0f * (1.0f - lcd.volume)) / 20.0f); // or volume ^ 8 (0 < volume < 1)
-        Out_SDL_SetVolume(vol);
+        Out_SDL_SetVolume(vol, lcd_sdl_volume);
     } else {
-        Out_SDL_SetVolume(0.0f);
+        Out_SDL_SetVolume(0.0f, lcd_sdl_volume);
     }
 }
 
@@ -244,7 +244,7 @@ void LCD_SDL_Backend::HandleEvent(const SDL_Event& sdl_event)
                 }
                 if (sdl_event.button.clicks == 2 && (sdl_event.button.x >= 153 && sdl_event.button.x <= 212 && sdl_event.button.y >= 42 && sdl_event.button.y <= 101)) {
                     m_lcd->volume = 0.8f;
-                    LCD_VolumeChanged(*m_lcd);
+                    LCD_VolumeChanged(*m_lcd, lcd_sdl_volume);
                 } 
             }
             int32_t x = sdl_event.button.x;
@@ -291,7 +291,7 @@ void LCD_SDL_Backend::HandleEvent(const SDL_Event& sdl_event)
                     }
                 }
                 m_lcd->volume += delta;
-                LCD_VolumeChanged(*m_lcd);
+                LCD_VolumeChanged(*m_lcd, lcd_sdl_volume);
             }
             break;
         case SDL_MOUSEWHEEL:
@@ -304,7 +304,7 @@ void LCD_SDL_Backend::HandleEvent(const SDL_Event& sdl_event)
                     relval = -10;
                 }
                 m_lcd->volume += (float)relval / 400.0f;
-                LCD_VolumeChanged(*m_lcd);
+                LCD_VolumeChanged(*m_lcd, lcd_sdl_volume);
                 }
             break;
 

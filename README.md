@@ -16,7 +16,15 @@ Differences from upstream:
   see what arguments it accepts.
 - Improved performance without sacrificing accuracy.
 - Added GUI support and LCD Contrast.
+- Added Serial MIDI support for mkII and st models.
 - Added volume adjustment.
+
+## Downloads 
+
+Windows Builds can be downloaded from here: [Releases](https://github.com/linoshkmalayil/Nuked-SC55-GUI-Float/releases/)\
+Latest Build: [Latest](https://github.com/linoshkmalayil/Nuked-SC55-GUI-Float/releases/latest)
+
+Linux and Mac requires building from source. (See [BUILDING](README.md#building))
 
 ## Building
 

@@ -160,3 +160,15 @@ void Out_SDL_AddSource(RingbufferView& view)
 
     ++g_output.stream_count;
 }
+
+void Out_SDL_SetVolume(float vol, AudioVolume &volume_control)
+{
+    if (vol > 2.0f) {
+        vol = 2.0f;
+    }
+    if (vol < 0.0f) {
+        vol = 0.0f;
+    }
+    volume_control.volume = vol;
+    volume_control.volume_fp = (uint32_t)(vol * UINT16_MAX);
+}
