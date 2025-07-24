@@ -19,12 +19,10 @@ std::vector<uint8_t> write_buffer;
 typedef void (*serial_read_callback)(FE_Application& fe, uint8_t data);
 void FE_RouteSerial(FE_Application& fe, uint8_t sbyte);
 
-std::thread linux_io_thread;
 std::thread serial_read_thread;
 std::mutex  serial_io_mutex;
 bool        thread_run = false;
-void        Linux_IO_Serial();
-void        SERIAL_Read_Updater(FE_Application& fe, serial_read_callback read_callback);
+void        SERIAL_Thread_Updater(FE_Application& fe, serial_read_callback read_callback);
 
 class Serial_Handler
 {
@@ -183,8 +181,7 @@ bool SERIAL_Init(FE_Application& fe, std::string_view serial_port)
     }
 
     thread_run         = true;
-    linux_io_thread    = std::thread(&Linux_IO_Serial);
-    serial_read_thread = std::thread(&SERIAL_Read_Updater, std::ref(fe), std::ref(FE_RouteSerial));
+    serial_read_thread = std::thread(&SERIAL_Thread_Updater, std::ref(fe), std::ref(FE_RouteSerial));
 
     return true;
 }
@@ -274,10 +271,9 @@ void SERIAL_PostUART(uint8_t data)
 void SERIAL_Quit()
 {
     thread_run = false;
-    if(linux_io_thread.joinable())
+    if(serial_read_thread.joinable())
     {
         thread_run = false;
-        linux_io_thread.join();
         serial_read_thread.join();
     }
 
@@ -291,7 +287,7 @@ void SERIAL_Quit()
     return;
 }
 
-void Linux_IO_Serial()
+void SERIAL_Thread_Updater(FE_Application& fe, serial_read_callback read_callback)
 {
     while (thread_run)
     {
@@ -299,14 +295,6 @@ void Linux_IO_Serial()
 
         s_handler->ReadSerialPort();
         s_handler->WriteSerialPort();
-    }
-}
-
-void SERIAL_Read_Updater(FE_Application& fe, serial_read_callback read_callback)
-{
-    while (thread_run)
-    {
-        std::lock_guard<std::mutex> lock(serial_io_mutex);
 
         if(SERIAL_HasData())
         {
