@@ -247,7 +247,12 @@ void FE_ReceiveSampleSDL(void* userdata, const AudioFrame<int32_t>& in)
     FE_Instance& fe = *(FE_Instance*)userdata;
 
     AudioFrame<SampleT>* out = (AudioFrame<SampleT>*)fe.chunk_first;
-    Normalize(in, *out, fe.sdl_lcd->GetSDLVolume());
+    
+    if (fe.sdl_lcd == nullptr)
+        Normalize(in, *out);
+    else
+        Normalize(in, *out, fe.sdl_lcd->GetSDLVolume());
+
     fe.chunk_first = out + 1;
 
     if (fe.chunk_first == fe.chunk_last)
@@ -264,7 +269,12 @@ void FE_ReceiveSampleASIO(void* userdata, const AudioFrame<int32_t>& in)
     FE_Instance& fe = *(FE_Instance*)userdata;
 
     AudioFrame<SampleT>* out = (AudioFrame<SampleT>*)fe.chunk_first;
-    Normalize(in, *out, fe.sdl_lcd->GetSDLVolume());
+
+    if (fe.sdl_lcd == nullptr)
+        Normalize(in, *out);
+    else
+        Normalize(in, *out, fe.sdl_lcd->GetSDLVolume());
+
     fe.chunk_first = out + 1;
 
     if (fe.chunk_first == fe.chunk_last)
@@ -1181,8 +1191,6 @@ General options:
   -v, --version                                 Display version information.
 
 Audio options:
-  -pi, --portin      <device_name_or_number>    Set MIDI input port.
-  -po, --portout     <device_name_or_number>    Set MIDI output port.
   -a, --audio-device <device_name_or_number>    Set output audio device.
   -b, --buffer-size  <size>[:count]             Set buffer size, number of buffers.
   -f, --format       s16|s32|f32                Set output format.
