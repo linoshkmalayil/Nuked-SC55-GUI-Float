@@ -15,42 +15,48 @@ Tested compilers:
 Full build
 
 ```bash
-git clone git@github.com:linoshkmalayil/Nuked-SC55.git
-cd Nuked-SC55
+git clone git@github.com:linoshkmalayil/Nuked-SC55-GUI-Float.git
+cd Nuked-SC55-GUI-Float
 mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
 cmake --build .
 ```
 
-If you're building a binary to only run on your local machine, consider adding
-`-DCMAKE_CXX_FLAGS="-march=native -mtune=native"
--DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON` to the first cmake command above to
-enable more optimizations.
+This should generate three files `nuked-sc55-backend` library file and two binaries `nuked-sc55` and `nuked-sc55-render`
 
-After building, you can create a self-contained install with any required files
-in their correct locations under `<path>`:
+And you can copy the `data/sc55_background.bmp` file into the build folder using this command:
+```bash
+cp ../data/sc55_background.bmp sc55_background.bmp
+```
 
+If you're building a binary to only run on your local machine, consider adding `-DCMAKE_CXX_FLAGS="-march=native -mtune=native" -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON` to the first cmake command above to enable more optimizations.
+Also `-DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS="-static"` can be added to used for static linking.
+
+After building, you can create a self-contained install with any required files in their correct locations under `<path>`:
 ```bash
 cmake --install . --prefix=<path>
 ```
 
 ### Windows
 
-For builds using msvc you will most likely need to pass
-`-DCMAKE_PREFIX_PATH=<path>` where `<path>` points to a directory containing
-SDL2, and optionally rtmidi (only when `-DUSE_RTMIDI=ON`).
+For builds using msvc you will most likely need to pass `-DCMAKE_PREFIX_PATH=<path>` where `<path>` points to a directory containing SDL2, and optionally rtmidi (only when `-DUSE_RTMIDI=ON`) to CMake Command arguments.
 
 cmake is expecting to find `<path>/SDL2-X.YY.Z/cmake/sdl2-config.cmake`.
 
-For builds in an msys2 environment, installing SDL2 via pacman should be
-enough.
+For builds in an msys2 environment, installing SDL2 via pacman should be enough.
+
+And once the binary is compiled, copy the `SDL2.dll` copying it as follows (MSYS2):
+```bash
+cp /mingw64/bin/SDL2.dll SDL2.dll
+```
+Or you can copy `SDL2.dll` from the location of SDL2 SDK and copy it to the binary directory.
 
 #### ASIO (optional)
  
- To enable ASIO support, pass `-DNUKED_ENABLE_ASIO=ON` and
- `-DNUKED_ASIO_SDK_DIR=<path>` where `<path>` points to the extracted ASIO SDK
- obtained from [here](https://www.steinberg.net/developers/).
+To enable ASIO support, pass `-DNUKED_ENABLE_ASIO=ON` and `-DNUKED_ASIO_SDK_DIR=<path>` where `<path>` points to the extracted ASIO SDK obtained from [here](https://www.steinberg.net/developers/).
+ 
+Incase you want a static linking you can add `-DCMAKE_EXE_LINKER_FLAGS="-static"` flag as well
 
 # Development
 
@@ -60,22 +66,18 @@ Requirements:
 - [Catch2 v3.7.0](https://github.com/catchorg/Catch2) installed in
   `CMAKE_PREFIX_PATH`
 
-There is a test suite that makes sure new commits don't change existing
-behavior. It is expected that all tests pass for every commit unless either:
+There is a test suite that makes sure new commits don't change existing behavior. It is expected that all tests pass for every commit unless either:
 
 - Upstream modified backend behavior in a way that affects sample output, or
 - We modified the renderer frontend in a way that causes different output
 
-You can run the test suite by configuring with `-DNUKED_ENABLE_TESTS=ON` and
-`-DNUKED_TEST_ROMDIR=<path>` and running:
+You can run the test suite by configuring with `-DNUKED_ENABLE_TESTS=ON` and `-DNUKED_TEST_ROMDIR=<path>` and running:
 
 ```
 ctest . -C Release
 ```
 
-Note that these tests take a long time to finish individually, so you may want
-to pass `-j` to run them in parallel. Currently these tests require a SC-55
-(v1.21) and SC-55mk2 romset with these SHA256 hashes:
+Note that these tests take a long time to finish individually, so you may want to pass `-j` to run them in parallel. Currently these tests require a SC-55 (v1.21) and SC-55mk2 romset with these SHA256 hashes:
 
 ```
 7e1bacd1d7c62ed66e465ba05597dcd60dfc13fc23de0287fdbce6cf906c6544 *sc55_rom1.bin
