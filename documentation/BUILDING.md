@@ -15,12 +15,18 @@ Tested compilers:
 Full build
 
 ```bash
-git clone git@github.com:linoshkmalayil/Nuked-SC55.git
-cd Nuked-SC55
+git clone git@github.com:linoshkmalayil/Nuked-SC55-GUI-Float.git
+cd Nuked-SC55-GUI-Float
 mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
 cmake --build .
+```
+
+And you can copy the `data/sc55_background.bmp` file into the build folder 
+using this command:
+```bash
+cp ../data/sc55_background.bmp sc55_background.bmp
 ```
 
 If you're building a binary to only run on your local machine, consider adding
@@ -35,6 +41,7 @@ in their correct locations under `<path>`:
 cmake --install . --prefix=<path>
 ```
 
+
 ### Windows
 
 For builds using msvc you will most likely need to pass
@@ -46,11 +53,19 @@ cmake is expecting to find `<path>/SDL2-X.YY.Z/cmake/sdl2-config.cmake`.
 For builds in an msys2 environment, installing SDL2 via pacman should be
 enough.
 
+And once the binary is compiled, copy the `SDL2.dll` copying it as follows:
+```bash
+cp /bin/SDL2.dll SDL2.dll
+```
+
+
 #### ASIO (optional)
  
- To enable ASIO support, pass `-DNUKED_ENABLE_ASIO=ON` and
- `-DNUKED_ASIO_SDK_DIR=<path>` where `<path>` points to the extracted ASIO SDK
- obtained from [here](https://www.steinberg.net/developers/).
+To enable ASIO support, pass `-DNUKED_ENABLE_ASIO=ON` and
+`-DNUKED_ASIO_SDK_DIR=<path>` where `<path>` points to the extracted ASIO SDK
+obtained from [here](https://www.steinberg.net/developers/).
+ 
+Incase you want a static linking you can add `-DCMAKE_EXE_LINKER_FLAGS="-static"` flag as well
 
 # Development
 
