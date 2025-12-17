@@ -1,6 +1,7 @@
 #include "serial.h"
 #include <cstdio>
 #include <cstdlib>
+#include <mutex>
 #include <string>
 #include <windows.h>
 #include <thread>
