@@ -37,7 +37,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
-#include "command_line.h"
+#include "common/command_line.h"
 #include <cstdint>
 #include <cstdio>
 #include <mmsystem.h>

@@ -1,5 +1,5 @@
 #include "lcd_sdl.h"
-#include "path_util.h"
+#include "common/path_util.h"
 #include "emu.h"
 #include "mcu.h"
 #include "output_sdl.h"

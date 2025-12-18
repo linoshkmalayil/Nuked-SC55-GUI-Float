@@ -71,7 +71,6 @@ target_sources(nuked-sc55-backend
     src/backend/mcu_interrupt.cpp
     src/backend/mcu_opcodes.cpp
     src/backend/mcu_timer.cpp
-    src/backend/path_util.cpp
     src/backend/pcm.cpp
     src/backend/submcu.cpp
 
@@ -83,7 +82,6 @@ target_sources(nuked-sc55-backend
     "${CMAKE_CURRENT_BINARY_DIR}/backend/config.h"
     src/backend/audio.h
     src/backend/cast.h
-    src/backend/command_line.h
     src/backend/emu.h
     src/backend/lcd.h
     src/backend/lcd_back.h
@@ -93,7 +91,6 @@ target_sources(nuked-sc55-backend
     src/backend/mcu_interrupt.h
     src/backend/mcu_opcodes.h
     src/backend/mcu_timer.h
-    src/backend/path_util.h
     src/backend/pcm.h
     src/backend/ringbuffer.h
     src/backend/submcu.h
@@ -101,6 +98,20 @@ target_sources(nuked-sc55-backend
 target_include_directories(nuked-sc55-backend PUBLIC "src/backend" "${CMAKE_CURRENT_BINARY_DIR}/backend")
 target_compile_features(nuked-sc55-backend PRIVATE cxx_std_23)
 target_enable_warnings(nuked-sc55-backend)
+
+#==============================================================================
+# Frontend shared code
+#==============================================================================
+add_library(nuked-sc55-common)
+target_sources(nuked-sc55-common
+    PRIVATE
+    src/common/path_util.cpp
+)
+target_compile_features(nuked-sc55-common PRIVATE cxx_std_23)
+target_enable_warnings(nuked-sc55-common)
+target_enable_conversion_warnings(nuked-sc55-common)
+target_link_libraries(nuked-sc55-common PRIVATE nuked-sc55-backend)
+target_include_directories(nuked-sc55-common PRIVATE "src/common")
 
 #==============================================================================
 # Standard frontend
@@ -139,7 +150,7 @@ if(SDL2_FOUND)
         target_link_libraries(nuked-sc55 PRIVATE SDL2::SDL2main)
     endif()
 
-    target_link_libraries(nuked-sc55 PRIVATE SDL2::SDL2 nuked-sc55-backend)
+    target_link_libraries(nuked-sc55 PRIVATE SDL2::SDL2 nuked-sc55-backend nuked-sc55-common)
     target_compile_features(nuked-sc55 PRIVATE cxx_std_23)
     target_enable_warnings(nuked-sc55)
     target_enable_conversion_warnings(nuked-sc55)
@@ -200,7 +211,7 @@ target_sources(nuked-sc55-render
     src/renderer/wav.h
 )
 
-target_link_libraries(nuked-sc55-render PRIVATE nuked-sc55-backend)
+target_link_libraries(nuked-sc55-render PRIVATE nuked-sc55-backend nuked-sc55-common)
 target_compile_features(nuked-sc55-render PRIVATE cxx_std_23)
 target_enable_warnings(nuked-sc55-render)
 target_enable_conversion_warnings(nuked-sc55-render)

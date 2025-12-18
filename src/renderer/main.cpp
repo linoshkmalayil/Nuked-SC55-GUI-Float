@@ -1,10 +1,10 @@
 #include "audio.h"
 #include "cast.h"
-#include "command_line.h"
+#include "common/command_line.h"
 #include "config.h"
 #include "emu.h"
 #include "math_util.h"
-#include "path_util.h"
+#include "common/path_util.h"
 #include "smf.h"
 #include "wav.h"
 #include <algorithm>
