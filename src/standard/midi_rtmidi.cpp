@@ -1,5 +1,5 @@
 #include "midi.h"
-#include "command_line.h"
+#include "common/command_line.h"
 #include <RtMidi.h>
 #include <cstdint>
 #include <cstdio>
