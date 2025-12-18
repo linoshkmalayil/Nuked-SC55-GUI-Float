@@ -1,5 +1,5 @@
 #include "lcd_sdl.h"
-#include "path_util.h"
+#include "common/path_util.h"
 #include "emu.h"
 #include "mcu.h"
 #include "output_sdl.h"
@@ -120,10 +120,11 @@ bool LCD_SDL_Backend::Start(lcd_t& lcd)
 
     std::string title = "Nuked SC-55: ";
 
-    title += EMU_RomsetName(m_lcd->mcu->romset);
+    title += RomsetName(m_lcd->mcu->romset);
 
     if(m_lcd->mcu->romset == Romset::MK1 || m_lcd->mcu->romset == Romset::MK2)
     {
+        std::filesystem::path base_path = common::GetProcessPath().parent_path();
         m_image = SDL_LoadBMP((const char*)(base_path / "sc55_background.bmp").u8string().c_str());
         if(m_image)
         {

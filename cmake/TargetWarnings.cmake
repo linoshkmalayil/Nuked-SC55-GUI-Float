@@ -1,6 +1,14 @@
 #==============================================================================
 # Support functions
 #==============================================================================
+function(target_disable_warnings tgt)
+    if(MSVC)
+        target_compile_options(${tgt} PRIVATE /W0)
+    else()
+        target_compile_options(${tgt} PRIVATE -w)
+    endif()
+endfunction()
+
 function(target_enable_warnings tgt)
     if(MSVC)
         target_compile_options(${tgt} PRIVATE /W4

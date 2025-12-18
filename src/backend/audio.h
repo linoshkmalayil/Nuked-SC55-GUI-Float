@@ -66,3 +66,16 @@ inline void MixFrame(AudioFrame<float>& dest, const AudioFrame<float>& src)
     dest.left  += src.left;
     dest.right += src.right;
 }
+
+template <typename SampleT>
+void Scale(AudioFrame<SampleT>& frame, float scalar_gain)
+{
+    frame.left  = SaturatingMul(frame.left, scalar_gain);
+    frame.right = SaturatingMul(frame.right, scalar_gain);
+}
+
+inline void Scale(AudioFrame<float>& frame, float scalar_gain)
+{
+    frame.left  = frame.left * scalar_gain;
+    frame.right = frame.right * scalar_gain;
+}

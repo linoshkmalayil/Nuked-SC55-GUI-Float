@@ -25,6 +25,8 @@ struct SMF_Event
     uint64_t timestamp;
     // Time since track start (only for first event in a track) or the prior event.
     uint32_t delta_time;
+    // Number of MTrk chunk containing this event.
+    uint16_t track_id;
     // MIDI message type.
     uint8_t status;
     // Offset to raw data bytes for this message within an SMF_ByteSpan.
@@ -33,6 +35,11 @@ struct SMF_Event
     uint8_t GetChannel() const
     {
         return status & 0x0f;
+    }
+
+    bool IsControlChange() const
+    {
+        return (status & 0xf0) == 0xb0;
     }
 
     bool IsSystem() const

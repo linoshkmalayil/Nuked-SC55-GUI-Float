@@ -37,6 +37,8 @@
 #include "mcu.h"
 #include "mcu_timer.h"
 #include "pcm.h"
+#include "rom.h"
+#include "rom_io.h"
 #include "submcu.h"
 #include <filesystem>
 #include <memory>
@@ -55,7 +57,7 @@ struct EMU_Options
     // Computer Switch for IO: Serial/MIDI, defaults to MIDI.
     Computerswitch serial_type = Computerswitch::MIDI;
     // If not empty, nvram will be saved to and loaded from here. JV-880 only.
-    std::filesystem::path nvram_basefilename;
+    std::filesystem::path nvram_filename;
 };
 
 enum class EMU_SystemReset {
@@ -90,7 +92,18 @@ public:
 
     void SetSerialPostCallback(sm_serial_post_callback callback);
 
-    bool LoadRoms(Romset romset, MK1version revision = MK1version::NOT_MK1);
+    // Loads roms from buffers referenced by `all_info`. If the slot for a rom in `all_info` has a non-empty `rom_data`,
+    // it will be loaded even if the romset doesn't require it.
+    //
+    // It is unspecified whether or not the emulator will copy `rom_data`. `all_info` should outlive the emulator
+    // instance.
+    //
+    // For roms that were successfully loaded, this function will set their corresponding index in `loaded` to true if
+    // `loaded` is non-null.
+    //
+    // It is recommended to check if the romset has all the necessary roms by first calling
+    // `IsCompleteRomset(all_info, romset)`.
+    bool LoadRoms(Romset romset, const AllRomsetInfo& all_info, RomLocationSet* loaded = nullptr, MK1version revision = MK1version::NOT_MK1);
 
     void PostMIDI(uint8_t data_byte);
     void PostMIDI(std::span<const uint8_t> data);
@@ -121,6 +134,10 @@ private:
     bool is_sram_loaded  = false;
     bool is_nvram_loaded = false;
 
+    std::span<uint8_t> MapBuffer(RomLocation location);
+
+    bool LoadRom(RomLocation location, std::span<const uint8_t> source);
+
     void ReadNVRAM();
     void WriteNVRAM();
 
@@ -128,7 +145,3 @@ private:
     void WriteSRAM();
 };
 
-Romset EMU_DetectRomset(const std::filesystem::path& base_path);
-const char* EMU_RomsetName(Romset romset);
-bool EMU_ParseRomsetName(std::string_view name, Romset& romset);
-std::span<const char*> EMU_GetParsableRomsetNames();

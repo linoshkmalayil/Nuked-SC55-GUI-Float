@@ -31,12 +31,12 @@ def main():
 
     expected = args.sha256.casefold()
     actual = digest.hexdigest().casefold()
- 
+
     if expected != actual:
         print("hash mismatch:")
         print(f"expected: {expected}")
         print(f"actual:   {actual}")
-    sys.exit(1)
+        sys.exit(1)
 
     sys.exit(proc.wait())
 

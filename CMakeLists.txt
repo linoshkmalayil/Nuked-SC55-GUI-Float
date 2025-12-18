@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.19)
-project (nuked-SC55 VERSION 0.5.6 LANGUAGES CXX)
+project (nuked-sc55 VERSION 0.6.2 LANGUAGES C CXX)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
@@ -24,7 +24,7 @@ endif()
 # Dependencies
 #==============================================================================
 find_package(SDL2)
- 
+
 if(SDL2_FOUND)
     message(STATUS "SDL2 FOUND - building standard frontend")
 else()
@@ -41,21 +41,10 @@ endif()
 
 # ASIO
 if(WIN32)
-option(NUKED_ENABLE_ASIO "Enable ASIO" OFF)
-set(NUKED_ASIO_SDK_DIR "" CACHE PATH
-    "Directory containing the ASIO SDK")
+    option(NUKED_ENABLE_ASIO "Enable ASIO" OFF)
+    set(NUKED_ASIO_SDK_DIR "" CACHE PATH
+        "Directory containing the ASIO SDK")
 endif()
-
-#==============================================================================
-# Support functions
-#==============================================================================
-function(target_disable_warnings tgt)
-if(MSVC)
-    target_compile_options(${tgt} PRIVATE /W0)
-else()
-    target_compile_options(${tgt} PRIVATE -w)
-endif()
-endfunction()
 
 #==============================================================================
 # Backend
@@ -71,9 +60,14 @@ target_sources(nuked-sc55-backend
     src/backend/mcu_interrupt.cpp
     src/backend/mcu_opcodes.cpp
     src/backend/mcu_timer.cpp
-    src/backend/path_util.cpp
     src/backend/pcm.cpp
+    src/backend/rom.cpp
+    src/backend/rom_io.cpp
     src/backend/submcu.cpp
+
+    src/backend/sha/sha-private.h
+    src/backend/sha/sha.h
+    src/backend/sha/sha224-256.c
 
     PUBLIC
     FILE_SET public_headers
@@ -83,7 +77,6 @@ target_sources(nuked-sc55-backend
     "${CMAKE_CURRENT_BINARY_DIR}/backend/config.h"
     src/backend/audio.h
     src/backend/cast.h
-    src/backend/command_line.h
     src/backend/emu.h
     src/backend/lcd.h
     src/backend/lcd_back.h
@@ -93,14 +86,31 @@ target_sources(nuked-sc55-backend
     src/backend/mcu_interrupt.h
     src/backend/mcu_opcodes.h
     src/backend/mcu_timer.h
-    src/backend/path_util.h
     src/backend/pcm.h
     src/backend/ringbuffer.h
+    src/backend/rom.h
+    src/backend/rom_io.h
     src/backend/submcu.h
 )
 target_include_directories(nuked-sc55-backend PUBLIC "src/backend" "${CMAKE_CURRENT_BINARY_DIR}/backend")
 target_compile_features(nuked-sc55-backend PRIVATE cxx_std_23)
 target_enable_warnings(nuked-sc55-backend)
+
+#==============================================================================
+# Frontend shared code
+#==============================================================================
+add_library(nuked-sc55-common)
+target_sources(nuked-sc55-common
+    PRIVATE
+    src/common/gain.cpp
+    src/common/rom_loader.cpp
+    src/common/path_util.cpp
+)
+target_compile_features(nuked-sc55-common PRIVATE cxx_std_23)
+target_enable_warnings(nuked-sc55-common)
+target_enable_conversion_warnings(nuked-sc55-common)
+target_link_libraries(nuked-sc55-common PRIVATE nuked-sc55-backend)
+target_include_directories(nuked-sc55-common PRIVATE "src/common")
 
 #==============================================================================
 # Standard frontend
@@ -113,7 +123,6 @@ if(SDL2_FOUND)
         src/standard/lcd_sdl.cpp
         src/standard/main.cpp
         src/standard/output_sdl.cpp
-        
 
         PRIVATE FILE_SET headers TYPE HEADERS FILES
         src/standard/audio_sdl.h
@@ -139,7 +148,7 @@ if(SDL2_FOUND)
         target_link_libraries(nuked-sc55 PRIVATE SDL2::SDL2main)
     endif()
 
-    target_link_libraries(nuked-sc55 PRIVATE SDL2::SDL2 nuked-sc55-backend)
+    target_link_libraries(nuked-sc55 PRIVATE SDL2::SDL2 nuked-sc55-backend nuked-sc55-common)
     target_compile_features(nuked-sc55 PRIVATE cxx_std_23)
     target_enable_warnings(nuked-sc55)
     target_enable_conversion_warnings(nuked-sc55)
@@ -200,7 +209,7 @@ target_sources(nuked-sc55-render
     src/renderer/wav.h
 )
 
-target_link_libraries(nuked-sc55-render PRIVATE nuked-sc55-backend)
+target_link_libraries(nuked-sc55-render PRIVATE nuked-sc55-backend nuked-sc55-common)
 target_compile_features(nuked-sc55-render PRIVATE cxx_std_23)
 target_enable_warnings(nuked-sc55-render)
 target_enable_conversion_warnings(nuked-sc55-render)

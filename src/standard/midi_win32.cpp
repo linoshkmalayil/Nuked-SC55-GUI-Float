@@ -37,7 +37,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
-#include "command_line.h"
+#include "common/command_line.h"
 #include <cstdint>
 #include <cstdio>
 #include <mmsystem.h>
@@ -257,7 +257,7 @@ bool MIDI_PickDevice(std::string_view preferred_in_name, std::string_view prefer
     }
 
     // user provided a number
-    if (UINT device_in_id; TryParse(preferred_in_name, device_in_id))
+    if (UINT device_in_id; common::TryParse(preferred_in_name, device_in_id))
     {
         if (device_in_id < num_in_devices)
         {
@@ -270,7 +270,7 @@ bool MIDI_PickDevice(std::string_view preferred_in_name, std::string_view prefer
             out_picked.device_in_id = device_in_id;
         }
     }
-    if (UINT device_out_id; TryParse(preferred_out_name, device_out_id))
+    if (UINT device_out_id; common::TryParse(preferred_out_name, device_out_id))
     {
         if (device_out_id < num_out_devices)
         {

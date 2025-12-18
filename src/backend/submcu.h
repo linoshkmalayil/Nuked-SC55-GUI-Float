@@ -32,6 +32,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 #pragma once
+
 #include <cstdint>
 
 struct mcu_t;
