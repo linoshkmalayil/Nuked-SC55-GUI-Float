@@ -3,6 +3,17 @@
 This fork is dependent on the changes on the fork [jcmoyer/Nuked-SC55](https://github.com/jcmoyer/Nuked-SC55)
 For **FULL CHANGELOG** from please check [jcmoyer/Nuked-SC55/CHANGELOG.md](https://github.com/jcmoyer/Nuked-SC55/blob/master/CHANGELOG.md)
 
+# Version 0.6.2 (2026-01-02)
+
+- Synced to changes from [jcmoyer/Nuked-SC55-v0.6.1](https://github.com/jcmoyer/Nuked-SC55/tree/0.6.1)
+
+Jist of changes are follows
+- Added ROM Hashing and detection of ROMs using Hash
+- Added commandline gain option
+- Basic EMIDI looping support in renderer
+- Added the ability to route emulator audio to specific ASIO channels.
+- Fixed no LCD segmentation fault.
+
 # Version 0.5.6 (2025-05-06)
 
 Jist of changes are follows
@@ -13,7 +24,6 @@ Jist of changes are follows
 - Updated WIN32 MIDI Port selection routine which fixes following bugs:
   - Incorrectly using the Last available MIDI Port name when using the first available MIDI Port when no port parameter is passed.
   - Fixes issue where port numbers couldn't be passed as arguments.
-
 
 # Version 0.5.5.1 (2025-05-05)
 StopGap release

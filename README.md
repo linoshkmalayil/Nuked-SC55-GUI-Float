@@ -1,5 +1,7 @@
 # Nuked SC-55
 
+![Nuked-SC55](data/demo.png)
+
 Fork of [nukeykt/Nuked-SC55](https://github.com/nukeykt/Nuked-SC55) with
 the optimization work of jcmoyer [jcmoyer/Nuked-SC55](https://github.com/jcmoyer/Nuked-SC55)
 and GUI code work of kebufu [kebufu/Nuked-SC55](https://github.com/kebufu/Nuked-SC55) (Formerly mckuhei).
@@ -18,6 +20,8 @@ Differences from upstream:
 - Added GUI support and LCD Contrast.
 - Added Serial MIDI support for mkII and st models.
 - Added volume adjustment.
+- Support for ASIO output on Windows when building from source.
+- Loads roms based on their hashes instead of requiring specific filenames.
 
 ## Downloads 
 
