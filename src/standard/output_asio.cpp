@@ -1,7 +1,5 @@
 #include "output_asio.h"
 
-#include "config.h"
-
 #include "asiosys.h"
 // asiosys *must* be included before these headers
 #include "asio.h"
@@ -9,6 +7,7 @@
 
 #include "audio.h"
 #include "audio_sdl.h"
+#include "common/command_line.h"
 #include "math_util.h"
 #include "ringbuffer.h"
 #include <atomic>
@@ -19,6 +18,9 @@ const size_t N_BUFFERS = 2;
 // one per instance
 const size_t MAX_STREAMS = 16;
 
+// max number of supported asio output channels
+const size_t MAX_CHANNELS = 32;
+
 struct ASIOOutput
 {
     AsioDrivers    drivers;
@@ -26,7 +28,7 @@ struct ASIOOutput
     ASIOCallbacks  callbacks;
 
     ASIOBufferInfo   buffer_info[N_BUFFERS]{};
-    ASIOChannelInfo  channel_info[N_BUFFERS]{};
+    ASIOChannelInfo  channel_info[MAX_CHANNELS]{};
     SDL_AudioStream* streams[MAX_STREAMS]{};
     size_t           stream_count = 0;
 
@@ -55,7 +57,10 @@ struct ASIOOutput
     GenericBuffer mix_buffers[2]{};
 
     // Parameters requested by the user
-    AudioOutputParameters create_params;
+    ASIO_OutputParameters create_params;
+
+    long left_channel;
+    long right_channel;
 };
 
 // there isn't a way around using globals here, the ASIO API doesn't accept arbitrary userdata in its callbacks
@@ -148,6 +153,30 @@ static const char* SampleTypeToString(ASIOSampleType type)
     }
 }
 
+// pre: g_output.channel_info populated
+bool Out_ASIO_PickOutputChannel(std::string_view name, long& channel_id)
+{
+    // first try name interpretation
+    for (long i = 0; i < g_output.output_channel_count; ++i)
+    {
+        if (name == g_output.channel_info[i].name)
+        {
+            channel_id = i;
+            return true;
+        }
+    }
+
+    // maybe the user provided an integer ID instead
+    long name_as_long = 0;
+    if (common::TryParse(name, name_as_long) && name_as_long < g_output.output_channel_count)
+    {
+        channel_id = name_as_long;
+        return true;
+    }
+
+    return false;
+}
+
 bool Out_ASIO_QueryOutputs(AudioOutputList& list)
 {
     // max number of ASIO drivers supported by this program
@@ -172,7 +201,7 @@ bool Out_ASIO_QueryOutputs(AudioOutputList& list)
     return true;
 }
 
-bool Out_ASIO_Create(const char* driver_name, const AudioOutputParameters& params)
+bool Out_ASIO_OpenDriver(const char* driver_name)
 {
     // for some reason the api wants a non-const pointer
     char internal_driver_name[256]{};
@@ -196,6 +225,67 @@ bool Out_ASIO_Create(const char* driver_name, const AudioOutputParameters& param
         fprintf(stderr, "ASIOInit failed with %s: %s\n", ErrorToString(err), g_output.driver_info.errorMessage);
         return false;
     }
+
+    return true;
+}
+
+void Out_ASIO_CloseDriver()
+{
+    ASIOExit();
+}
+
+bool Out_ASIO_QueryChannels(const char* driver_name, ASIO_OutputChannelList& list)
+{
+    list.clear();
+
+    if (!Out_ASIO_OpenDriver(driver_name))
+    {
+        return false;
+    }
+
+    ASIOError err;
+
+    err = ASIOGetChannels(&g_output.input_channel_count, &g_output.output_channel_count);
+    if (err != ASE_OK)
+    {
+        Out_ASIO_CloseDriver();
+        return false;
+    }
+
+    if ((size_t)g_output.output_channel_count > MAX_CHANNELS)
+    {
+        g_output.output_channel_count = MAX_CHANNELS;
+    }
+
+    list.reserve((size_t)g_output.output_channel_count);
+
+    for (long i = 0; i < g_output.output_channel_count; ++i)
+    {
+        g_output.channel_info[i].channel = i;
+        g_output.channel_info[i].isInput = ASIOFalse;
+
+        err = ASIOGetChannelInfo(&g_output.channel_info[i]);
+        if (err != ASE_OK)
+        {
+            Out_ASIO_CloseDriver();
+            return false;
+        }
+
+        list.push_back({.id = i, .name = g_output.channel_info[i].name});
+    }
+
+    Out_ASIO_CloseDriver();
+    return true;
+}
+
+bool Out_ASIO_Create(const char* driver_name, const ASIO_OutputParameters& params)
+{
+    if (!Out_ASIO_OpenDriver(driver_name))
+    {
+        return false;
+    }
+
+    ASIOError err;
 
     fprintf(stderr,
             "asioVersion:   %ld\n"
@@ -222,16 +312,16 @@ bool Out_ASIO_Create(const char* driver_name, const AudioOutputParameters& param
             g_output.preferred_size,
             g_output.granularity);
 
-    fprintf(stderr, "User requested buffer size is %d\n", params.buffer_size);
+    fprintf(stderr, "User requested buffer size is %d\n", params.common.buffer_size);
 
     // ASIO4ALL can't handle the sample rate the emulator uses, so we'll need
     // to use a more common one and resample
-    err = ASIOSetSampleRate((ASIOSampleRate)params.frequency);
+    err = ASIOSetSampleRate((ASIOSampleRate)params.common.frequency);
     if (err != ASE_OK)
     {
         fprintf(stderr,
                 "ASIOSetSampleRate(%d) failed with %s; trying to continue anyways\n",
-                params.frequency,
+                params.common.frequency,
                 ErrorToString(err));
     }
 
@@ -256,41 +346,16 @@ bool Out_ASIO_Create(const char* driver_name, const AudioOutputParameters& param
     fprintf(
         stderr, "Available channels: %ld in, %ld out\n", g_output.input_channel_count, g_output.output_channel_count);
 
-    if ((size_t)g_output.output_channel_count < N_BUFFERS)
+    if ((size_t)g_output.output_channel_count > MAX_CHANNELS)
     {
-        fprintf(stderr, "%zu channels required; aborting\n", N_BUFFERS);
-        ASIOExit();
-        return false;
+        fprintf(stderr, "WARNING: more than %zu output channels; truncating to %zu\n", MAX_CHANNELS, MAX_CHANNELS);
+        g_output.output_channel_count = MAX_CHANNELS;
     }
 
-    for (size_t i = 0; i < N_BUFFERS; ++i)
+    for (long i = 0; i < g_output.output_channel_count; ++i)
     {
-        g_output.buffer_info[i].isInput    = ASIOFalse;
-        g_output.buffer_info[i].channelNum = (long)i;
-        g_output.buffer_info[i].buffers[0] = nullptr;
-        g_output.buffer_info[i].buffers[1] = nullptr;
-    }
-
-    g_output.callbacks.bufferSwitch         = bufferSwitch;
-    g_output.callbacks.bufferSwitchTimeInfo = bufferSwitchTimeInfo;
-    g_output.callbacks.sampleRateDidChange  = sampleRateDidChange;
-    g_output.callbacks.asioMessage          = asioMessage;
-
-    // Size in frames can be determined now, but we need to wait until after we get a format from the driver to
-    // determine size in bytes
-    g_output.buffer_size_frames = params.buffer_size;
-
-    err = ASIOCreateBuffers(g_output.buffer_info, N_BUFFERS, (long)g_output.buffer_size_frames, &g_output.callbacks);
-    if (err != ASE_OK)
-    {
-        fprintf(stderr, "ASIOCreateBuffers failed with %s\n", ErrorToString(err));
-        ASIOExit();
-        return false;
-    }
-
-    for (size_t i = 0; i < N_BUFFERS; ++i)
-    {
-        g_output.channel_info[i].channel = g_output.buffer_info[i].channelNum;
+        g_output.channel_info[i].channel = i;
+        g_output.channel_info[i].isInput = ASIOFalse;
 
         err = ASIOGetChannelInfo(&g_output.channel_info[i]);
         if (err != ASE_OK)
@@ -299,28 +364,105 @@ bool Out_ASIO_Create(const char* driver_name, const AudioOutputParameters& param
             ASIOExit();
             return false;
         }
-
-        fprintf(stderr,
-                "ASIO channel %zu: %s: %s\n",
-                i,
-                g_output.channel_info[i].name,
-                SampleTypeToString(g_output.channel_info[i].type));
     }
 
-    g_output.output_type = g_output.channel_info[0].type;
-
-    for (size_t i = 1; i < N_BUFFERS; ++i)
+    if ((size_t)g_output.output_channel_count < N_BUFFERS)
     {
-        if (g_output.output_type != g_output.channel_info[i].type)
+        fprintf(stderr, "%zu channels required; aborting\n", N_BUFFERS);
+        ASIOExit();
+        return false;
+    }
+
+    if (!Out_ASIO_PickOutputChannel(params.left_channel, g_output.left_channel))
+    {
+        fprintf(stderr, "L channel defaulting to 0\n");
+        g_output.left_channel = 0;
+    }
+
+    if (!Out_ASIO_PickOutputChannel(params.right_channel, g_output.right_channel))
+    {
+        fprintf(stderr, "R channel defaulting to 1\n");
+        g_output.right_channel = 1;
+    }
+
+    fprintf(stderr, "ASIO output channels:\n");
+
+    for (long i = 0; i < g_output.output_channel_count; ++i)
+    {
+        fprintf(stderr, "  %ld: %-32s %s ", i, g_output.channel_info[i].name,
+                SampleTypeToString(g_output.channel_info[i].type));
+
+        if (i == g_output.left_channel)
         {
-            fprintf(stderr, "ASIO channel %zu has a different output type!\n", i);
-            ASIOExit();
-            return false;
+            fprintf(stderr, "(left)\n");
+        }
+        else if (i == g_output.right_channel)
+        {
+            fprintf(stderr, "(right)\n");
+        }
+        else
+        {
+            fprintf(stderr, "\n");
         }
     }
 
-    // Output type acquired, now we know the actual size of the buffer
-    g_output.buffer_size_bytes = g_output.buffer_size_frames * Out_ASIO_GetFormatSampleSizeBytes();
+    if ((size_t)g_output.left_channel >= (size_t)g_output.output_channel_count)
+    {
+        fprintf(stderr, "Left channel out of range; aborting\n");
+        ASIOExit();
+        return false;
+    }
+
+    if ((size_t)g_output.right_channel >= (size_t)g_output.output_channel_count)
+    {
+        fprintf(stderr, "Right channel out of range; aborting\n");
+        ASIOExit();
+        return false;
+    }
+
+    if (g_output.left_channel == g_output.right_channel)
+    {
+        fprintf(stderr, "Left and right channels are both %ld; aborting\n", g_output.left_channel);
+        ASIOExit();
+        return false;
+    }
+
+    if (g_output.channel_info[g_output.left_channel].type != g_output.channel_info[g_output.right_channel].type)
+    {
+        fprintf(stderr,
+                "Left and right channels %ld and %ld have different output types; aborting\n",
+                g_output.left_channel,
+                g_output.right_channel);
+        ASIOExit();
+        return false;
+    }
+
+    g_output.buffer_info[0].isInput    = ASIOFalse;
+    g_output.buffer_info[0].channelNum = g_output.left_channel;
+    g_output.buffer_info[0].buffers[0] = nullptr;
+    g_output.buffer_info[0].buffers[1] = nullptr;
+
+    g_output.buffer_info[1].isInput    = ASIOFalse;
+    g_output.buffer_info[1].channelNum = g_output.right_channel;
+    g_output.buffer_info[1].buffers[0] = nullptr;
+    g_output.buffer_info[1].buffers[1] = nullptr;
+
+    g_output.callbacks.bufferSwitch         = bufferSwitch;
+    g_output.callbacks.bufferSwitchTimeInfo = bufferSwitchTimeInfo;
+    g_output.callbacks.sampleRateDidChange  = sampleRateDidChange;
+    g_output.callbacks.asioMessage          = asioMessage;
+
+    g_output.buffer_size_frames = params.common.buffer_size;
+    g_output.output_type        = g_output.channel_info[g_output.left_channel].type;
+    g_output.buffer_size_bytes  = g_output.buffer_size_frames * Out_ASIO_GetFormatSampleSizeBytes();
+
+    err = ASIOCreateBuffers(g_output.buffer_info, N_BUFFERS, (long)g_output.buffer_size_frames, &g_output.callbacks);
+    if (err != ASE_OK)
+    {
+        fprintf(stderr, "ASIOCreateBuffers failed with %s\n", ErrorToString(err));
+        ASIOExit();
+        return false;
+    }
 
     // *2 because an ASIO buffer only represents one channel, but our mix buffer will hold 2 channels
     const size_t mb_size = 2 * g_output.buffer_size_bytes;
@@ -436,7 +578,7 @@ bool Out_ASIO_Reset()
 
 size_t Out_ASIO_GetBufferSize()
 {
-    return g_output.create_params.buffer_size;
+    return g_output.create_params.common.buffer_size;
 }
 
 // `src` contains `count` pairs of 16-bit words LRLRLRLR (here count = 4)

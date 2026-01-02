@@ -35,6 +35,7 @@
 
 #include "audio.h"
 #include "mcu_interrupt.h"
+#include "rom.h"
 #include <atomic>
 #include <cstdint>
 
@@ -188,18 +189,6 @@ static const int ROMSM_SIZE   = 0x1000;
 
 static const uint32_t uart_buffer_size = 8192;
 
-enum class Romset {
-    MK2,
-    ST,
-    MK1,
-    CM300,
-    JV880,
-    SCB55,
-    RLP3237,
-    SC155,
-    SC155MK2,
-};
-
 enum class MK1version {
     NOT_MK1,
     REVISION_SC55_100,
@@ -215,8 +204,6 @@ enum class Computerswitch {
     RS232C_2,
     MIDI
 };
-
-constexpr size_t ROMSET_COUNT = 9;
 
 typedef void(*mcu_sample_callback)(void* userdata, const AudioFrame<int32_t>& frame);
 typedef void (*mcu_midiout_callback)(void* userdata, uint8_t* message, int len);
@@ -566,3 +553,5 @@ void MCU_EncoderTrigger(mcu_t& mcu, int dir);
 
 void MCU_PostSample(mcu_t& mcu, const AudioFrame<int32_t>& frame);
 void MCU_PostUART(mcu_t& mcu, uint8_t data);
+
+void MCU_SetRomset(mcu_t& mcu, Romset romset);

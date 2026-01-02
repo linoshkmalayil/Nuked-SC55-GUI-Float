@@ -52,7 +52,7 @@ inline T Clamp(T value, T min, T max)
 }
 
 template <typename T>
-requires std::is_signed_v<T>
+    requires std::is_signed_v<T>
 inline T PickCloser(T to, T a, T b)
 {
     if (std::abs(to - a) < std::abs(to - b))
@@ -65,6 +65,61 @@ inline T PickCloser(T to, T a, T b)
     }
 }
 
+inline size_t NDigits(int32_t n)
+{
+    if (n < 0)
+    {
+        if (n == INT32_MIN)
+        {
+            return 11;
+        }
+        else
+        {
+            return 1 + NDigits(-n);
+        }
+    }
+    else if (n < 10)
+    {
+        return 1;
+    }
+    else if (n < 100)
+    {
+        return 2;
+    }
+    else if (n < 1000)
+    {
+        return 3;
+    }
+    else if (n < 10000)
+    {
+        return 4;
+    }
+    else if (n < 100000)
+    {
+        return 5;
+    }
+    else if (n < 1000000)
+    {
+        return 6;
+    }
+    else if (n < 10000000)
+    {
+        return 7;
+    }
+    else if (n < 100000000)
+    {
+        return 8;
+    }
+    else if (n < 1000000000)
+    {
+        return 9;
+    }
+    else
+    {
+        return 10;
+    }
+}
+
 inline int16_t SaturatingAdd(int16_t a, int16_t b)
 {
     int32_t result = (int32_t)a + (int32_t)b;
@@ -74,6 +129,18 @@ inline int16_t SaturatingAdd(int16_t a, int16_t b)
 inline int32_t SaturatingAdd(int32_t a, int32_t b)
 {
     int64_t result = (int64_t)a + (int64_t)b;
+    return (int32_t)Clamp<int64_t>(result, INT32_MIN, INT32_MAX);
+}
+
+inline int16_t SaturatingMul(int16_t a, float b)
+{
+    int32_t result = (int32_t)((float)a * b);
+    return (int16_t)Clamp<int32_t>(result, INT16_MIN, INT16_MAX);
+}
+
+inline int32_t SaturatingMul(int32_t a, float b)
+{
+    int64_t result = (int64_t)((float)a * b);
     return (int32_t)Clamp<int64_t>(result, INT32_MIN, INT32_MAX);
 }
 

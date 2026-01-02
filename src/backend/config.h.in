@@ -1,5 +1,7 @@
+#pragma once
+
 #cmakedefine01 NUKED_ENABLE_ASIO
- 
+
 #define NUKED_VERSION "@CMAKE_PROJECT_VERSION@"
 #define NUKED_SOURCE  "@NUKED_SOURCE@"
 
@@ -8,5 +10,5 @@
 #define NUKED_VERSION_PATCH @CMAKE_PROJECT_VERSION_PATCH@
 
 #include <cstdio>
- 
+
 void Cfg_WriteVersionInfo(FILE* file);
