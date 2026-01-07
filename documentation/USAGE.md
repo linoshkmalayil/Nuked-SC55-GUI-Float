@@ -16,7 +16,11 @@
 
 ## ROM Handling
 
-Put ROM Images into the same folder as the emulator. Files should be names as such:
+You can either put the ROM files in the same directory as the emulator or use `-d, --rom-directory` argument to load roms from a specific directory.
+
+And based on the ROM's hashes the emulator will load the apropriate mode correctly unless you use `--legacy-romset-detection.`
+
+Files should be names as such:
 
 ```
 SC-55mk2/SC-155mk2 (v1.01):
@@ -166,35 +170,42 @@ These are the options to use the emulator frontend:
 
 ```
 General options:
-  -?, -h, --help                                Display emulator argument information.
-  -v, --version                                 Display version information.
+  -?, -h, --help                                 Display emulator argument information.
+  -v, --version                                  Display version information.
 
 Audio options:
-  -pi, --portin      <device_name_or_number>    Set MIDI input port.
-  -po, --portout     <device_name_or_number>    Set MIDI output port.
-  -a, --audio-device <device_name_or_number>    Set output audio device.
-  -b, --buffer-size  <size>[:count]             Set buffer size, number of buffers.
-  -f, --format       s16|s32|f32                Set output format.
-  --disable-oversampling                        Halves output frequency.
+  -a, --audio-device <device_name_or_number>     Set output audio device.
+  -b, --buffer-size  <size>[:count]              Set buffer size, number of buffers.
+  -f, --format       s16|s32|f32                 Set output format.
+  --gain <amount>                                Apply gain to the output.
+  --disable-oversampling                         Halves output frequency.
+
+MIDI port options (default, unless set to serial):
+   -pi, --portin      <device_name_or_number>    Set MIDI input port.
+   -po, --portout     <device_name_or_number>    Set MIDI output port.
+ 
+Serial Port options:
+   -st, --serial_type RS422|RS232C_1|RS232C_2    Set serial connection type
+   -sp, --serialport  <serial_io_port>           Set the serial port/named pipe/unix socket for serial I/O.
 
 Emulator options:
-  -r, --reset     gs|gm                         Reset system in GS or GM mode.
-  -n, --instances <count>                       Set number of emulator instances. (MIDI IO Only)
-  --no-lcd                                      Run without LCDs.
-  --nvram <filename>                            Saves and loads NVRAM to/from disk. JV-880 only.
+  -r, --reset     none|gs|gm                     Reset system in GS or GM mode. (No GM in MK1 1.00 & 1.10)
+  -n, --instances <count>                        Set number of emulator instances.
+  --no-lcd                                       Run without LCDs.
+  --nvram <filename>                             Saves and loads NVRAM to/from disk. JV-880 only.
 
 ROM management options:
-  -d, --rom-directory <dir>                     Sets the directory to load roms from.
-  --mk2                                         Use SC-55mk2 ROM set.
-  --st                                          Use SC-55st ROM set.
-  --mk1                                         Use SC-55mk1 ROM set.
-  --cm300                                       Use CM-300/SCC-1 ROM set.
-  --jv880                                       Use JV-880 ROM set.
-  --scb55                                       Use SCB-55 ROM set.
-  --rlp3237                                     Use RLP-3237 ROM set.
+  -d, --rom-directory <dir>                      Sets the directory to load roms from.
+  --romset <name>                                Sets the romset to load.
+  --legacy-romset-detection                      Load roms using specific filenames like upstream.
 
-Available only ASIO Builds:
-  --asio-sample-rate <freq>                     Request frequency from the ASIO driver.
+Accepted romset names:
+  mk2 st mk1 cm300 jv880 scb55 rlp3237 sc155 sc155mk2 
+
+ASIO options:
+  --asio-sample-rate <freq>                      Request frequency from the ASIO driver.
+  --asio-left-channel <channel_name_or_number>   Set left channel for ASIO output.
+  --asio-right-channel <channel_name_or_number>  Set right channel for ASIO output.
 
 ```
 
@@ -210,12 +221,13 @@ General options:
 Audio options:
   -f, --format s16|s32|f32     Set output format.
   --disable-oversampling       Halves output frequency.
+  --gain <amount>              Apply gain to the output.
   --end cut|release            Choose how the end of the track is handled:
         cut (default)              Stop rendering at the last MIDI event
         release                    Continue to render audio after the last MIDI event until silence
 
 Emulator options:
-  -r, --reset     gs|gm        Send GS or GM reset before rendering.
+  -r, --reset     none|gs|gm   Send GS or GM reset before rendering.
   -n, --instances <count>      Number of emulators to use (increases effective polyphony, but
                                takes longer to render)
   --nvram <filename>           Saves and loads NVRAM to/from disk. JV-880 only.
@@ -223,15 +235,19 @@ Emulator options:
 ROM management options:
   -d, --rom-directory <dir>    Sets the directory to load roms from. Romset will be autodetected when
                                not also passing --romset.
-  --romset <name>              Sets the romset to load. Same as frontend's romsets without '--'
+  --romset <name>              Sets the romset to load.
+  --legacy-romset-detection    Load roms using specific filenames like upstream.
+
+MIDI options:
+  --dump-emidi-loop-points     Prints any encountered EMIDI loop points to stderr when finished.
+
+Accepted romset names:
+  mk2 st mk1 cm300 jv880 scb55 rlp3237 sc155 sc155mk2 
 ```
 
 ### Regarding Serial IO
 
-With version 0.5.3, the emulator support Serial IO for SC-55mkII and SC-55st. Currently Serial IO doesn't
-support multiple instances at the moment. (Multi-Instance support is being worked on)
-So when attempting to launch multi-instance with serial mode will cause it not to launch with the 
-error `error: Multiple Instances not supported with Serial Mode`.
+With version 0.5.3, the emulator support Serial IO for SC-55mkII and SC-55st. And with version 0.5.6 the emulator has support for Multi-Instance serial support.
 
 Regarding Setting up Virtual serial IO. Please read these instructions for [Linux](VIRTUAL_SERIAL_SETUP.md#linux) and [Windows](VIRTUAL_SERIAL_SETUP.md#windows).
 
@@ -306,3 +322,30 @@ the the selected romset.
 The emulator natively produces audio at 64000hz or 66207hz depending on the
 romset. Some ASIO drivers cannot support these frequencies so resampling to
 `<rate>` is necessary.
+
+## Advanced parameters
+
+`--override-* <path>`
+
+Overrides the path for a specific rom. This bypasses the default methods of
+locating roms.
+
+Each romset consists of multiple roms that are individually loaded into
+different locations within the emulator. These rom locations are named:
+
+- `rom1`
+- `rom2`
+- `smrom`
+- `waverom1`
+- `waverom2`
+- `waverom3`
+- `waverom-card`
+- `waverom-exp`
+
+A romset does not necessarily use all of these rom locations. For example, the
+mk2 will only use `rom1`, `rom2`, `smrom`, `waverom1`, and `waverom2`.
+
+To override a specific rom path you can replace the `*` in `--override-*
+<path>` with the name of the rom location you would like to load instead, e.g.
+`--override-rom2 ctf-patched-rom2.bin`. This is useful in case you have a
+patched rom that the emulator does not recognize.
