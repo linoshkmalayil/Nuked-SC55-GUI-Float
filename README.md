@@ -4,7 +4,7 @@
 
 Fork of [nukeykt/Nuked-SC55](https://github.com/nukeykt/Nuked-SC55) with
 the optimization work of jcmoyer [jcmoyer/Nuked-SC55](https://github.com/jcmoyer/Nuked-SC55)
-and GUI code work of kebufu [kebufu/Nuked-SC55](https://github.com/kebufu/Nuked-SC55) (Formerly mckuhei).
+and GUI code work of kebufu [mckuhei/Nuked-SC55](https://github.com/mckuhei/Nuked-SC55).
 
 Differences from upstream:
 
@@ -70,5 +70,6 @@ The work on this fork is due the contribution of the following people:
 - Karmeck.
 
 ### This fork is based on the work of the contributors:
-- jcmoyer
-- mckuhei/kebufu
+- [jcmoyer](https://github.com/jcmoyer)
+- [mckuhei](https://github.com/mckuhei)/[kebufu](https://github.com/kebufu)
+- [Grieferus](https://github.com/Grieferus) (GUI Design)
