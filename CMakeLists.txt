@@ -130,6 +130,7 @@ if(SDL2_FOUND)
         src/standard/midi.h
         src/standard/output_sdl.h
         src/standard/serial.h
+        src/standard/rc.h
     )
 
     if(USE_RTMIDI)
@@ -139,9 +140,17 @@ if(SDL2_FOUND)
     endif()
 
     if(WIN32)
-        target_sources(nuked-sc55 PRIVATE src/standard/serial_win32.cpp)
+        target_sources(nuked-sc55 
+            PRIVATE 
+            src/standard/serial_win32.cpp
+            src/standard/rc_win32.cpp
+        )
     elseif(UNIX)
-        target_sources(nuked-sc55 PRIVATE src/standard/serial_posix.cpp)
+        target_sources(nuked-sc55 
+            PRIVATE 
+            src/standard/serial_posix.cpp
+            src/standard/rc_posix.cpp
+        )
     endif()
 
     if(TARGET SDL2::SDL2main)
