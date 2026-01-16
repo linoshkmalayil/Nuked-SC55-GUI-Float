@@ -39,7 +39,7 @@
 
 uint32_t inline LCD_MixColor(uint32_t color, uint8_t contrast) {
     uint8_t b = (color >> 16) & 0xFF;
-    uint8_t g = (color >> 8) & 0xFF;
+    uint8_t g = (color >>  8) & 0xFF;
     uint8_t r = color & 0xFF;
 
     b = (b * contrast) >> 8;
@@ -54,7 +54,7 @@ void LCD_Enable(lcd_t& lcd, uint32_t enable)
     lcd.enable = enable;
 }
 
-void LCD_ButtonEnable(lcd_t& lcd, uint8_t enable)
+void LCD_ButtonEnable(lcd_t& lcd, uint32_t enable)
 {
     lcd.button_enable = enable;
 }

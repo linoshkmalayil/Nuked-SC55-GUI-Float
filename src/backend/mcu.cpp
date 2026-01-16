@@ -237,6 +237,40 @@ void MCU_DeviceWrite(mcu_t& mcu, uint32_t address, uint8_t data)
     case DEV_PWM3_TCR:
         break;
     case DEV_P7DR:
+        if (mcu.is_jv880 && mcu.cp == 0 && ((mcu.pc & 0xFF00) == 0x3600)) 
+        { // Temporary fix, filter out useless data
+            static uint32_t state = 0;
+
+            if ((mcu.io_sd & 1) == 0) 
+            {
+                    state &= ~0x1f;
+                if ((data & 0x10) != 0)
+                    state |= 1; // MIDI Message
+                if ((data & 0x8) != 0)
+                    state |= 2; // Edit
+                if ((data & 0x4) != 0)
+                    state |= 4; // System
+                if ((data & 0x2) != 0)
+                    state |= 8; // Rhythm
+                if ((data & 0x1) != 0)
+                    state |= 16; // Utility
+            }
+            if ((mcu.io_sd & 2) == 0) {
+                    state &= ~0x3e0;
+                if ((data & 0x10) != 0)
+                    state |= 32; // Patch Perform
+                if ((data & 0x8) != 0)
+                    state |= 64; // Mute
+                if ((data & 0x4) != 0)
+                    state |= 128; // Monitor
+                if ((data & 0x2) != 0)
+                    state |= 256; // Info
+                if ((data & 0x1) != 0)
+                    state |= 512; // Enter
+            }
+            // printf("data: %02x io_sd: %02x state: %08x\n", data, io_sd, jv880_led_state);
+            LCD_ButtonEnable(*mcu.lcd, state);
+        }
         break;
     case DEV_TMR_TCNT:
         break;
@@ -495,7 +529,7 @@ uint8_t MCU_Read(mcu_t& mcu, uint32_t address)
 
                     if (mcu.is_mk1)
                     {
-                        uint8_t state = 0;
+                        uint32_t state = 0;
                          if ((mcu.io_sd & 0x40) == 0) {
                              state |= 1;
                          }
