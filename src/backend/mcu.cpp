@@ -45,19 +45,19 @@ void MCU_ErrorTrap(mcu_t& mcu)
     fprintf(stderr, "%.2x %.4x\n", mcu.cp, mcu.pc);
 }
 
-uint8_t RCU_Read(void)
+uint8_t RCU_Read(mcu_t& mcu)
 {
-    return 0;
+    return mcu.rcu;
 }
 
 enum {
-    ANALOG_LEVEL_RCU_LOW = 0,
-    ANALOG_LEVEL_RCU_HIGH = 0,
-    ANALOG_LEVEL_SW_0 = 0,
-    ANALOG_LEVEL_SW_1 = 0x155,
-    ANALOG_LEVEL_SW_2 = 0x2aa,
-    ANALOG_LEVEL_SW_3 = 0x3ff,
-    ANALOG_LEVEL_BATTERY = 0x2a0,
+    ANALOG_LEVEL_RCU_LOW  = 0,
+    ANALOG_LEVEL_RCU_HIGH = 0x3ff,
+    ANALOG_LEVEL_SW_0     = 0,
+    ANALOG_LEVEL_SW_1     = 0x155,
+    ANALOG_LEVEL_SW_2     = 0x2aa,
+    ANALOG_LEVEL_SW_3     = 0x3ff,
+    ANALOG_LEVEL_BATTERY  = 0x2a0,
 };
 
 uint16_t MCU_SC155Sliders(mcu_t& mcu, uint32_t index)
@@ -89,7 +89,7 @@ uint16_t MCU_AnalogReadPin(mcu_t& mcu, uint32_t pin)
     if (0)
     {
 READ_RCU:
-        uint8_t rcu = RCU_Read();
+        uint8_t rcu = RCU_Read(mcu);
         if (rcu & (1 << pin))
             return ANALOG_LEVEL_RCU_HIGH;
         else
@@ -1111,6 +1111,18 @@ void MCU_GA_SetGAInt(mcu_t& mcu, int line, int value)
         MCU_Interrupt_SetRequest(mcu, INTERRUPT_SOURCE_IRQ0, mcu.ga_int_trigger != 0);
     else
         MCU_Interrupt_SetRequest(mcu, INTERRUPT_SOURCE_IRQ1, mcu.ga_int_trigger != 0);
+}
+
+void MCU_RemoteControlTrigger(mcu_t& mcu, uint8_t data)
+{
+    if (mcu.is_jv880) 
+    {
+        return;
+    }
+
+    mcu.rcu = data;
+    MCU_GA_SetGAInt(mcu, 2, 0);
+    MCU_GA_SetGAInt(mcu, 2, 1);
 }
 
 void MCU_EncoderTrigger(mcu_t& mcu, int dir)

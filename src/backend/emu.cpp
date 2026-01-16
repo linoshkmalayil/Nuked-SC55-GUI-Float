@@ -446,6 +446,11 @@ void Emulator::PostSerial(std::span<const uint8_t> data)
     }
 }
 
+void Emulator::PostRC(uint8_t byte)
+{
+    MCU_RemoteControlTrigger(*m_mcu, byte);
+}
+
 constexpr uint8_t GM_RESET_SEQ[] = { 0xF0, 0x7E, 0x7F, 0x09, 0x01, 0xF7 };
 constexpr uint8_t GS_RESET_SEQ[] = { 0xF0, 0x41, 0x10, 0x42, 0x12, 0x40, 0x00, 0x7F, 0x00, 0x41, 0xF7 };
 

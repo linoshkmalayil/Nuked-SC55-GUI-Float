@@ -41,6 +41,7 @@
 #include "midi.h"
 #include "output_common.h"
 #include "pcm.h"
+#include "rc.h"
 #include "ringbuffer.h"
 #include "serial.h"
 #include <bit>
@@ -145,6 +146,7 @@ struct FE_Parameters
     std::string midiout_device;
     Computerswitch serial_type = Computerswitch::MIDI;
     std::string serial_port;
+    std::string remote_pipe;
     std::string audio_device;
     uint32_t buffer_size  = 512;
     uint32_t buffer_count = 16;
@@ -254,6 +256,19 @@ void FE_RouteSerial(FE_Application& fe, uint8_t sbyte)
     {
         FE_SendSerial(fe, fe.current_instance, sbyte);
     }
+}
+
+void FE_BroadcastRC(FE_Application& fe, const uint8_t sbyte)
+{
+    for (size_t i = 0; i < fe.instances_in_use; ++i)
+    {
+        fe.instances[i].emu.PostRC(sbyte);
+    }
+}
+
+void FE_RouteRC(FE_Application& fe, uint8_t sbyte)
+{
+    FE_BroadcastRC(fe, sbyte);
 }
 
 template <typename SampleT, bool ApplyGain>
@@ -989,6 +1004,7 @@ void FE_Quit(FE_Application& container)
 
     SERIAL_Quit();
     MIDI_Quit();
+    REMOTE_Quit();
     SDL_Quit();
 }
 
@@ -1111,6 +1127,14 @@ FE_ParseError FE_ParseCommandLine(int argc, char* argv[], FE_Parameters& result)
                 return FE_ParseError::UnexpectedEnd;
             }
             result.serial_port = reader.Arg();
+        }
+        else if (reader.Any("-rc", "--remote-control"))
+        {
+            if (!reader.Next())
+            {
+                return FE_ParseError::UnexpectedEnd;
+            }
+            result.remote_pipe = reader.Arg();
         }
         else if (reader.Any("-a", "--audio-device"))
         {
@@ -1414,6 +1438,9 @@ Serial Port options:
    -st, --serial_type RS422|RS232C_1|RS232C_2    Set serial connection type
    -sp, --serialport  <serial_io_port>           Set the serial port/named pipe/unix socket for serial I/O.
 
+Remote Control options:
+   -rc, --remote-control <named_pipe>            Set the name of the named pipe to be opened by emulator.
+
 Emulator options:
   -r, --reset     none|gs|gm                    Reset system in GS or GM mode. (No GM in MK1 1.00 & 1.10)
   -n, --instances <count>                       Set number of emulator instances.
@@ -1645,6 +1672,20 @@ int main(int argc, char *argv[])
         {
             FE_SetMIDIOutCallback(frontend);
         }
+    }
+
+    if (!params.remote_pipe.empty() && (frontend.romset == Romset::MK1 || frontend.romset == Romset::MK2 || frontend.romset == Romset::SC155 || frontend.romset == Romset::SC155MK2))
+    {
+        if (!REMOTE_Init(frontend, params.remote_pipe))
+        {
+            fprintf(stderr, "ERROR: Failed to initialize the Remote Control Pipe.\nWARNING: Continuing without Remote Control...\n");
+            fflush(stderr);
+        }
+    }
+    else if (!params.remote_pipe.empty())
+    {
+        fprintf(stderr, "ERROR: Remote Control available only for SC-55, SC-55mk2, SC-155 and SC-155mk2 models.\nWARNING: Continuing without Remote Control...\n");
+        fflush(stderr);
     }
 
     if (params.reset)
