@@ -38,6 +38,8 @@ After building, you can create a self-contained install with any required files 
 cmake --install . --prefix=<path>
 ```
 
+For Remote Control support, make sure to install `pygame` module in python.
+
 ### Windows
 
 For builds using msvc you will most likely need to pass `-DCMAKE_PREFIX_PATH=<path>` where `<path>` points to a directory containing SDL2, and optionally rtmidi (only when `-DUSE_RTMIDI=ON`) to CMake Command arguments.
@@ -51,6 +53,8 @@ And once the binary is compiled, copy the `SDL2.dll` copying it as follows (MSYS
 cp /mingw64/bin/SDL2.dll SDL2.dll
 ```
 Or you can copy `SDL2.dll` from the location of SDL2 SDK and copy it to the binary directory.
+
+For Remote Control support, make sure to install `pygame` and `pywin32` modules in python.
 
 #### ASIO (optional)
  

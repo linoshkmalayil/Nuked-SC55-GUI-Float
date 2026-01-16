@@ -188,6 +188,9 @@ Serial Port options:
    -st, --serial_type RS422|RS232C_1|RS232C_2    Set serial connection type
    -sp, --serialport  <serial_io_port>           Set the serial port/named pipe/unix socket for serial I/O.
 
+Remote Control options:
+   -rc, --remote-control <named_pipe>            Set the name of the named pipe to be opened by emulator.
+
 Emulator options:
   -r, --reset     none|gs|gm                     Reset system in GS or GM mode. (No GM in MK1 1.00 & 1.10)
   -n, --instances <count>                        Set number of emulator instances.
@@ -247,9 +250,22 @@ Accepted romset names:
 
 ### Regarding Serial IO
 
-With version 0.5.3, the emulator support Serial IO for SC-55mkII and SC-55st. And with version 0.5.6 the emulator has support for Multi-Instance serial support.
+With version 0.5.3, the emulator supports Serial IO for SC-55mkII and SC-55st. And with version 0.5.6 the emulator has support for Multi-Instance serial mode.
 
 Regarding Setting up Virtual serial IO. Please read these instructions for [Linux](VIRTUAL_SERIAL_SETUP.md#linux) and [Windows](VIRTUAL_SERIAL_SETUP.md#windows).
+
+### Regarding Remote Control
+
+With version 0.6.3, the emulator supports Virtual Remote Control. Currently the Remote Control Client runs on Python and the emulator needs to be launched first to create the Named Pipe through which the Remote Control Client Connects.
+
+So to use Remote Control first you need to launch the emulator with the argument:
+`-rc <named_pipe>` or `--remote-control <named_pipe>`
+
+Then launch the remote with the command:
+`python remote_control.py <named_pipe>`
+
+**NOTE:** On Windows you can use a converted executable by using:
+`remote_control <named_pipe>`
 
 ### Regarding SRAM and NVRAM
 
