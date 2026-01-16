@@ -54,10 +54,7 @@ typedef uint8_t (*sm_serial_read_callback)();
 typedef void (*sm_serial_post_callback)(uint8_t data);
 typedef void (*sm_serial_update_callback)(submcu_t& sm);
 
-bool SM_SerialHasDataCallback();
-uint8_t SM_SerialReadCallback();
 void SM_SerialPostCallback(uint8_t data);
-void SM_SerialUpdateCallback(submcu_t& sm);
 
 struct submcu_t {
     uint16_t pc     = 0;
