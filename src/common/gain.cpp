@@ -2,6 +2,9 @@
 
 #include <charconv>
 #include <cmath>
+#include <string>
+#include <cerrno>
+#include <cstdlib>
 
 namespace common
 {
@@ -91,12 +94,23 @@ ParseGainResult ParseGain(std::string_view str, float& out_gain)
 
     float num = 0.0f;
 
+#if defined(__APPLE__)
+    std::string tmp(n_first, n_last);
+    char* end = nullptr;
+    errno = 0;
+    num = std::strtof(tmp.c_str(), &end);
+    if (errno != 0 || end == tmp.c_str() || *end != '\0')
+    {
+        return ParseGainResult::ParseFailed;
+    }
+#else
     auto fc_result = std::from_chars(n_first, n_last, num);
 
     if (fc_result.ec != std::errc{})
     {
         return ParseGainResult::ParseFailed;
     }
+#endif
 
     switch (unit)
     {
