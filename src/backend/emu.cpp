@@ -38,11 +38,11 @@
 #include "lcd.h"
 #include "pcm.h"
 #include "submcu.h"
-#include <bit>
 #include <fstream>
 #include <string>
 #include <span>
 #include <vector>
+#include "common/bit_util.h"
 
 
 Emulator::~Emulator()
@@ -337,7 +337,7 @@ bool Emulator::LoadRom(RomLocation location, std::span<const uint8_t> source)
 
     if (location == RomLocation::ROM2)
     {
-        if (!std::has_single_bit(source.size()))
+        if (!fe::has_single_bit(source.size()))
         {
             fprintf(stderr, "FATAL: %s requires a power-of-2 size\n", ToCString(location));
             return false;

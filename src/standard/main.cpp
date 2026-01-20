@@ -43,7 +43,6 @@
 #include "pcm.h"
 #include "ringbuffer.h"
 #include "serial.h"
-#include <bit>
 #include <SDL.h>
 #include <optional>
 #include <thread>
@@ -52,6 +51,7 @@
 #include "output_sdl.h"
 
 #include "common/command_line.h"
+#include "common/bit_util.h"
 #include "common/gain.h"
 #include "common/path_util.h"
 #include "common/rom_loader.h"
@@ -63,7 +63,7 @@
 template <typename ElemT>
 size_t FE_CalcRingbufferSizeBytes(uint32_t buffer_size, uint32_t buffer_count)
 {
-    return std::bit_ceil<size_t>(1 + (size_t)buffer_size * (size_t)buffer_count * sizeof(ElemT));
+    return fe::bit_ceil<size_t>(1 + (size_t)buffer_size * (size_t)buffer_count * sizeof(ElemT));
 }
 
 struct FE_Instance
@@ -626,10 +626,10 @@ bool FE_OpenASIOAudio(FE_Application& fe, const ASIO_OutputParameters& params, c
 
 void FE_FixupParameters(FE_Parameters& params)
 {
-    if (!std::has_single_bit(params.buffer_size))
+    if (!fe::has_single_bit(params.buffer_size))
     {
-        const uint32_t next_low  = std::bit_floor(params.buffer_size);
-        const uint32_t next_high = std::bit_ceil(params.buffer_size);
+        const uint32_t next_low  = fe::bit_floor(params.buffer_size);
+        const uint32_t next_high = fe::bit_ceil(params.buffer_size);
         const uint32_t closer =
             (uint32_t)PickCloser<int64_t>((int64_t)params.buffer_size, (int64_t)next_low, (int64_t)next_high);
         fprintf(stderr, "WARNING: Audio buffer size must be a power-of-two; got %d\n", params.buffer_size);
