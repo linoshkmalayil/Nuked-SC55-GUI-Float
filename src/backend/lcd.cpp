@@ -39,7 +39,7 @@
 
 uint32_t inline LCD_MixColor(uint32_t color, uint8_t contrast) {
     uint8_t b = (color >> 16) & 0xFF;
-    uint8_t g = (color >> 8) & 0xFF;
+    uint8_t g = (color >>  8) & 0xFF;
     uint8_t r = color & 0xFF;
 
     b = (b * contrast) >> 8;
@@ -54,7 +54,7 @@ void LCD_Enable(lcd_t& lcd, uint32_t enable)
     lcd.enable = enable;
 }
 
-void LCD_ButtonEnable(lcd_t& lcd, uint8_t enable)
+void LCD_ButtonEnable(lcd_t& lcd, uint32_t enable)
 {
     lcd.button_enable = enable;
 }
@@ -476,10 +476,25 @@ void LCD_Render(lcd_t& lcd)
                 }
             }
 
-            uint32_t con = 0x11 * (contrast - 1);
-            con = (con * con) >> 8;
-            lcd.color2 = LCD_MixColor(lcd.buffer[0][0], 0xFF - (con / 4 + 4));
-            lcd.color1 = LCD_MixColor(lcd.color2, 0x11 * (16 - (((contrast + 1) >> 1) + 4)));
+            if (lcd.mcu->is_jv880)
+            {
+                uint32_t con = contrast + 1;
+                con = (con * con * con);
+                con = (con * 104) / 1331;
+                lcd.color2 = LCD_MixColor(lcd.buffer[0][0], 0xFF - con);
+                con = contrast;
+                if (con > 4)
+                    con = 4;
+                con = con * con;
+                lcd.color1 = LCD_MixColor(lcd.color2, 255 - (con * 8));
+            }
+            else
+            {
+                uint32_t con = 0x11 * (contrast - 1);
+                con = (con * con) >> 8;
+                lcd.color2 = LCD_MixColor(lcd.buffer[0][0], 0xFF - (con / 4 + 4));
+                lcd.color1 = LCD_MixColor(lcd.color2, 0x11 * (16 - (((contrast + 1) >> 1) + 4)));
+            }
 
             if (lcd.mcu->is_jv880)
             {
