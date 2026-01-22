@@ -402,16 +402,18 @@ bool Emulator::LoadRoms(Romset romset, const AllRomsetInfo& all_info, RomLocatio
         }
     }
 
-    //Initialize empty RAM
-    for (int i=0; i<RAM_SIZE; i++)
-    {
-        m_mcu->ram[i] = 0;
-    }
+    // Initialize empty RAMs
+    std::fill(m_mcu->ram, m_mcu->ram + RAM_SIZE, 0);
+    std::fill(m_mcu->sram, m_mcu->sram + SRAM_SIZE, 0);
 
     ReadSRAM();
 
     if (m_mcu->is_jv880)
     {
+        // Initialize NVRAM and set contrast to 04
+        std::fill(m_mcu->nvram, m_mcu->nvram + NVRAM_SIZE, 0);
+        m_mcu->nvram[0x10] = 0x04;
+
         ReadNVRAM();
     }
 
