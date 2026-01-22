@@ -31,6 +31,33 @@
  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
+
+/**
+ * 0x00: ALL
+ * 0x01: MUTE
+ * 0x02: (Unknown)
+ * 0x03: POWER
+ * 0x04: PART L
+ * 0x05: PART R
+ * 0x06: INSTRUMENT L
+ * 0x07: INSTRUMENT R
+ * 0x08: LEVEL L
+ * 0x09: LEVEL R
+ * 0x0A: REVERB L
+ * 0x0B: REVERB R
+ * 0x0C: SONG L
+ * 0x0D: SONG R
+ * 0x0E: TEMPO L
+ * 0x0F: TEMPO R
+ * 0x10: STOP
+ * 0x11: PLAY
+ * 0x12: REW
+ * 0x13: FF
+ * 0x2A: 00101010
+ * 0x45: 01000101
+ * 0x50: 01010000
+**/
+
 #pragma once
 
 #include "audio.h"
@@ -236,6 +263,7 @@ struct mcu_t {
     uint8_t ad_nibble     = 0;
     Computerswitch sw_pos = Computerswitch::MIDI;
     uint8_t io_sd         = 0;
+    uint8_t rcu           = 0;
 
     submcu_t* sm       = nullptr;
     pcm_t* pcm         = nullptr;
@@ -548,6 +576,7 @@ uint8_t MCU_DetectMKIRomVersion(mcu_t& mcu, MK1version revision);
 void MCU_WriteP0(mcu_t& mcu, uint8_t data);
 void MCU_WriteP1(mcu_t& mcu, uint8_t data);
 void MCU_GA_SetGAInt(mcu_t& mcu, int line, int value);
+void MCU_RemoteControlTrigger(mcu_t& mcu, uint8_t data);
 
 void MCU_EncoderTrigger(mcu_t& mcu, int dir);
 

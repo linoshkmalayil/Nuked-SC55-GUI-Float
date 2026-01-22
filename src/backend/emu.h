@@ -111,6 +111,8 @@ public:
     void PostSerial(uint8_t byte);
     void PostSerial(std::span<const uint8_t> data);
 
+    void PostRC(uint8_t byte);
+
     void PostSystemReset(EMU_SystemReset reset);
     void PostSerialSystemReset(EMU_SystemReset reset);
 

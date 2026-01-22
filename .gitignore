@@ -62,6 +62,7 @@ Thumbs.db
 build-*
 
 build/
+build_*/
 
 # MinGW generated files
 *.Debug
@@ -82,3 +83,6 @@ CMakeSettings.json
 
 # Vendored assets packages shouldn't appear at the GIT history
 /assets/
+
+# Python Cache Files
+__pycache__/

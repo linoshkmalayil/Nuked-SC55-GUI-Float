@@ -13,7 +13,7 @@ void FE_RouteSerial(FE_Application& fe, uint8_t byte);
 
 std::thread serial_read_thread;
 std::mutex  serial_io_mutex;
-bool        thread_run = false;
+bool        serial_thread_run = false;
 void        SERIAL_Read_Updater(FE_Application& fe, serial_read_callback read_callback);
 
 class Serial_Handler
@@ -80,7 +80,7 @@ class Serial_Handler
 
 LPCSTR Serial_Handler::GetErrorString(DWORD error) {
     LPSTR buffer = NULL;
-    DWORD size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, error, 0, (LPSTR) &buffer, 0, NULL);
+    DWORD size   = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, error, 0, (LPSTR) &buffer, 0, NULL);
     if (buffer != NULL) {
         if (buffer[size - 1] == '\n') {
             buffer[size - 1] = '\0';
@@ -154,7 +154,7 @@ bool Serial_Handler::SerialOpen(std::string_view serial_port)
 {
     std::string port = std::string(serial_port);
 
-    if(!isNamedPipe(port) && !isSerialPort(port))
+    if (!isNamedPipe(port) && !isSerialPort(port))
     {
         fprintf(stderr, "Can't open '%s': Not a serial port or named pipe\n", std::string(serial_port).c_str());
         fflush(stderr);
@@ -348,7 +348,7 @@ bool SERIAL_Init(FE_Application& fe, std::string_view serial_port)
         return false;
     }
 
-    thread_run         = true;
+    serial_thread_run  = true;
     serial_read_thread = std::thread(&SERIAL_Read_Updater, std::ref(fe), std::ref(FE_RouteSerial));
 
     return true;
@@ -399,11 +399,14 @@ void SERIAL_PostUART(uint8_t data)
 
 void SERIAL_Quit()
 {
-    if(s_handler)
+    serial_thread_run = false;
+    if (serial_read_thread.joinable())
     {
-        thread_run = false;
         serial_read_thread.join();
+    }
 
+    if (s_handler)
+    {
         s_handler->SerialClose();
         delete s_handler;
         s_handler = nullptr;
@@ -414,11 +417,11 @@ void SERIAL_Quit()
 
 void SERIAL_Read_Updater(FE_Application& fe, serial_read_callback read_callback)
 {
-    while (thread_run)
+    while (serial_thread_run)
     {
         std::lock_guard<std::mutex> lock(serial_io_mutex);
 
-        if(SERIAL_HasData())
+        if (SERIAL_HasData())
         {
             uint8_t sbyte = SERIAL_ReadUART();
             read_callback(fe, sbyte);        

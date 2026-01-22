@@ -1,13 +1,13 @@
 
 #include "serial.h"
 #include <cstdio>
-#include <cstring> // strerror() function
-#include <fcntl.h> // Contains file controls like O_RDWR
-#include <errno.h> // Error integer codes
+#include <cstring>   // strerror() function
+#include <fcntl.h>   // Contains file controls like O_RDWR
+#include <errno.h>   // Error integer codes
 #include <mutex>
 #include <termios.h> // Contains POSIX terminal control definitions
 #include <thread>
-#include <unistd.h> // open(), write(), read(), close()
+#include <unistd.h>  // open(), write(), read(), close()
 #include <vector>
 
 #define INVALID_VALUE -1
@@ -21,7 +21,7 @@ void FE_RouteSerial(FE_Application& fe, uint8_t sbyte);
 
 std::thread serial_read_thread;
 std::mutex  serial_io_mutex;
-bool        thread_run = false;
+bool        serial_thread_run = false;
 void        SERIAL_Thread_Updater(FE_Application& fe, serial_read_callback read_callback);
 
 class Serial_Handler
@@ -49,7 +49,7 @@ class Serial_Handler
             write_data.clear();
         }
 
-        void SetReadPending(bool value) {   read_pending = value; }
+        void SetReadPending(bool value)  {  read_pending = value; }
         void SetWritePending(bool value) { write_pending = value; }
 
         void ReadSerialPort();
@@ -112,7 +112,9 @@ bool Serial_Handler::SerialOpen(std::string_view serial_port)
 void Serial_Handler::SerialClose()
 {
     if (!serial_init)
+    {
         return;
+    }
 
     close(port_handle);
     port_handle = INVALID_VALUE;
@@ -123,8 +125,6 @@ void Serial_Handler::ReadSerialPort()
 {
     uint8_t read_linux[BUFFER_SIZE];
     int16_t read_bytes = (int16_t)read(port_handle, read_linux, BUFFER_SIZE*sizeof(uint8_t));
-
-    std::vector<uint8_t> read_data;
 
     if (read_bytes == INVALID_VALUE)
     {
@@ -180,7 +180,7 @@ bool SERIAL_Init(FE_Application& fe, std::string_view serial_port)
         return false;
     }
 
-    thread_run         = true;
+    serial_thread_run  = true;
     serial_read_thread = std::thread(&SERIAL_Thread_Updater, std::ref(fe), std::ref(FE_RouteSerial));
 
     return true;
@@ -258,7 +258,7 @@ void SERIAL_PostUART(uint8_t data)
         return;
     }
 
-    if(write_buffer.size() < BUFFER_SIZE)
+    if (write_buffer.size() < BUFFER_SIZE)
     {
         write_buffer.push_back(data);
     }
@@ -270,10 +270,9 @@ void SERIAL_PostUART(uint8_t data)
 
 void SERIAL_Quit()
 {
-    thread_run = false;
-    if(serial_read_thread.joinable())
+    serial_thread_run = false;
+    if (serial_read_thread.joinable())
     {
-        thread_run = false;
         serial_read_thread.join();
     }
 
@@ -289,14 +288,14 @@ void SERIAL_Quit()
 
 void SERIAL_Thread_Updater(FE_Application& fe, serial_read_callback read_callback)
 {
-    while (thread_run)
+    while (serial_thread_run)
     {
         std::lock_guard<std::mutex> lock(serial_io_mutex);
 
         s_handler->ReadSerialPort();
         s_handler->WriteSerialPort();
 
-        if(SERIAL_HasData())
+        if (SERIAL_HasData())
         {
             uint8_t sbyte = SERIAL_ReadUART();
             read_callback(fe, sbyte);        

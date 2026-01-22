@@ -19,6 +19,7 @@ Differences from upstream:
 - Improved performance without sacrificing accuracy.
 - Added GUI support and LCD Contrast.
 - Added Serial MIDI support for mkII and st models.
+- Added Remote Control support for mkI, mkII, SC-155 and SC-155mkII models.
 - Added volume adjustment.
 - Support for ASIO output on Windows when building from source.
 - Loads roms based on their hashes instead of requiring specific filenames.
