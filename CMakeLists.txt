@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.19)
-project (nuked-sc55 VERSION 0.6.2 LANGUAGES C CXX)
+project (nuked-sc55 VERSION 0.6.3 LANGUAGES C CXX)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
