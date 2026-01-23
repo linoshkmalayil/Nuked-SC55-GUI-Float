@@ -164,6 +164,13 @@ F -> COMPARE
 G -> ENTER
 COMMA -> ENCODER L
 PERIOD -> ENCODER R
+RMB (On Volume Knob) -> PATCH_PERFORM
+SCROLL WHEEL UP (On Volume Knob) -> INCREASE VOLUME
+SCROLL WHEEL DOWN (On Volume Knob) -> DECREASE VOLUME
+LMB + MOUSE MOVEMENT (O Volume Knob) -> ADJUST VOLUME
+SCROLL WHEEL UP (On Encoder Knob) -> ENCODER R
+SCROLL WHEEL DOWN (On Encoder Knob) -> ENCODER L
+LMB + MOUSE MOVEMENT (O Encoder Knob) -> ROTATE ENCODER
 ```
 
 These are the options to use the emulator frontend:
@@ -261,11 +268,17 @@ With version 0.6.3, the emulator supports Virtual Remote Control. Currently the 
 So to use Remote Control first you need to launch the emulator with the argument:
 `-rc <named_pipe>` or `--remote-control <named_pipe>`
 
+If you're using the python version of the remote client, you need to install the following modules:
+`pygame` (All platforms) and `pywin32` (For Windows only)
+
 Then launch the remote with the command:
 `python remote_control.py <named_pipe>`
 
-**NOTE:** On Windows you can use a converted executable by using:
-`remote_control <named_pipe>`
+Or run the converted executable in\
+Windows command prompt by using:
+`remote_control <named_pipe>`\
+or on Linux and MacOS:
+`./remote_control <named_pipe>`
 
 ### Regarding SRAM and NVRAM
 
@@ -275,7 +288,7 @@ and NVRAM read and write support for JV880.
 JV880 needs NVRAM file passed via `--nvram`.
 
 Also the file where SRAM and NVRAM will be saved will have a suffix incidicating the corresponding
-emulator instance. Do not that the implementation of JV880 NVRAM has a [bug](https://github.com/jcmoyer/Nuked-SC55/issues/36#issuecomment-2781603485)
+emulator instance. Do note that the implementation of JV880 NVRAM has a [bug](https://github.com/jcmoyer/Nuked-SC55/issues/36#issuecomment-2781603485)
 
 ### Regarding Buffer Size
 

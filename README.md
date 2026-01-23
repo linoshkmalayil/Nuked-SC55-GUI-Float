@@ -1,6 +1,7 @@
 # Nuked SC-55
 
-![Nuked-SC55](data/demo.png)
+![Nuked-SC55-mkII](data/demo-sc55mkii.png)
+![Nuked-SC55-JV880](data/demo-jv880.png)
 
 Fork of [nukeykt/Nuked-SC55](https://github.com/nukeykt/Nuked-SC55) with
 the optimization work of jcmoyer [jcmoyer/Nuked-SC55](https://github.com/jcmoyer/Nuked-SC55)
@@ -26,10 +27,10 @@ Differences from upstream:
 
 ## Downloads 
 
-Windows Builds can be downloaded from here: [Releases](https://github.com/linoshkmalayil/Nuked-SC55-GUI-Float/releases/)\
+Windows and Linux x86_64 AppImage Builds can be downloaded from here: [Releases](https://github.com/linoshkmalayil/Nuked-SC55-GUI-Float/releases/)\
 Latest Build: [Latest](https://github.com/linoshkmalayil/Nuked-SC55-GUI-Float/releases/latest)
 
-Linux and Mac requires building from source. (See [BUILDING](README.md#building))
+Linux native binaries and Mac requires building from source. (See [BUILDING](README.md#building))
 
 ## Building
 
