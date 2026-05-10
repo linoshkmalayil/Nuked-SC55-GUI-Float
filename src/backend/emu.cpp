@@ -504,7 +504,7 @@ void Emulator::ReadSRAM()
     std::filesystem::path sram_path = m_options.rom_directory / roms[(size_t)m_mcu->romset][6];
     sram_path                      += std::to_string(m_options.instance_id);
     
-    std::ifstream s_rf = std::ifstream(sram_path.generic_string().c_str(), std::ios::binary);
+    std::ifstream s_rf = std::ifstream(sram_path, std::ios::binary);
     if(!s_rf || !EMU_ReadStreamExact(s_rf, m_mcu->sram, SRAM_SIZE))
     {
         fprintf(stderr, "WARNING: Failed reading SRAM: %s\n", sram_path.generic_string().c_str());
@@ -527,7 +527,7 @@ void Emulator::WriteSRAM()
     std::filesystem::path sram_path = m_options.rom_directory / roms[(size_t)m_mcu->romset][6];
     sram_path                      += std::to_string(m_options.instance_id);
     
-    std::ofstream s_wf = std::ofstream(sram_path.generic_string().c_str(), std::ios::binary);
+    std::ofstream s_wf = std::ofstream(sram_path, std::ios::binary);
     if(!s_wf || !EMU_WriteStreamExact(s_wf, m_mcu->sram, SRAM_SIZE))
     {
         fprintf(stderr, "WARNING: Failed writing SRAM: %s\n", sram_path.generic_string().c_str());
