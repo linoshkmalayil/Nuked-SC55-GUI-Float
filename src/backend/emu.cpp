@@ -116,7 +116,7 @@ void Emulator::SetSerialPostCallback(sm_serial_post_callback callback)
     m_sm->serial_post_callback = callback;
 }
 
-constexpr int ROM_SET_N_FILES = 7;
+constexpr int ROM_SET_N_FILES = 8;
 
 const char* roms[(size_t)ROMSET_COUNT][ROM_SET_N_FILES] =
 {
@@ -127,7 +127,8 @@ const char* roms[(size_t)ROMSET_COUNT][ROM_SET_N_FILES] =
         "waverom2.bin",
         "rom_sm.bin",
         "",
-        "memory.bin"
+        "memory.bin",
+        "",
     },
 
     {
@@ -136,6 +137,7 @@ const char* roms[(size_t)ROMSET_COUNT][ROM_SET_N_FILES] =
         "waverom1.bin",
         "waverom2.bin",
         "rom_sm.bin",
+        "",
         "",
         "",
     },
@@ -148,6 +150,7 @@ const char* roms[(size_t)ROMSET_COUNT][ROM_SET_N_FILES] =
         "sc55_waverom3.bin",
         "",
         "sc55_memory.bin",
+        "",
     },
 
     {
@@ -156,6 +159,7 @@ const char* roms[(size_t)ROMSET_COUNT][ROM_SET_N_FILES] =
         "cm300_waverom1.bin",
         "cm300_waverom2.bin",
         "cm300_waverom3.bin",
+        "",
         "",
         "",
     },
@@ -167,7 +171,8 @@ const char* roms[(size_t)ROMSET_COUNT][ROM_SET_N_FILES] =
         "jv880_waverom2.bin",
         "jv880_waverom_expansion.bin",
         "jv880_waverom_pcmcard.bin",
-        "jv880_memory.bin"
+        "jv880_memory.bin",
+        "jv880_nvram.bin",
     },
 
     {
@@ -175,6 +180,7 @@ const char* roms[(size_t)ROMSET_COUNT][ROM_SET_N_FILES] =
         "scb55_rom2.bin",
         "scb55_waverom1.bin",
         "scb55_waverom2.bin",
+        "",
         "",
         "",
         "",
@@ -188,6 +194,7 @@ const char* roms[(size_t)ROMSET_COUNT][ROM_SET_N_FILES] =
         "",
         "",
         "",
+        "",
     },
 
     {
@@ -197,7 +204,8 @@ const char* roms[(size_t)ROMSET_COUNT][ROM_SET_N_FILES] =
         "sc155_waverom2.bin",
         "sc155_waverom3.bin",
         "",
-        "sc155_memory.bin"
+        "sc155_memory.bin",
+        "",
     },
 
     {
@@ -208,6 +216,7 @@ const char* roms[(size_t)ROMSET_COUNT][ROM_SET_N_FILES] =
         "rom_sm.bin",
         "",
         "memory.bin",
+        "",
     },
 };
 
@@ -536,10 +545,10 @@ void Emulator::WriteSRAM()
 
 void Emulator::ReadNVRAM()
 {
-    if (!m_options.nvram_filename.empty() && m_mcu->is_jv880)
+    if (m_mcu->is_jv880)
     {
         // append instance number so that multiple instances don't clobber each other's nvram
-        std::filesystem::path nvram_file = m_options.nvram_filename;
+        std::filesystem::path nvram_file = m_options.rom_directory / roms[(size_t)m_mcu->romset][7];
         nvram_file                      += std::to_string(m_options.instance_id);
 
         std::ifstream file(nvram_file, std::ios::binary);
@@ -562,10 +571,10 @@ void Emulator::WriteNVRAM()
         return;
     }
 
-    if (!m_options.nvram_filename.empty() && m_mcu->is_jv880)
+    if (m_mcu->is_jv880)
     {
         // append instance number so that multiple instances don't clobber each other's nvram
-        std::filesystem::path nvram_file = m_options.nvram_filename;
+        std::filesystem::path nvram_file = m_options.rom_directory / roms[(size_t)m_mcu->romset][7];
         nvram_file                      += std::to_string(m_options.instance_id);
 
         std::ofstream file(nvram_file, std::ios::binary);

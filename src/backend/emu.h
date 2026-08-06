@@ -56,8 +56,6 @@ struct EMU_Options
     LCD_Backend* lcd_backend = nullptr;
     // Computer Switch for IO: Serial/MIDI, defaults to MIDI.
     Computerswitch serial_type = Computerswitch::MIDI;
-    // If not empty, nvram will be saved to and loaded from here. JV-880 only.
-    std::filesystem::path nvram_filename;
 };
 
 enum class EMU_SystemReset {

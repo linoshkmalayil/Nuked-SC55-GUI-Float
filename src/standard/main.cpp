@@ -162,7 +162,6 @@ struct FE_Parameters
     std::optional<uint32_t> asio_sample_rate;
     std::string asio_left_channel;
     std::string asio_right_channel;
-    std::filesystem::path nvram_filename;
     FE_AdvancedParameters adv;
     float gain = 1.0f;
 };
@@ -931,18 +930,10 @@ bool FE_CreateInstance(FE_Application& container, const std::filesystem::path& b
         fe->sdl_lcd = std::make_unique<LCD_SDL_Backend>();
     }
 
-    std::filesystem::path this_nvram = params.nvram_filename;
-    if (!this_nvram.empty())
-    {
-        // append instance number so that multiple instances don't clobber each other's nvram
-        this_nvram += std::to_string(container.instances_in_use - 1);
-    }
-
     if (!fe->emu.Init({.instance_id        = instance_number,
                        .rom_directory      = *params.rom_directory, 
                        .lcd_backend        = fe->sdl_lcd.get(), 
-                       .serial_type        = params.serial_type, 
-                       .nvram_filename     = this_nvram}))
+                       .serial_type        = params.serial_type}))
     {
         fprintf(stderr, "ERROR: Failed to init emulator.\n");
         return false;
@@ -1277,15 +1268,6 @@ FE_ParseError FE_ParseCommandLine(int argc, char* argv[], FE_Parameters& result)
                 return FE_ParseError::RomDirectoryNotFound;
             }
         }
-        else if (reader.Any("--nvram"))
-        {
-            if (!reader.Next())
-            {
-                return FE_ParseError::UnexpectedEnd;
-            }
-
-            result.nvram_filename = reader.Arg();
-        }
         else if (reader.Any("--romset"))
         {
             if (!reader.Next())
@@ -1445,7 +1427,6 @@ Emulator options:
   -r, --reset     none|gs|gm                    Reset system in GS or GM mode. (No GM in MK1 1.00 & 1.10)
   -n, --instances <count>                       Set number of emulator instances.
   --no-lcd                                      Run without LCDs.
-  --nvram <filename>                            Saves and loads NVRAM to/from disk. JV-880 only.
 
 ROM management options:
   -d, --rom-directory <dir>                     Sets the directory to load roms from.
