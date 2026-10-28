@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2021, 2026 Linosh K M
+ *
+ * This file is part of Nuked-SC55-GUI-Float (Originally Nuked-SC55).
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ */
 #include "serial.h"
 #include <cstdio>
 #include <cstdlib>
@@ -8,13 +24,12 @@
 
 #define BUFFER_SIZE 4096
 
-typedef void (*serial_read_callback)(FE_Application& fe, uint8_t data);
-void FE_RouteSerial(FE_Application& fe, uint8_t byte);
+SERIAL_Output* serial_output = nullptr;
 
 std::thread serial_read_thread;
 std::mutex  serial_io_mutex;
 bool        serial_thread_run = false;
-void        SERIAL_Read_Updater(FE_Application& fe, serial_read_callback read_callback);
+void        SERIAL_Read_Updater();
 
 class Serial_Handler
 {
@@ -329,9 +344,8 @@ void Serial_Handler::WriteSerialPort()
 
 Serial_Handler *s_handler = nullptr;
 
-bool SERIAL_Init(FE_Application& fe, std::string_view serial_port)
+bool SERIAL_Init(SERIAL_Output& output, std::string_view serial_port)
 {
-    (void)fe;
 
     if (s_handler)
     {
@@ -347,9 +361,11 @@ bool SERIAL_Init(FE_Application& fe, std::string_view serial_port)
 
         return false;
     }
+    
+    serial_output = &output;
 
     serial_thread_run  = true;
-    serial_read_thread = std::thread(&SERIAL_Read_Updater, std::ref(fe), std::ref(FE_RouteSerial));
+    serial_read_thread = std::thread(&SERIAL_Read_Updater);
 
     return true;
 }
@@ -412,10 +428,12 @@ void SERIAL_Quit()
         s_handler = nullptr;
     }
 
+    serial_output = nullptr;
+
     return;
 }
 
-void SERIAL_Read_Updater(FE_Application& fe, serial_read_callback read_callback)
+void SERIAL_Read_Updater()
 {
     while (serial_thread_run)
     {
@@ -424,7 +442,7 @@ void SERIAL_Read_Updater(FE_Application& fe, serial_read_callback read_callback)
         if (SERIAL_HasData())
         {
             uint8_t sbyte = SERIAL_ReadUART();
-            read_callback(fe, sbyte);        
+            serial_output -> SerialWrite(sbyte);    
         }
     }
 }

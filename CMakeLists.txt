@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.19)
-project (nuked-sc55 VERSION 0.6.3 LANGUAGES C CXX)
+project (nuked-sc55 VERSION 0.7.0 LANGUAGES C CXX)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
@@ -7,6 +7,7 @@ include(GNUInstallDirs)
 include(TargetWarnings)
 
 set(NUKED_SOURCE "unknown" CACHE STRING "Origin of this build")
+option(NUKED_ENABLE_DECODER2 "Enable new instruction decoder" ON)
 
 #==============================================================================
 # Tests
@@ -14,10 +15,21 @@ set(NUKED_SOURCE "unknown" CACHE STRING "Origin of this build")
 option(NUKED_ENABLE_TESTS "Enable tests" OFF)
 set(NUKED_TEST_ROMDIR "" CACHE PATH
     "Directory the test runner should look for roms in")
+set(NUKED_TEST_JV880_NVRAM "" CACHE PATH
+    "Path to file containing JV-880 factory preset nvram")
 
 if(NUKED_ENABLE_TESTS)
     enable_testing()
     add_subdirectory("test")
+endif()
+
+#==============================================================================
+# Documentation
+#==============================================================================
+option(NUKED_ENABLE_DOCS "Enable building documentation" OFF)
+
+if(NUKED_ENABLE_DOCS)
+    add_subdirectory("doc")
 endif()
 
 #==============================================================================
@@ -54,15 +66,19 @@ add_library(nuked-sc55-backend)
 target_sources(nuked-sc55-backend
     PRIVATE
     src/backend/config.cpp
+    src/backend/diagnostics.cpp
     src/backend/emu.cpp
+    src/backend/file_hashing.cpp
+    src/backend/file_io.cpp
     src/backend/lcd.cpp
-    src/backend/mcu.cpp
     src/backend/mcu_interrupt.cpp
     src/backend/mcu_opcodes.cpp
     src/backend/mcu_timer.cpp
+    src/backend/mcu.cpp
     src/backend/pcm.cpp
-    src/backend/rom.cpp
     src/backend/rom_io.cpp
+    src/backend/rom.cpp
+    src/backend/standard_romsets.cpp
     src/backend/submcu.cpp
 
     src/backend/sha/sha-private.h
@@ -76,25 +92,60 @@ target_sources(nuked-sc55-backend
     FILES
     "${CMAKE_CURRENT_BINARY_DIR}/backend/config.h"
     src/backend/audio.h
+    src/backend/bounded_ordered_bitset.h
     src/backend/cast.h
+    src/backend/diagnostics.h
     src/backend/emu.h
-    src/backend/lcd.h
+    src/backend/file_hashing.h
+    src/backend/file_io.h
     src/backend/lcd_back.h
     src/backend/lcd_font.h
+    src/backend/lcd.h
     src/backend/math_util.h
-    src/backend/mcu.h
     src/backend/mcu_interrupt.h
     src/backend/mcu_opcodes.h
     src/backend/mcu_timer.h
+    src/backend/mcu.h
     src/backend/pcm.h
     src/backend/ringbuffer.h
-    src/backend/rom.h
     src/backend/rom_io.h
+    src/backend/rom.h
+    src/backend/sha256.h
+    src/backend/standard_romsets.h
+    src/backend/string_map.h
+    src/backend/string_vector.h
     src/backend/submcu.h
 )
+
+if(NUKED_ENABLE_DECODER2)
+    target_sources(nuked-sc55-backend
+        PRIVATE
+        src/backend/decoder2/address_modes.cpp
+        src/backend/decoder2/cache.cpp
+        src/backend/decoder2/disassemble.cpp
+        src/backend/decoder2/disassemble_handlers.cpp
+        src/backend/decoder2/disassemblers_address.cpp
+        src/backend/decoder2/disassemblers_imm16.cpp
+        src/backend/decoder2/disassemblers_imm8.cpp
+        src/backend/decoder2/disassemblers_rn.cpp
+        src/backend/decoder2/disassemblers_top.cpp
+        src/backend/decoder2/dispatch.cpp
+        src/backend/decoder2/dispatchers_aa.cpp
+        src/backend/decoder2/dispatchers_arn.cpp
+        src/backend/decoder2/dispatchers_d8d16_rn.cpp
+        src/backend/decoder2/dispatchers_imm16.cpp
+        src/backend/decoder2/dispatchers_postinc_rn.cpp
+        src/backend/decoder2/dispatchers_predec_rn.cpp
+        src/backend/decoder2/dispatchers_rn.cpp
+        src/backend/decoder2/dispatchers_top.cpp
+        src/backend/decoder2/instruction_handlers.cpp
+    )
+endif()
+
 target_include_directories(nuked-sc55-backend PUBLIC "src/backend" "${CMAKE_CURRENT_BINARY_DIR}/backend")
 target_compile_features(nuked-sc55-backend PRIVATE cxx_std_23)
 target_enable_warnings(nuked-sc55-backend)
+target_enable_conversion_warnings(nuked-sc55-backend)
 
 #==============================================================================
 # Frontend shared code
@@ -105,6 +156,7 @@ target_sources(nuked-sc55-common
     src/common/gain.cpp
     src/common/rom_loader.cpp
     src/common/path_util.cpp
+    src/common/term_io.cpp
 )
 target_compile_features(nuked-sc55-common PRIVATE cxx_std_23)
 target_enable_warnings(nuked-sc55-common)
@@ -119,15 +171,23 @@ if(SDL2_FOUND)
     add_executable(nuked-sc55)
     target_sources(nuked-sc55
         PRIVATE
+        src/standard/application_cli.cpp
+        src/standard/application.cpp
         src/standard/audio_sdl.cpp
+        src/standard/instance.cpp
         src/standard/lcd_sdl.cpp
         src/standard/main.cpp
+        src/standard/output_common.cpp
         src/standard/output_sdl.cpp
 
         PRIVATE FILE_SET headers TYPE HEADERS FILES
+        src/standard/application.h
         src/standard/audio_sdl.h
+        src/standard/bounded_vector.h
+        src/standard/instance.h
         src/standard/lcd_sdl.h
         src/standard/midi.h
+        src/standard/output_common.h
         src/standard/output_sdl.h
         src/standard/serial.h
         src/standard/rc.h
@@ -141,15 +201,15 @@ if(SDL2_FOUND)
 
     if(WIN32)
         target_sources(nuked-sc55 
-            PRIVATE 
-            src/standard/serial_win32.cpp
+            PRIVATE
             src/standard/rc_win32.cpp
+            src/standard/serial_win32.cpp
         )
     elseif(UNIX)
         target_sources(nuked-sc55 
-            PRIVATE 
-            src/standard/serial_posix.cpp
+            PRIVATE
             src/standard/rc_posix.cpp
+            src/standard/serial_posix.cpp
         )
     endif()
 
@@ -227,5 +287,3 @@ target_enable_conversion_warnings(nuked-sc55-render)
 # Installables
 #==============================================================================
 install(TARGETS nuked-sc55-render)
-install(FILES data/sc55_background.bmp DESTINATION ${CMAKE_INSTALL_DATADIR}/nuked-sc55)
-install(FILES data/nuked-icon-ico.ico DESTINATION ${CMAKE_INSTALL_DATADIR}/nuked-sc55)

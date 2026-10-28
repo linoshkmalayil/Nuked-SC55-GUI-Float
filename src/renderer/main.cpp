@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2024-2026 J.C. Moyer
+ * Modified by Linosh K M
+ * This file is part of Nuked-SC55-GUI-Float (Originally Nuked-SC55).
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ */
+
 #include "audio.h"
 #include "cast.h"
 #include "config.h"
@@ -6,9 +23,9 @@
 #include "smf.h"
 #include "wav.h"
 #include <algorithm>
+#include <cinttypes>
 #include <condition_variable>
 #include <cstddef>
-#include <cstdio>
 #include <cstring>
 #include <functional>
 #include <memory>
@@ -21,6 +38,7 @@
 #include "common/gain.h"
 #include "common/path_util.h"
 #include "common/rom_loader.h"
+#include "common/term_io.h"
 
 #ifdef _WIN32
 #include <fcntl.h>
@@ -58,10 +76,11 @@ struct R_Parameters
     bool debug = false;
     R_EndBehavior end_behavior = R_EndBehavior::Cut;
     std::filesystem::path nvram_filename;
-    bool legacy_romset_detection = false;
+    common::RomLoader rom_loader = common::RomLoader::Hashing;
     bool dump_emidi_loop_points = false;
     float gain = 1.0f;
     R_AdvancedParameters adv;
+    bool quiet = false;
 };
 
 enum class R_ParseError
@@ -140,6 +159,10 @@ R_ParseError R_ParseCommandLine(int argc, char* argv[], R_Parameters& result)
         else if (reader.Any("--debug"))
         {
             result.debug = true;
+        }
+        else if (reader.Any("--quiet"))
+        {
+            result.quiet = true;
         }
         else if (reader.Any("-n", "--instances"))
         {
@@ -259,7 +282,7 @@ R_ParseError R_ParseCommandLine(int argc, char* argv[], R_Parameters& result)
         }
         else if (reader.Any("--legacy-romset-detection"))
         {
-            result.legacy_romset_detection = true;
+            result.rom_loader = common::RomLoader::Legacy;
         }
         else if (reader.Any("--end"))
         {
@@ -383,7 +406,7 @@ R_ParseError R_ParseCommandLine(int argc, char* argv[], R_Parameters& result)
 [[noreturn]]
 void R_Panic(const char* msg, const std::source_location where = std::source_location::current())
 {
-    fprintf(stderr, "%s:%d: in %s: %s", where.file_name(), (int)where.line(), where.function_name(), msg);
+    common::Printf("%s:%d: in %s: %s", where.file_name(), (int)where.line(), where.function_name(), msg);
     exit(1);
 }
 
@@ -799,7 +822,7 @@ private:
     {
         for (size_t i = 0; i < m_queues_in_use; ++i)
         {
-            fprintf(stderr, "Queue %zu has %zu chunks\n", i, m_queues[i].ChunkCount());
+            common::Printf("Queue %zu has %zu chunks\n", i, m_queues[i].ChunkCount());
         }
     }
 
@@ -911,8 +934,10 @@ struct R_SilenceModelMK1
 {
     static constexpr bool IsSilence(const AudioFrame<int32_t>& in_raw)
     {
-        // MK1 has a DC offset. TODO: Maybe want thresholds too?
-        return in_raw.left == 0x1000000 && in_raw.right == 0x1000000;
+        constexpr int32_t DC_OFFSET = 0x1000000;
+        constexpr int32_t MIN       = DC_OFFSET - 0x10000;
+        constexpr int32_t MAX       = DC_OFFSET + 0x10000;
+        return MIN <= in_raw.left && in_raw.left <= MAX && MIN <= in_raw.right && in_raw.right <= MAX;
     }
 };
 
@@ -1001,7 +1026,7 @@ R_TrackList R_SplitTrackModulo(const SMF_Track& merged_track, size_t n)
 uint64_t R_NSPerStep(Emulator& emu)
 {
     // These are best guesses.
-    if (emu.GetMCU().is_mk1)
+    if (emu.GetMCU().is_mk1 || emu.GetMCU().is_jv880)
     {
         return 600;
     }
@@ -1088,8 +1113,8 @@ constexpr mcu_sample_callback R_PickCallback(const R_TrackRenderState& state)
         }
     }
 
-    fprintf(stderr, "output_format = %d\n", (int)state.output_format);
-    fprintf(stderr, "gain = %f\n", state.gain);
+    common::Printf("output_format = %d\n", (int)state.output_format);
+    common::Printf("gain = %f\n", state.gain);
     R_Panic("no valid callback for state");
 }
 
@@ -1204,7 +1229,7 @@ void R_RenderOne(const SMF_Data& data, R_TrackRenderState& state)
 
 void R_CursorUpLines(int n)
 {
-    fprintf(stderr, "\x1b[%dF", n);
+    common::Printf("\x1b[%dF", n);
 }
 
 struct R_MixOutState
@@ -1267,18 +1292,12 @@ bool R_RenderTrack(const SMF_Data& data, const R_Parameters& params)
     // Then create a track specifically for each emulator instance
     const R_TrackList split_tracks = R_SplitTrackModulo(merged_track, instances);
 
-    AllRomsetInfo romset_info;
-
     common::LoadRomsetResult load_result;
 
-    common::LoadRomsetError err = common::LoadRomset(romset_info,
-                                                     params.rom_directory,
-                                                     params.romset_name,
-                                                     params.legacy_romset_detection,
-                                                     params.adv.rom_overrides,
-                                                     load_result);
+    common::LoadRomsetError err = common::LoadRomset(
+        params.rom_directory, params.romset_name, params.rom_loader, params.adv.rom_overrides, load_result);
 
-    common::PrintLoadRomsetDiagnostics(stderr, err, load_result, romset_info);
+    common::PrintLoadRomsetDiagnostics(err, load_result);
 
     if (err != common::LoadRomsetError{})
     {
@@ -1293,11 +1312,11 @@ bool R_RenderTrack(const SMF_Data& data, const R_Parameters& params)
     else if (!params.reset && load_result.romset == Romset::MK2)
     {
         // user didn't explicitly pass a reset and we're using a buggy romset
-        fprintf(stderr, "WARNING: No reset specified with mk2 romset; using gs\n");
+        common::Printf("WARNING: No reset specified with mk2 romset; using gs\n");
         reset = EMU_SystemReset::GS_RESET;
     }
 
-    fprintf(stderr, "Gain set to %.2fdb\n", common::ScalarToDb(params.gain));
+    common::Printf("Gain set to %.2fdb\n", common::ScalarToDb(params.gain));
 
     R_Mixer mixer;
     switch (params.output_format)
@@ -1325,22 +1344,19 @@ bool R_RenderTrack(const SMF_Data& data, const R_Parameters& params)
             this_nvram += std::to_string(i);
         }
 
-        render_states[i].emu.Init({.instance_id        = i,
-                                   .rom_directory      = params.rom_directory,
-                                   .lcd_backend        = nullptr,
-                                   .nvram_filename = this_nvram});
+        render_states[i].emu.Init({.lcd_backend = nullptr, .sram_filename = "", .nvram_filename = this_nvram});
 
         RomLocationSet loaded{};
-        if (!render_states[i].emu.LoadRoms(load_result.romset, romset_info, &loaded))
+        if (!render_states[i].emu.LoadRoms(load_result.romset, load_result.romset_info, &loaded))
         {
-            fprintf(stderr, "FATAL: Failed to load roms for instance #%02zu\n", i);
+            common::Printf("FATAL: Failed to load roms for instance #%02zu\n", i);
             return false;
         }
 
         render_states[i].emu.Reset();
-        render_states[i].emu.GetPCM().disable_oversampling = params.disable_oversampling;
+        render_states[i].emu.GetPCM().enable_oversampling = !params.disable_oversampling;
 
-        fprintf(stderr, "Initializing emulator #%02zu...\n", i);
+        common::Printf("Initializing emulator #%02zu...\n", i);
         R_RunReset(render_states[i].emu, reset);
 
         render_states[i].track = &split_tracks.tracks[i];
@@ -1356,7 +1372,7 @@ bool R_RenderTrack(const SMF_Data& data, const R_Parameters& params)
         render_states[i].thread = std::thread(R_RenderOne, std::cref(data), std::ref(render_states[i]));
     }
 
-    romset_info.PurgeRomData();
+    load_result.Purge();
 
     WAV_Handle render_output;
     if (params.output_stdout)
@@ -1397,7 +1413,7 @@ bool R_RenderTrack(const SMF_Data& data, const R_Parameters& params)
     {
         all_done = true;
 
-        fprintf(stderr, "Rendered %zu frames\n", mix_out_state.frames_mixed.load());
+        common::Printf("Rendered %zu frames\n", mix_out_state.frames_mixed.load());
 
         for (size_t i = 0; i < instances; ++i)
         {
@@ -1410,7 +1426,7 @@ bool R_RenderTrack(const SMF_Data& data, const R_Parameters& params)
             const size_t total        = render_states[i].track->events.size();
             const float  percent_done = 100.f * (float)processed / (float)total;
 
-            fprintf(stderr, "#%02zu %6.2f%% [%zu / %zu]\n", i, percent_done, processed, total);
+            common::Printf("#%02zu %6.2f%% [%zu / %zu]\n", i, percent_done, processed, total);
         }
 
         if (!all_done)
@@ -1433,7 +1449,7 @@ bool R_RenderTrack(const SMF_Data& data, const R_Parameters& params)
         loop_recorder.SortByTrack();
 
         const uint32_t frequency = PCM_GetOutputFrequency(render_states[0].emu.GetPCM());
-        fprintf(stderr, "rate=%zu\n", (size_t)frequency);
+        common::Printf("rate=%zu\n", (size_t)frequency);
 
         std::string time_str;
         for (const auto& point : loop_recorder.GetLoopPoints())
@@ -1442,24 +1458,22 @@ bool R_RenderTrack(const SMF_Data& data, const R_Parameters& params)
             switch (point.type)
             {
             case R_LoopPointType::TrackStart:
-                fprintf(stderr,
-                        "track %d loop start at sample=%zu timestamp=%s\n",
-                        point.midi_track,
-                        point.frame,
-                        time_str.c_str());
+                common::Printf("track %d loop start at sample=%" PRIu64 " timestamp=%s\n",
+                               point.midi_track,
+                               point.frame,
+                               time_str.c_str());
                 break;
             case R_LoopPointType::TrackEnd:
-                fprintf(stderr,
-                        "track %d loop end at sample=%zu timestamp=%s\n",
-                        point.midi_track,
-                        point.frame,
-                        time_str.c_str());
+                common::Printf("track %d loop end at sample=%" PRIu64 " timestamp=%s\n",
+                               point.midi_track,
+                               point.frame,
+                               time_str.c_str());
                 break;
             case R_LoopPointType::GlobalStart:
-                fprintf(stderr, "global loop start at sample=%zu timestamp=%s\n", point.frame, time_str.c_str());
+                common::Printf("global loop start at sample=%" PRIu64 " timestamp=%s\n", point.frame, time_str.c_str());
                 break;
             case R_LoopPointType::GlobalEnd:
-                fprintf(stderr, "global loop end at sample=%zu timestamp=%s\n", point.frame, time_str.c_str());
+                common::Printf("global loop end at sample=%" PRIu64 " timestamp=%s\n", point.frame, time_str.c_str());
                 break;
             }
         }
@@ -1470,7 +1484,7 @@ bool R_RenderTrack(const SMF_Data& data, const R_Parameters& params)
         for (size_t i = 0; i < instances; ++i)
         {
             auto t_instance_sec = (double)render_states[i].elapsed.count() / 1e9;
-            fprintf(stderr, "#%02zu took %.2fs\n", i, t_instance_sec);
+            common::Printf("#%02zu took %.2fs\n", i, t_instance_sec);
         }
     }
 
@@ -1478,7 +1492,7 @@ bool R_RenderTrack(const SMF_Data& data, const R_Parameters& params)
     auto t_diff   = std::chrono::duration_cast<std::chrono::nanoseconds>(t_finish - t_start);
     auto t_sec    = (double)t_diff.count() / 1e9;
 
-    fprintf(stderr, "Done in %.2fs!\n", t_sec);
+    common::Printf("Done in %.2fs!\n", t_sec);
 
     return true;
 }
@@ -1494,6 +1508,8 @@ General options:
   -v, --version                Display version information.
   -o <filename>                Render WAVE file to filename.
   --stdout                     Render raw sample data to stdout. No header
+  --debug                      Enables debug messages.
+  --quiet                      Do not print messages to stderr.
 
 Audio options:
   -f, --format s16|s32|f32     Set output format.
@@ -1521,19 +1537,21 @@ MIDI options:
 )";
 
     std::string name = common::GetProcessPath().stem().generic_string();
-    fprintf(stderr, USAGE_STR, name.c_str());
+    common::Printf(USAGE_STR, name.c_str());
 
-    common::PrintRomsets(stderr);
+    common::PrintRomsets();
 }
 
 int main(int argc, char* argv[])
 {
+    common::InitTermIO();
+
     R_Parameters params;
     R_ParseError result = R_ParseCommandLine(argc, argv, params);
 
     if (result != R_ParseError::Success)
     {
-        fprintf(stderr, "error: %s\n", R_ParseErrorStr(result));
+        common::Printf("error: %s\n", R_ParseErrorStr(result));
         R_Usage();
         return 1;
     }
@@ -1553,12 +1571,23 @@ int main(int argc, char* argv[])
         return 0;
     }
 
+    if (params.debug)
+    {
+        common::SetMinBackendLevel(Diag_Category::Debug);
+    }
+
+    if (params.quiet)
+    {
+        common::SetBackendLoggingEnabled(false);
+        common::SetFrontendLoggingEnabled(false);
+    }
+
     SMF_Data data;
     data = SMF_LoadEvents(params.input_filename);
 
     if (!R_RenderTrack(data, params))
     {
-        fprintf(stderr, "Failed to render track\n");
+        common::Printf("Failed to render track\n");
         return 1;
     }
 

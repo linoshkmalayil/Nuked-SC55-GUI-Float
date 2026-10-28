@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2024-2026 J.C. Moyer
+ *
+ * This file is part of Nuked-SC55-GUI-Float (Originally Nuked-SC55).
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ */
+
 // Somewhat minimal MIDI file reader.
 
 #pragma once
@@ -65,7 +82,7 @@ struct SMF_Event
     uint32_t GetTempoUS(SMF_ByteSpan bytes) const
     {
         return ((uint32_t)bytes[data_first + 2]) << 16 |
-               ((uint32_t)bytes[data_first + 3]) <<  8 |
+               ((uint32_t)bytes[data_first + 3]) << 8  |
                ((uint32_t)bytes[data_first + 4]);
     }
 

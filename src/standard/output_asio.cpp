@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2024-2026 J.C. Moyer
+ *
+ * This file is part of Nuked-SC55-GUI-Float (Originally Nuked-SC55).
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ */
+
 #include "output_asio.h"
 
 #include "asiosys.h"
@@ -7,6 +24,7 @@
 
 #include "audio.h"
 #include "audio_sdl.h"
+#include "bounded_vector.h"
 #include "common/command_line.h"
 #include "math_util.h"
 #include "ringbuffer.h"
@@ -27,10 +45,10 @@ struct ASIOOutput
     ASIODriverInfo driver_info;
     ASIOCallbacks  callbacks;
 
-    ASIOBufferInfo   buffer_info[N_BUFFERS]{};
-    ASIOChannelInfo  channel_info[MAX_CHANNELS]{};
-    SDL_AudioStream* streams[MAX_STREAMS]{};
-    size_t           stream_count = 0;
+    ASIOBufferInfo  buffer_info[N_BUFFERS]{};
+    ASIOChannelInfo channel_info[MAX_CHANNELS]{};
+
+    BoundedVector<SDL_AudioStream*, MAX_STREAMS> streams;
 
     // Size of a buffer as requested by ASIO driver
     long min_size;
@@ -207,13 +225,13 @@ bool Out_ASIO_OpenDriver(const char* driver_name)
     char internal_driver_name[256]{};
     if (strcpy_s(internal_driver_name, sizeof(internal_driver_name), driver_name) != 0)
     {
-        fprintf(stderr, "Driver name too long: `%s`\n", driver_name);
+        common::Printf("Driver name too long: `%s`\n", driver_name);
         return false;
     }
 
     if (!loadAsioDriver(internal_driver_name))
     {
-        fprintf(stderr, "Failed to load ASIO driver `%s`\n", internal_driver_name);
+        common::Printf("Failed to load ASIO driver `%s`\n", internal_driver_name);
         return false;
     }
 
@@ -222,7 +240,7 @@ bool Out_ASIO_OpenDriver(const char* driver_name)
     err = ASIOInit(&g_output.driver_info);
     if (err != ASE_OK)
     {
-        fprintf(stderr, "ASIOInit failed with %s: %s\n", ErrorToString(err), g_output.driver_info.errorMessage);
+        common::Printf("ASIOInit failed with %s: %s\n", ErrorToString(err), g_output.driver_info.errorMessage);
         return false;
     }
 
@@ -287,68 +305,65 @@ bool Out_ASIO_Create(const char* driver_name, const ASIO_OutputParameters& param
 
     ASIOError err;
 
-    fprintf(stderr,
-            "asioVersion:   %ld\n"
-            "driverVersion: %ld\n"
-            "name:          %s\n"
-            "errorMessage:  %s\n",
-            g_output.driver_info.asioVersion,
-            g_output.driver_info.driverVersion,
-            g_output.driver_info.name,
-            g_output.driver_info.errorMessage);
+    common::Printf("asioVersion:   %ld\n"
+                   "driverVersion: %ld\n"
+                   "name:          %s\n"
+                   "errorMessage:  %s\n",
+                   g_output.driver_info.asioVersion,
+                   g_output.driver_info.driverVersion,
+                   g_output.driver_info.name,
+                   g_output.driver_info.errorMessage);
 
     err = ASIOGetBufferSize(&g_output.min_size, &g_output.max_size, &g_output.preferred_size, &g_output.granularity);
     if (err != ASE_OK)
     {
-        fprintf(stderr, "ASIOGetBufferSize failed with %s\n", ErrorToString(err));
+        common::Printf("ASIOGetBufferSize failed with %s\n", ErrorToString(err));
         ASIOExit();
         return false;
     }
 
-    fprintf(stderr,
-            "ASIO buffer info: min=%ld, max=%ld, preferred=%ld, granularity=%ld\n",
-            g_output.min_size,
-            g_output.max_size,
-            g_output.preferred_size,
-            g_output.granularity);
+    common::Printf("ASIO buffer info: min=%ld, max=%ld, preferred=%ld, granularity=%ld\n",
+                   g_output.min_size,
+                   g_output.max_size,
+                   g_output.preferred_size,
+                   g_output.granularity);
 
-    fprintf(stderr, "User requested buffer size is %d\n", params.common.buffer_size);
+    common::Printf("User requested buffer size is %d\n", params.common.buffer_size);
 
     // ASIO4ALL can't handle the sample rate the emulator uses, so we'll need
     // to use a more common one and resample
     err = ASIOSetSampleRate((ASIOSampleRate)params.common.frequency);
     if (err != ASE_OK)
     {
-        fprintf(stderr,
-                "ASIOSetSampleRate(%d) failed with %s; trying to continue anyways\n",
-                params.common.frequency,
-                ErrorToString(err));
+        common::Printf("ASIOSetSampleRate(%d) failed with %s; trying to continue anyways\n",
+                       params.common.frequency,
+                       ErrorToString(err));
     }
 
     err = ASIOGetSampleRate(&g_output.actual_freq);
     if (err != ASE_OK)
     {
-        fprintf(stderr, "ASIOGetSampleRate failed with %s\n", ErrorToString(err));
+        common::Printf("ASIOGetSampleRate failed with %s\n", ErrorToString(err));
         ASIOExit();
         return false;
     }
 
-    fprintf(stderr, "ASIO: sample rate is %d\n", (int)g_output.actual_freq);
+    common::Printf("ASIO: sample rate is %d\n", (int)g_output.actual_freq);
 
     err = ASIOGetChannels(&g_output.input_channel_count, &g_output.output_channel_count);
     if (err != ASE_OK)
     {
-        fprintf(stderr, "ASIOGetChannels failed with %s\n", ErrorToString(err));
+        common::Printf("ASIOGetChannels failed with %s\n", ErrorToString(err));
         ASIOExit();
         return false;
     }
 
-    fprintf(
-        stderr, "Available channels: %ld in, %ld out\n", g_output.input_channel_count, g_output.output_channel_count);
+    common::Printf(
+        "Available channels: %ld in, %ld out\n", g_output.input_channel_count, g_output.output_channel_count);
 
     if ((size_t)g_output.output_channel_count > MAX_CHANNELS)
     {
-        fprintf(stderr, "WARNING: more than %zu output channels; truncating to %zu\n", MAX_CHANNELS, MAX_CHANNELS);
+        common::Printf("WARNING: more than %zu output channels; truncating to %zu\n", MAX_CHANNELS, MAX_CHANNELS);
         g_output.output_channel_count = MAX_CHANNELS;
     }
 
@@ -360,7 +375,7 @@ bool Out_ASIO_Create(const char* driver_name, const ASIO_OutputParameters& param
         err = ASIOGetChannelInfo(&g_output.channel_info[i]);
         if (err != ASE_OK)
         {
-            fprintf(stderr, "ASIOGetChannelInfo failed with %s\n", ErrorToString(err));
+            common::Printf("ASIOGetChannelInfo failed with %s\n", ErrorToString(err));
             ASIOExit();
             return false;
         }
@@ -368,71 +383,70 @@ bool Out_ASIO_Create(const char* driver_name, const ASIO_OutputParameters& param
 
     if ((size_t)g_output.output_channel_count < N_BUFFERS)
     {
-        fprintf(stderr, "%zu channels required; aborting\n", N_BUFFERS);
+        common::Printf("%zu channels required; aborting\n", N_BUFFERS);
         ASIOExit();
         return false;
     }
 
     if (!Out_ASIO_PickOutputChannel(params.left_channel, g_output.left_channel))
     {
-        fprintf(stderr, "L channel defaulting to 0\n");
+        common::Printf("L channel defaulting to 0\n");
         g_output.left_channel = 0;
     }
 
     if (!Out_ASIO_PickOutputChannel(params.right_channel, g_output.right_channel))
     {
-        fprintf(stderr, "R channel defaulting to 1\n");
+        common::Printf("R channel defaulting to 1\n");
         g_output.right_channel = 1;
     }
 
-    fprintf(stderr, "ASIO output channels:\n");
+    common::Printf("ASIO output channels:\n");
 
     for (long i = 0; i < g_output.output_channel_count; ++i)
     {
-        fprintf(stderr, "  %ld: %-32s %s ", i, g_output.channel_info[i].name,
+        common::Printf("  %ld: %-32s %s ", i, g_output.channel_info[i].name,
                 SampleTypeToString(g_output.channel_info[i].type));
 
         if (i == g_output.left_channel)
         {
-            fprintf(stderr, "(left)\n");
+            common::Printf("(left)\n");
         }
         else if (i == g_output.right_channel)
         {
-            fprintf(stderr, "(right)\n");
+            common::Printf("(right)\n");
         }
         else
         {
-            fprintf(stderr, "\n");
+            common::Printf("\n");
         }
     }
 
     if ((size_t)g_output.left_channel >= (size_t)g_output.output_channel_count)
     {
-        fprintf(stderr, "Left channel out of range; aborting\n");
+        common::Printf("Left channel out of range; aborting\n");
         ASIOExit();
         return false;
     }
 
     if ((size_t)g_output.right_channel >= (size_t)g_output.output_channel_count)
     {
-        fprintf(stderr, "Right channel out of range; aborting\n");
+        common::Printf("Right channel out of range; aborting\n");
         ASIOExit();
         return false;
     }
 
     if (g_output.left_channel == g_output.right_channel)
     {
-        fprintf(stderr, "Left and right channels are both %ld; aborting\n", g_output.left_channel);
+        common::Printf("Left and right channels are both %ld; aborting\n", g_output.left_channel);
         ASIOExit();
         return false;
     }
 
     if (g_output.channel_info[g_output.left_channel].type != g_output.channel_info[g_output.right_channel].type)
     {
-        fprintf(stderr,
-                "Left and right channels %ld and %ld have different output types; aborting\n",
-                g_output.left_channel,
-                g_output.right_channel);
+        common::Printf("Left and right channels %ld and %ld have different output types; aborting\n",
+                       g_output.left_channel,
+                       g_output.right_channel);
         ASIOExit();
         return false;
     }
@@ -459,7 +473,7 @@ bool Out_ASIO_Create(const char* driver_name, const ASIO_OutputParameters& param
     err = ASIOCreateBuffers(g_output.buffer_info, N_BUFFERS, (long)g_output.buffer_size_frames, &g_output.callbacks);
     if (err != ASE_OK)
     {
-        fprintf(stderr, "ASIOCreateBuffers failed with %s\n", ErrorToString(err));
+        common::Printf("ASIOCreateBuffers failed with %s\n", ErrorToString(err));
         ASIOExit();
         return false;
     }
@@ -469,7 +483,7 @@ bool Out_ASIO_Create(const char* driver_name, const ASIO_OutputParameters& param
 
     if (!g_output.mix_buffers[0].Init(mb_size) || !g_output.mix_buffers[1].Init(mb_size))
     {
-        fprintf(stderr, "Failed to allocate mix buffer for ASIO output.\n");
+        common::Printf("Failed to allocate mix buffer for ASIO output.\n");
         ASIOExit();
         return false;
     }
@@ -491,7 +505,7 @@ bool Out_ASIO_Start()
     ASIOError err = ASIOStart();
     if (err != ASE_OK)
     {
-        fprintf(stderr, "ASIOStart failed with %s\n", ErrorToString(err));
+        common::Printf("ASIOStart failed with %s\n", ErrorToString(err));
         return false;
     }
 
@@ -500,13 +514,7 @@ bool Out_ASIO_Start()
 
 void Out_ASIO_AddSource(SDL_AudioStream* stream)
 {
-    if (g_output.stream_count == MAX_STREAMS)
-    {
-        fprintf(stderr, "PANIC: attempted to add more than %zu ASIO streams\n", MAX_STREAMS);
-        exit(1);
-    }
-    g_output.streams[g_output.stream_count] = stream;
-    ++g_output.stream_count;
+    g_output.streams.EmplaceBack(stream);
 }
 
 int Out_ASIO_GetFrequency()
@@ -531,7 +539,7 @@ SDL_AudioFormat Out_ASIO_GetFormat()
     case ASIOSTFloat32MSB:
         return AUDIO_F32MSB;
     default:
-        fprintf(stderr, "PANIC: ASIO format conversion not implemented\n");
+        common::Printf("PANIC: ASIO format conversion not implemented\n");
         exit(1);
     }
 }
@@ -563,13 +571,13 @@ bool Out_ASIO_Reset()
 
     if (!Out_ASIO_Create(g_output.driver_info.name, g_output.create_params))
     {
-        fprintf(stderr, "ASIO reset: failed to re-initialize ASIO\n");
+        common::Printf("ASIO reset: failed to re-initialize ASIO\n");
         return false;
     }
 
     if (!Out_ASIO_Start())
     {
-        fprintf(stderr, "ASIO reset: failed to restart ASIO playback\n");
+        common::Printf("ASIO reset: failed to restart ASIO playback\n");
         return false;
     }
 
@@ -614,7 +622,7 @@ inline void Deinterleave(void* dst_a, void* dst_b, const void* src, size_t count
         Deinterleave32(dst_a, dst_b, src, count);
         break;
     default:
-        fprintf(stderr, "PANIC: Deinterleave not implemented for word size %zu\n", word_size);
+        common::Printf("PANIC: Deinterleave not implemented for word size %zu\n", word_size);
         exit(1);
     }
 }
@@ -645,8 +653,8 @@ inline void MixBuffer(GenericBuffer& dst, const GenericBuffer& src, SDL_AudioFor
         MixBuffer<AudioFrame<float>>(dst, src);
         break;
     default:
-        fprintf(
-            stderr, "PANIC: MixBuffer called for unsupported format %s (%x)\n", SDLAudioFormatToString(format), format);
+        common::Printf(
+            "PANIC: MixBuffer called for unsupported format %s (%x)\n", SDLAudioFormatToString(format), format);
         exit(1);
     }
 }
@@ -657,27 +665,29 @@ static ASIOTime* bufferSwitchTimeInfo(ASIOTime* params, long index, ASIOBool dir
     (void)directProcess;
 
     size_t renderable_frames = g_output.buffer_size_frames;
-    for (size_t i = 0; i < g_output.stream_count; ++i)
+    for (auto* stream : g_output.streams)
     {
         renderable_frames =
-            Min(renderable_frames, (size_t)SDL_AudioStreamAvailable(g_output.streams[i]) / sizeof(AudioFrame<int32_t>));
+            Min(renderable_frames, (size_t)SDL_AudioStreamAvailable(stream) / sizeof(AudioFrame<int32_t>));
     }
 
-    if (renderable_frames < g_output.buffer_size_frames || g_output.stream_count == 0)
+    if (renderable_frames < g_output.buffer_size_frames || g_output.streams.Count() == 0)
     {
         memset(g_output.buffer_info[0].buffers[index], 0, g_output.buffer_size_bytes);
         memset(g_output.buffer_info[1].buffers[index], 0, g_output.buffer_size_bytes);
         return 0;
     }
 
-    SDL_AudioStreamGet(
-        g_output.streams[0], g_output.mix_buffers[1].DataFirst(), (int)g_output.mix_buffers[1].GetByteLength());
+    SDL_AudioStreamGet(g_output.streams.UncheckedAt(0), // safety: checked Count() != 0 above
+                       g_output.mix_buffers[1].DataFirst(),
+                       (int)g_output.mix_buffers[1].GetByteLength());
 
-    for (size_t i = 1; i < g_output.stream_count; ++i)
+    for (size_t i = 1; i < g_output.streams.Count(); ++i)
     {
         // read from stream into staging buffer
-        SDL_AudioStreamGet(
-            g_output.streams[i], g_output.mix_buffers[0].DataFirst(), (int)g_output.mix_buffers[0].GetByteLength());
+        SDL_AudioStreamGet(g_output.streams.UncheckedAt(i), // safety: index bounded by streams.Count()
+                           g_output.mix_buffers[0].DataFirst(),
+                           (int)g_output.mix_buffers[0].GetByteLength());
 
         // mix staging buffer into final buffer
         MixBuffer(g_output.mix_buffers[1], g_output.mix_buffers[0], Out_ASIO_GetFormat());
@@ -706,7 +716,7 @@ static void sampleRateDidChange(ASIOSampleRate sRate)
 {
     // TODO: host needs to be notified so it can update the SDL stream to use the new frequency...
     g_output.actual_freq = sRate;
-    fprintf(stderr, "ASIO: driver changed sample rate to %f - this is currently unimplemented!\n", sRate);
+    common::Printf("ASIO: driver changed sample rate to %f - this is currently unimplemented!\n", sRate);
 }
 
 static long asioMessage(long selector, long value, void* message, double* opt)
