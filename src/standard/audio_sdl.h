@@ -1,7 +1,24 @@
+/*
+ * Copyright (C) 2024-2026 J.C. Moyer
+ * Modified by Linosh K M
+ * This file is part of Nuked-SC55-GUI-Float (Originally Nuked-SC55).
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ */
+
 // This header contains SDL-specific extensions to audio.h and utilities related to dealing with SDL audio
- 
+
 #pragma once
- 
+
 #include <SDL.h>
 
 #include "audio.h"
@@ -9,3 +26,5 @@
 const char* SDLAudioFormatToString(SDL_AudioFormat format);
 
 SDL_AudioFormat AudioFormatToSDLAudioFormat(AudioFormat format);
+
+void Out_SDL_SetVolume(float vol, AudioVolume &volume_control);

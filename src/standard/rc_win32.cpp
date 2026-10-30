@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2021, 2026 Linosh K M
+ *
+ * This file is part of Nuked-SC55-GUI-Float (Originally Nuked-SC55).
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ */
 #include "rc.h"
 
 #include <cstdio>
@@ -9,13 +25,12 @@
 
 #define BUFFER_SIZE 2
 
-typedef void (*rc_read_callback)(FE_Application& fe, uint8_t data);
-void FE_RouteRC(FE_Application& fe, uint8_t byte);
+REMOTE_Output* remote_output = nullptr;
 
 std::thread rc_read_thread;
 std::mutex  rc_io_mutex;
 bool        rc_thread_run = false;
-void        REMOTE_Thread_updater(FE_Application& fe, rc_read_callback read_callback);
+void        REMOTE_Thread_updater();
 
 class RC_Handler
 {
@@ -184,10 +199,8 @@ void RC_Handler::ReadRCPipe()
 
 RC_Handler *rc_handler = nullptr;
 
-bool REMOTE_Init(FE_Application& fe, std::string_view rc_pipe)
+bool REMOTE_Init(REMOTE_Output& output, std::string_view rc_pipe)
 {
-    (void)fe;
-
     if (rc_handler)
     {
         fprintf(stderr, "Remote IO Already running\n");
@@ -203,8 +216,10 @@ bool REMOTE_Init(FE_Application& fe, std::string_view rc_pipe)
         return false;
     }
 
+    remote_output = &output;
+
     rc_thread_run  = true;
-    rc_read_thread = std::thread(&REMOTE_Thread_updater, std::ref(fe), std::ref(FE_RouteRC));
+    rc_read_thread = std::thread(&REMOTE_Thread_updater);
 
     return true;
 }
@@ -224,10 +239,12 @@ void REMOTE_Quit()
         rc_handler = nullptr;
     }
 
+    remote_output = nullptr;
+
     return;
 }
 
-void REMOTE_Thread_updater(FE_Application& fe, rc_read_callback read_callback)
+void REMOTE_Thread_updater()
 {
     while (rc_thread_run)
     {
@@ -243,7 +260,7 @@ void REMOTE_Thread_updater(FE_Application& fe, rc_read_callback read_callback)
         uint8_t rc_message = rc_handler->Read();
         if (rc_message != 0xFF)
         {
-            read_callback(fe, rc_message);
+            remote_output->RemoteWrite(rc_message);
         }
     }
 }

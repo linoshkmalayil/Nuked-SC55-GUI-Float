@@ -1,5 +1,24 @@
+/*
+ * Copyright (C) 2021, 2024 nukeykt
+ * Modified by J.C. Moyer and Linosh K M
+ * Original source file: src/midi_rtmidi.cpp
+ *
+ * This file is part of Nuked-SC55-GUI-Float (Originally Nuked-SC55).
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ */
 #include "midi.h"
 #include "common/command_line.h"
+#include "common/term_io.h"
 #include <RtMidi.h>
 #include <cstdint>
 #include <cstdio>
@@ -8,21 +27,19 @@
 #include <string>
 #include <vector>
 
-static RtMidiIn *s_midi_in   = nullptr;
+static RtMidiIn *s_midi_in = nullptr;
 static RtMidiOut *s_midi_out = nullptr;
 
-static FE_Application* midi_frontend = nullptr;
-
-void FE_RouteMIDI(FE_Application& fe, std::span<const uint8_t> bytes);
+static MIDI_Output* midi_output = nullptr;
 
 static void MidiOnReceive(double, std::vector<uint8_t> *message, void *)
 {
-    FE_RouteMIDI(*midi_frontend, *message);
+    midi_output->MIDIWrite(*message);
 }
 
 static void MidiOnError(RtMidiError::Type, const std::string &errorText, void *)
 {
-    fprintf(stderr, "RtMidi: Error has occured: %s\n", errorText.c_str());
+    common::Printf("RtMidi: Error has occured: %s\n", errorText.c_str());
     fflush(stderr);
 }
 
@@ -50,52 +67,51 @@ void MIDI_PrintDevices()
 {
     try
     {
-        std::unique_ptr<RtMidiIn> midiin   = std::make_unique<RtMidiIn>();
+        std::unique_ptr<RtMidiIn> midiin = std::make_unique<RtMidiIn>();
         std::unique_ptr<RtMidiOut> midiout = std::make_unique<RtMidiOut>();
 
-        const unsigned int num_devices_in  = midiin->getPortCount();
+        const unsigned int num_devices_in = midiin->getPortCount();
         const unsigned int num_devices_out = midiout->getPortCount();
 
         if (num_devices_in == 0)
         {
-            fprintf(stderr, "No MIDI Input devices found.\n");
+            common::Printf("No MIDI Input devices found.\n");
         }
-
         if (num_devices_out == 0)
         {
-            fprintf(stderr, "No MIDI Output devices found.\n");
+            common::Printf("No MIDI Output devices found.\n");
         }
 
-        fprintf(stderr, "Known MIDI Input devices:\n\n");
+        common::Printf("Known MIDI Input devices:\n\n");
 
         for (unsigned int i = 0; i < num_devices_in; ++i)
         {
             std::string friendly_name = midiin->getPortName(i);
             MIDI_StripRtmidiPortNumber(friendly_name);
 
-            fprintf(stderr, "  %d: %s\n", i, friendly_name.c_str());
+            common::Printf("  %d: %s\n", i, friendly_name.c_str());
         }
 
-        fprintf(stderr, "\nKnown MIDI Output devices:\n\n");
+        common::Printf("\nKnown MIDI Output devices:\n\n");
 
         for (unsigned int i = 0; i < num_devices_out; ++i)
         {
             std::string friendly_name = midiout->getPortName(i);
             MIDI_StripRtmidiPortNumber(friendly_name);
 
-            fprintf(stderr, "  %d: %s\n", i, friendly_name.c_str());
+            common::Printf("  %d: %s\n", i, friendly_name.c_str());
         }
     }
     catch (const RtMidiError& err)
     {
         // this exception shouldn't escape to the caller since it's not exception-aware
-        fprintf(stderr, "Failed to enumerate midi devices: %s\n", err.getMessage().c_str());
+        common::Printf("Failed to enumerate midi devices: %s\n", err.getMessage().c_str());
     }
 }
 
 struct MIDI_PickedDevices
 {
-    unsigned int   in_device_id, out_device_id;
+    unsigned int in_device_id, out_device_id;
     std::string  in_device_name, out_device_name;
 };
 
@@ -107,13 +123,13 @@ bool MIDI_PickDevice(RtMidiIn& midi_in, RtMidiOut& midi_out, std::string_view pr
 
     if (num_devices_in == 0)
     {
-        fprintf(stderr, "No midi input\n");
+        common::Printf("No midi input\n");
         return false;
     }
 
     if (num_devices_out == 0)
     {
-        fprintf(stderr, "No midi output\n");
+        common::Printf("No midi output\n");
     }
 
     if (preferred_out_name.size() == 0)
@@ -203,23 +219,26 @@ bool MIDI_PickDevice(RtMidiIn& midi_in, RtMidiOut& midi_out, std::string_view pr
     return false;
 }
 
-bool MIDI_Init(FE_Application& fe, std::string_view in_port_name_or_id, std::string_view out_port_name_or_id)
+bool MIDI_Init(MIDI_Output& output, std::string_view in_port_name_or_id, std::string_view out_port_name_or_id)
 {
     if (s_midi_in)
     {
-        fprintf(stderr, "MIDI  input already running\n");
+        common::Printf("MIDI input already running\n");
         return false; // Already running
     }
+
+    if (s_midi_out)
+    {
+        common::Printf("MIDI output already running\n");
+        return false; // Already running
+    }
+
+    midi_output = &output;
+    
     s_midi_in = new RtMidiIn(RtMidi::UNSPECIFIED, "Nuked SC55", 1024);
     s_midi_in->ignoreTypes(false, false, false); // SysEx disabled by default
     s_midi_in->setCallback(&MidiOnReceive, nullptr); // FIXME: (local bug) Fix the linking error
     s_midi_in->setErrorCallback(&MidiOnError, nullptr);
-
-    if (s_midi_out)
-    {
-        fprintf(stderr, "MIDI output already running\n");
-        return false; // Already running
-    }
 
     s_midi_out = new RtMidiOut(RtMidi::UNSPECIFIED, "Nuked SC55");
     s_midi_out->setErrorCallback(&MidiOnError, nullptr);
@@ -230,25 +249,23 @@ bool MIDI_Init(FE_Application& fe, std::string_view in_port_name_or_id, std::str
     {
         if (!MIDI_PickDevice(*s_midi_in, *s_midi_out, in_port_name_or_id, out_port_name_or_id, picked_device))
         {
-            fprintf(stderr, "Failed to initialize RtMidi\n");
+            common::Printf("Failed to initialize RtMidi\n");
             return false;
         }
     }
     catch (const RtMidiError& err)
     {
-        fprintf(stderr, "Failed to initialize RtMidi: %s\n", err.getMessage().c_str());
+        common::Printf("Failed to initialize RtMidi: %s\n", err.getMessage().c_str());
     }
 
     s_midi_in->openPort(picked_device.in_device_id, "Nuked SC55");
-    fprintf(stderr, "Opened midi in port: %s\n", picked_device.in_device_name.c_str());
+    common::Printf("Opened midi in port: %s\n", picked_device.in_device_name.c_str());
 
     if(!out_port_name_or_id.empty())
     {
         s_midi_out->openPort(picked_device.out_device_id, "Nuked-SC55");
-        fprintf(stderr, "Opened midi out port: %s\n", picked_device.out_device_name.c_str());
+        common::Printf("Opened midi out port: %s\n", picked_device.out_device_name.c_str());
     }
-
-    midi_frontend = &fe;
 
     return true;
 }
@@ -266,7 +283,7 @@ void MIDI_Quit()
         s_midi_in->closePort();
         delete s_midi_in;
         s_midi_in = nullptr;
-        midi_frontend = nullptr;
+        midi_output = nullptr;
     }
     
 }

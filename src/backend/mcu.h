@@ -1,38 +1,23 @@
 /*
  * Copyright (C) 2021, 2024 nukeykt
+ * Modified by J.C. Moyer and Linosh K M
+ * Original source file: src/mcu.h
  *
- *  Redistribution and use of this code or any derivative works are permitted
- *  provided that the following conditions are met:
+ * This file is part of Nuked-SC55-GUI-Float (Originally Nuked-SC55).
  *
- *   - Redistributions may not be sold, nor may they be used in a commercial
- *     product or activity.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
  *
- *   - Redistributions that are modified from the original source must include the
- *     complete source code, including the source code for all components used by a
- *     binary built from the modified sources. However, as a special exception, the
- *     source code distributed need not include anything that is normally distributed
- *     (in either source or binary form) with the major components (compiler, kernel,
- *     and so on) of the operating system on which the executable runs, unless that
- *     component itself accompanies the executable.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- *   - Redistributions must reproduce the above copyright notice, this list of
- *     conditions and the following disclaimer in the documentation and/or other
- *     materials provided with the distribution.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
+ /**
  * 0x00: ALL
  * 0x01: MUTE
  * 0x02: (Unknown)
@@ -57,50 +42,88 @@
  * 0x45: 01000101
  * 0x50: 01010000
 **/
-
 #pragma once
 
-#include "audio.h"
-#include "mcu_interrupt.h"
-#include "rom.h"
 #include <atomic>
 #include <cstdint>
+
+#include "audio.h"
+#include "bounded_ordered_bitset.h"
+#include "config.h"
+#include "mcu_interrupt.h"
+#include "mcu_opcodes.h"
+#include "rom.h"
+
+#if NUKED_ENABLE_DECODER2
+#include "decoder2/cache.h"
+#endif
 
 struct submcu_t;
 struct pcm_t;
 struct mcu_timer_t;
 struct lcd_t;
 
-enum {
+// Values are byte offsets from the start of register fields in memory
+// (ff80..ffff) to the field named by the enumeration item. This enumeration
+// also acts as an index type for mcu.dev_register. Not all of these indices
+// are used. Notably, timers are handled by the mcu_timer module instead and
+// their data in dev_register will hold an unspecified value.
+enum MCU_Register_Field : uint8_t
+{
     DEV_P1DDR      = 0x00,
+    DEV_P2DDR      = 0x01,
+    DEV_P1DR       = 0x02,
+    DEV_P2DR       = 0x03,
+    DEV_P3DDR      = 0x04,
+    DEV_P4DDR      = 0x05,
+    DEV_P3DR       = 0x06,
+    DEV_P4DR       = 0x07,
     DEV_P5DDR      = 0x08,
     DEV_P6DDR      = 0x09,
+    DEV_P5DR       = 0x0a,
+    DEV_P6DR       = 0x0b,
     DEV_P7DDR      = 0x0c,
     DEV_P7DR       = 0x0e,
+    DEV_P8DR       = 0x0f,
     DEV_FRT1_TCR   = 0x10,
     DEV_FRT1_TCSR  = 0x11,
     DEV_FRT1_FRCH  = 0x12,
     DEV_FRT1_FRCL  = 0x13,
     DEV_FRT1_OCRAH = 0x14,
     DEV_FRT1_OCRAL = 0x15,
+    DEV_FRT1_OCRBH = 0x16,
+    DEV_FRT1_OCRBL = 0x17,
+    DEV_FRT1_ICRH  = 0x18,
+    DEV_FRT1_ICRL  = 0x19,
     DEV_FRT2_TCR   = 0x20,
     DEV_FRT2_TCSR  = 0x21,
     DEV_FRT2_FRCH  = 0x22,
     DEV_FRT2_FRCL  = 0x23,
     DEV_FRT2_OCRAH = 0x24,
     DEV_FRT2_OCRAL = 0x25,
+    DEV_FRT2_OCRBH = 0x26,
+    DEV_FRT2_OCRBL = 0x27,
+    DEV_FRT2_ICRH  = 0x28,
+    DEV_FRT2_ICRL  = 0x29,
     DEV_FRT3_TCR   = 0x30,
     DEV_FRT3_TCSR  = 0x31,
     DEV_FRT3_FRCH  = 0x32,
     DEV_FRT3_FRCL  = 0x33,
     DEV_FRT3_OCRAH = 0x34,
     DEV_FRT3_OCRAL = 0x35,
+    DEV_FRT3_OCRBH = 0x36,
+    DEV_FRT3_OCRBL = 0x37,
+    DEV_FRT3_ICRH  = 0x38,
+    DEV_FRT3_ICRL  = 0x39,
     DEV_PWM1_TCR   = 0x40,
     DEV_PWM1_DTR   = 0x41,
+    DEV_PWM1_TCNT  = 0x42,
     DEV_PWM2_TCR   = 0x44,
     DEV_PWM2_DTR   = 0x45,
+    DEV_PWM2_TCNT  = 0x46,
     DEV_PWM3_TCR   = 0x48,
     DEV_PWM3_DTR   = 0x49,
+    DEV_PWM3_TCNT  = 0x4a,
     DEV_TMR_TCR    = 0x50,
     DEV_TMR_TCSR   = 0x51,
     DEV_TMR_TCORA  = 0x52,
@@ -130,7 +153,7 @@ enum {
     DEV_DTEC       = 0x76,
     DEV_DTED       = 0x77,
     DEV_WCR        = 0x78,
-    DEV_RAME       = 0x79,
+    DEV_RAMCR      = 0x79,
     DEV_P1CR       = 0x7c,
     DEV_P9DDR      = 0x7e,
     DEV_P9DR       = 0x7f,
@@ -138,11 +161,11 @@ enum {
 
 const uint16_t sr_mask = 0x870f;
 enum {
-    STATUS_T        = 0x8000,
-    STATUS_N        = 0x08,
-    STATUS_Z        = 0x04,
-    STATUS_V        = 0x02,
-    STATUS_C        = 0x01,
+    STATUS_T = 0x8000,
+    STATUS_N = 0x08,
+    STATUS_Z = 0x04,
+    STATUS_V = 0x02,
+    STATUS_C = 0x01,
     STATUS_INT_MASK = 0x700
 };
 
@@ -206,13 +229,10 @@ enum {
     VECTOR_INTERNAL_INTERRUPT_E0, // ADI
 };
 
-static const int ROM1_SIZE    = 0x8000;
-static const int ROM2_SIZE    = 0x80000;
-static const int RAM_SIZE     = 0x400;
-static const int SRAM_SIZE    = 0x8000;
-static const int NVRAM_SIZE   = 0x8000; // JV880 only
+static const int RAM_SIZE = 0x400;
+static const int SRAM_SIZE = 0x8000;
+static const int NVRAM_SIZE = 0x8000; // JV880 only
 static const int CARDRAM_SIZE = 0x8000; // JV880 only
-static const int ROMSM_SIZE   = 0x1000;
 
 static const uint32_t uart_buffer_size = 8192;
 
@@ -240,15 +260,15 @@ void MCU_DefaultMidiOutCallback(void* userdata, uint8_t* message, int len);
 
 struct mcu_t {
     uint16_t r[8]{};
-    uint16_t pc                 = 0;
-    uint16_t sr                 = 0;
-    uint8_t  cp = 0, dp = 0, ep = 0, tp = 0, br = 0;
-    uint8_t  sleep              = 0;
-    uint8_t  ex_ignore          = 0;
-    int32_t  exception_pending  = 0;
-    uint8_t  interrupt_pending[INTERRUPT_SOURCE_MAX]{};
-    uint8_t  trapa_pending[16]{};
-    uint64_t cycles             = 0;
+    uint16_t pc = 0;
+    uint16_t sr = 0;
+    uint8_t cp = 0, dp = 0, ep = 0, tp = 0, br = 0;
+    uint8_t sleep = 0;
+    uint8_t ex_ignore = 0;
+    MCU_Exception_Source exception_pending{};
+    BoundedOrderedBitSet<INTERRUPT_SOURCE_MAX, MCU_Interrupt_Source> interrupt_pending;
+    BoundedOrderedBitSet<16> trapa_pending;
+    uint64_t cycles = 0;
 
     uint8_t rom1[ROM1_SIZE]{};
     uint8_t rom2[ROM2_SIZE]{};
@@ -260,46 +280,46 @@ struct mcu_t {
     uint8_t dev_register[0x80]{};
 
     uint16_t ad_val[4]{};
-    uint8_t ad_nibble     = 0;
+    uint8_t ad_nibble = 0;
     Computerswitch sw_pos = Computerswitch::MIDI;
-    uint8_t io_sd         = 0;
-    uint8_t rcu           = 0;
+    uint8_t io_sd = 0;
+    uint8_t rcu = 0;
 
-    submcu_t* sm       = nullptr;
-    pcm_t* pcm         = nullptr;
+    submcu_t* sm = nullptr;
+    pcm_t* pcm = nullptr;
     mcu_timer_t* timer = nullptr;
-    lcd_t* lcd         = nullptr;
+    lcd_t* lcd = nullptr;
 
     uint32_t uart_write_ptr = 0;
-    uint32_t uart_read_ptr  = 0;
+    uint32_t uart_read_ptr = 0;
     uint8_t uart_buffer[uart_buffer_size]{};
     uint8_t uart_tx_buffer[uart_buffer_size]{};
     uint8_t *uart_tx_ptr    = uart_tx_buffer;
 
-    uint8_t uart_rx_byte   = 0;
+    uint8_t uart_rx_byte = 0;
     uint64_t uart_rx_delay = 0;
     uint64_t uart_tx_delay = 0;
 
-    uint8_t uart_serial_rx_byte   = 0;
+    uint8_t uart_serial_rx_byte = 0;
     uint64_t uart_serial_rx_delay = 0;
     uint64_t uart_serial_tx_delay = 0;
 
-    Romset romset = Romset::MK2;
     MK1version revision = MK1version::NOT_MK1;
+    Romset romset = Romset::MK2;
 
-    bool is_mk1   = false; // false - SC-55mkII, SC-55ST.     true - SC-55, CM-300/SCC-1
-    bool is_cm300 = false; // false - SC-55,                  true - CM-300/SCC-1
-    bool is_st    = false; // false - SC-55mk2,               true - SC-55ST
-    bool is_jv880 = false; // false - SC-55,                  true - JV880
-    bool is_scb55 = false; // false - sub mcu (e.g SC-55mk2), true - no sub mcu (e.g SCB-55)
-    bool is_sc155 = false; // false - SC-55(MK2),             true - SC-155(MK2)
+    bool is_mk1 = false; // 0 - SC-55mkII, SC-55ST. 1 - SC-55, CM-300/SCC-1
+    bool is_cm300 = false; // 0 - SC-55, 1 - CM-300/SCC-1
+    bool is_st = false; // 0 - SC-55mk2, 1 - SC-55ST
+    bool is_jv880 = false; // 0 - SC-55, 1 - JV880
+    bool is_scb55 = false; // 0 - sub mcu (e.g SC-55mk2), 1 - no sub mcu (e.g SCB-55)
+    bool is_sc155 = false; // 0 - SC-55(MK2), 1 - SC-155(MK2)
 
-    int rom2_mask = ROM2_SIZE - 1;
+    uint32_t rom2_mask = ROM2_SIZE - 1;
 
-    int ga_int[8]{};
-    int ga_int_enable  = 0;
-    int ga_int_trigger = 0;
-    int ga_lcd_counter = 0;
+    bool ga_int[8]{};
+    uint8_t ga_int_enable = 0; // mask of ga_int indices
+    uint8_t ga_int_trigger = 0; // index into ga_int
+    int ga_lcd_counter = 0; // timer range 0..500, decrements to 0
 
     std::atomic<uint32_t> button_pressed;
 
@@ -312,18 +332,23 @@ struct mcu_t {
 
     int ssr_rd = 0;
 
-    uint32_t operand_type   = 0;
-    uint16_t operand_ea     = 0;
-    uint8_t operand_ep      = 0;
-    uint8_t operand_size    = 0;
-    uint8_t operand_reg     = 0;
-    uint8_t operand_status  = 0;
-    uint16_t operand_data   = 0;
+    uint32_t operand_type = 0;
+    uint16_t operand_ea = 0;
+    uint8_t operand_ep = 0;
+    MCU_Operand_Size operand_size{};
+    uint8_t operand_reg = 0;
+    uint8_t operand_status = 0;
+    uint16_t operand_data = 0;
     uint8_t opcode_extended = 0;
 
-    void* callback_userdata                 = nullptr;
-    mcu_sample_callback sample_callback     = MCU_DefaultSampleCallback;
-    mcu_midiout_callback midiout_callback   = MCU_DefaultMidiOutCallback;
+    void* callback_userdata = nullptr;
+    mcu_sample_callback sample_callback = MCU_DefaultSampleCallback;
+    mcu_midiout_callback midiout_callback = MCU_DefaultMidiOutCallback;
+
+#if NUKED_ENABLE_DECODER2
+    // Decoder state
+    decoder2::InstructionCache icache;
+#endif
 };
 
 void MCU_Init(mcu_t& mcu, submcu_t& sm, pcm_t& pcm, mcu_timer_t& timer, lcd_t& lcd, Computerswitch sw);
@@ -363,7 +388,7 @@ inline uint32_t MCU_GetVectorAddress(mcu_t& mcu, uint32_t vector)
     return MCU_Read32(mcu, vector * 4);
 }
 
-inline uint32_t MCU_GetPageForRegister(mcu_t& mcu, uint32_t reg)
+inline uint8_t MCU_GetPageForRegister(mcu_t& mcu, uint8_t reg)
 {
     if (reg >= 6)
         return mcu.tp;
@@ -372,13 +397,14 @@ inline uint32_t MCU_GetPageForRegister(mcu_t& mcu, uint32_t reg)
     return mcu.dp;
 }
 
-inline void MCU_ControlRegisterWrite(mcu_t& mcu, uint32_t reg, uint32_t siz, uint32_t data)
+inline void MCU_ControlRegisterWrite(mcu_t& mcu, uint32_t reg, MCU_Operand_Size siz, uint32_t data)
 {
-    if (siz)
+    switch (siz)
     {
+    case MCU_Operand_Size::WORD:
         if (reg == 0)
         {
-            mcu.sr  = (uint16_t)data;
+            mcu.sr = (uint16_t)data;
             mcu.sr &= sr_mask;
         }
         else if (reg == 5) // FIXME: undocumented
@@ -397,9 +423,8 @@ inline void MCU_ControlRegisterWrite(mcu_t& mcu, uint32_t reg, uint32_t siz, uin
         {
             MCU_ErrorTrap(mcu);
         }
-    }
-    else
-    {
+        break;
+    case MCU_Operand_Size::BYTE:
         if (reg == 1)
         {
             mcu.sr &= ~0xff;
@@ -426,14 +451,16 @@ inline void MCU_ControlRegisterWrite(mcu_t& mcu, uint32_t reg, uint32_t siz, uin
         {
             MCU_ErrorTrap(mcu);
         }
+        break;
     }
 }
 
-inline uint32_t MCU_ControlRegisterRead(mcu_t& mcu, uint32_t reg, uint32_t siz)
+inline uint32_t MCU_ControlRegisterRead(mcu_t& mcu, uint32_t reg, MCU_Operand_Size siz)
 {
     uint32_t ret = 0;
-    if (siz)
+    switch (siz)
     {
+    case MCU_Operand_Size::WORD:
         if (reg == 0)
         {
             ret = mcu.sr & sr_mask;
@@ -448,16 +475,15 @@ inline uint32_t MCU_ControlRegisterRead(mcu_t& mcu, uint32_t reg, uint32_t siz)
         }
         else if (reg == 3) // FIXME: undocumented
         {
-            ret = (uint32_t)mcu.br | ((uint32_t)mcu.br << 8);;
+            ret = (uint32_t)mcu.br | ((uint32_t)mcu.br << 8);
         }
         else
         {
             MCU_ErrorTrap(mcu);
         }
         ret &= 0xffff;
-    }
-    else
-    {
+        break;
+    case MCU_Operand_Size::BYTE:
         if (reg == 1)
         {
             ret = mcu.sr & sr_mask;
@@ -483,16 +509,17 @@ inline uint32_t MCU_ControlRegisterRead(mcu_t& mcu, uint32_t reg, uint32_t siz)
             MCU_ErrorTrap(mcu);
         }
         ret &= 0xff;
+        break;
     }
     return ret;
 }
 
-inline void MCU_SetStatus(mcu_t& mcu, uint32_t condition, uint32_t mask)
+inline void MCU_SetStatus(mcu_t& mcu, bool condition, uint16_t mask)
 {
     if (condition)
-        mcu.sr |= (uint16_t)mask;
+        mcu.sr |= mask;
     else
-        mcu.sr &= (uint16_t)(~mask);
+        mcu.sr &= ~mask;
 }
 
 inline void MCU_PushStack(mcu_t& mcu, uint16_t data)
@@ -515,68 +542,67 @@ inline uint16_t MCU_PopStack(mcu_t& mcu)
 
 enum {
     // SC55
-    MCU_BUTTON_POWER     = 0,
-    MCU_BUTTON_INST_L    = 3,
-    MCU_BUTTON_INST_R    = 4,
+    MCU_BUTTON_POWER = 0,
+    MCU_BUTTON_INST_L = 3,
+    MCU_BUTTON_INST_R = 4,
     MCU_BUTTON_INST_MUTE = 5,
-    MCU_BUTTON_INST_ALL  = 6,
+    MCU_BUTTON_INST_ALL = 6,
 
-    MCU_BUTTON_MIDI_CH_L =  8,
-    MCU_BUTTON_MIDI_CH_R =  9,
-    MCU_BUTTON_CHORUS_L  = 10,
-    MCU_BUTTON_CHORUS_R  = 11,
-    MCU_BUTTON_PAN_L     = 12,
-    MCU_BUTTON_PAN_R     = 13,
-    MCU_BUTTON_PART_R    = 14,
+    MCU_BUTTON_MIDI_CH_L = 8,
+    MCU_BUTTON_MIDI_CH_R = 9,
+    MCU_BUTTON_CHORUS_L = 10,
+    MCU_BUTTON_CHORUS_R = 11,
+    MCU_BUTTON_PAN_L = 12,
+    MCU_BUTTON_PAN_R = 13,
+    MCU_BUTTON_PART_R = 14,
 
     MCU_BUTTON_KEY_SHIFT_L = 16,
     MCU_BUTTON_KEY_SHIFT_R = 17,
-    MCU_BUTTON_REVERB_L    = 18,
-    MCU_BUTTON_REVERB_R    = 19,
-    MCU_BUTTON_LEVEL_L     = 20,
-    MCU_BUTTON_LEVEL_R     = 21,
-    MCU_BUTTON_PART_L      = 22,
+    MCU_BUTTON_REVERB_L = 18,
+    MCU_BUTTON_REVERB_R = 19,
+    MCU_BUTTON_LEVEL_L = 20,
+    MCU_BUTTON_LEVEL_R = 21,
+    MCU_BUTTON_PART_L = 22,
 
     // SC155 extra buttons
-    MCU_BUTTON_USER      =  1,
-    MCU_BUTTON_PART_SEL  =  2,
-    MCU_BUTTON_INST_CALL =  7,
-    MCU_BUTTON_PAN       = 15,
-    MCU_BUTTON_LEVEL     = 23,
-    MCU_BUTTON_PART1     = 24,
-    MCU_BUTTON_PART2     = 25,
-    MCU_BUTTON_PART3     = 26,
-    MCU_BUTTON_PART4     = 27,
-    MCU_BUTTON_PART5     = 28,
-    MCU_BUTTON_PART6     = 29,
-    MCU_BUTTON_PART7     = 30,
-    MCU_BUTTON_PART8     = 31,
+    MCU_BUTTON_USER = 1,
+    MCU_BUTTON_PART_SEL = 2,
+    MCU_BUTTON_INST_CALL = 7,
+    MCU_BUTTON_PAN = 15,
+    MCU_BUTTON_LEVEL = 23,
+    MCU_BUTTON_PART1 = 24,
+    MCU_BUTTON_PART2 = 25,
+    MCU_BUTTON_PART3 = 26,
+    MCU_BUTTON_PART4 = 27,
+    MCU_BUTTON_PART5 = 28,
+    MCU_BUTTON_PART6 = 29,
+    MCU_BUTTON_PART7 = 30,
+    MCU_BUTTON_PART8 = 31,
 
     // JV880
-    MCU_BUTTON_CURSOR_L      =  0,
-    MCU_BUTTON_CURSOR_R      =  1,
-    MCU_BUTTON_TONE_SELECT   =  2,
-    MCU_BUTTON_MUTE          =  3,
-    MCU_BUTTON_DATA          =  4,
-    MCU_BUTTON_MONITOR       =  5,
-    MCU_BUTTON_COMPARE       =  6,
-    MCU_BUTTON_ENTER         =  7,
-    MCU_BUTTON_UTILITY       =  8,
-    MCU_BUTTON_PREVIEW       =  9,
+    MCU_BUTTON_CURSOR_L = 0,
+    MCU_BUTTON_CURSOR_R = 1,
+    MCU_BUTTON_TONE_SELECT = 2,
+    MCU_BUTTON_MUTE = 3,
+    MCU_BUTTON_DATA = 4,
+    MCU_BUTTON_MONITOR = 5,
+    MCU_BUTTON_COMPARE = 6,
+    MCU_BUTTON_ENTER = 7,
+    MCU_BUTTON_UTILITY = 8,
+    MCU_BUTTON_PREVIEW = 9,
     MCU_BUTTON_PATCH_PERFORM = 10,
-    MCU_BUTTON_EDIT          = 11,
-    MCU_BUTTON_SYSTEM        = 12,
-    MCU_BUTTON_RHYTHM        = 13,
+    MCU_BUTTON_EDIT = 11,
+    MCU_BUTTON_SYSTEM = 12,
+    MCU_BUTTON_RHYTHM = 13,
 };
 
 
 uint8_t MCU_ReadP0(mcu_t& mcu);
 uint8_t MCU_ReadP1(mcu_t& mcu);
-uint8_t MCU_DetectMKIRomVersion(mcu_t& mcu, MK1version revision);
 void MCU_WriteP0(mcu_t& mcu, uint8_t data);
 void MCU_WriteP1(mcu_t& mcu, uint8_t data);
-void MCU_GA_SetGAInt(mcu_t& mcu, int line, int value);
-void MCU_RemoteControlTrigger(mcu_t& mcu, uint8_t data);
+uint8_t MCU_DetectMKIRomVersion(mcu_t& mcu, MK1version revision);
+void MCU_GA_SetGAInt(mcu_t& mcu, uint8_t line, bool value);
 
 void MCU_EncoderTrigger(mcu_t& mcu, int dir);
 
@@ -584,3 +610,4 @@ void MCU_PostSample(mcu_t& mcu, const AudioFrame<int32_t>& frame);
 void MCU_PostUART(mcu_t& mcu, uint8_t data);
 
 void MCU_SetRomset(mcu_t& mcu, Romset romset);
+void MCU_RemoteControlTrigger(mcu_t& mcu, uint8_t data);

@@ -1,35 +1,20 @@
 /*
  * Copyright (C) 2021, 2024 nukeykt
+ * Modified by J.C. Moyer and Linosh K M
+ * Original source file: src/midi_win32.cpp
  *
- *  Redistribution and use of this code or any derivative works are permitted
- *  provided that the following conditions are met:
+ * This file is part of Nuked-SC55-GUI-Float (Originally Nuked-SC55).
  *
- *   - Redistributions may not be sold, nor may they be used in a commercial
- *     product or activity.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
  *
- *   - Redistributions that are modified from the original source must include the
- *     complete source code, including the source code for all components used by a
- *     binary built from the modified sources. However, as a special exception, the
- *     source code distributed need not include anything that is normally distributed
- *     (in either source or binary form) with the major components (compiler, kernel,
- *     and so on) of the operating system on which the executable runs, unless that
- *     component itself accompanies the executable.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- *   - Redistributions must reproduce the above copyright notice, this list of
- *     conditions and the following disclaimer in the documentation and/or other
- *     materials provided with the distribution.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "midi.h"
@@ -38,21 +23,19 @@
 #include <Windows.h>
 
 #include "common/command_line.h"
+#include "common/term_io.h"
 #include <cstdint>
-#include <cstdio>
 #include <mmsystem.h>
 #include <span>
 #include <string>
 
 static HMIDIIN  midi_in_handle;
 static HMIDIOUT midi_out_handle;
-static MIDIHDR  midi_buffer;
+static MIDIHDR midi_buffer;
 
 static uint8_t midi_in_buffer[1024];
 
-static FE_Application* midi_frontend = nullptr;
-
-void FE_RouteMIDI(FE_Application& fe, std::span<const uint8_t> bytes);
+static MIDI_Output* midi_output = nullptr;
 
 void CALLBACK MIDIIN_Callback(
     HMIDIIN   hMidiIn,
@@ -86,7 +69,7 @@ void CALLBACK MIDIIN_Callback(
                             (uint8_t)((dwParam1 >> 8) & 0xff),
                             (uint8_t)((dwParam1 >> 16) & 0xff),
                         };
-                        FE_RouteMIDI(*midi_frontend, buf);
+                        midi_output->MIDIWrite(buf);
                     }
                     break;
                 case 0xc0:
@@ -96,7 +79,7 @@ void CALLBACK MIDIIN_Callback(
                             (uint8_t)b1,
                             (uint8_t)((dwParam1 >> 8) & 0xff),
                         };
-                        FE_RouteMIDI(*midi_frontend, buf);
+                        midi_output->MIDIWrite(buf);
                     }
                     break;
             }
@@ -117,7 +100,7 @@ void CALLBACK MIDIIN_Callback(
 
             if (wMsg == MIM_LONGDATA)
             {
-                FE_RouteMIDI(*midi_frontend, std::span(midi_in_buffer, midi_buffer.dwBytesRecorded));
+                midi_output->MIDIWrite(std::span(midi_in_buffer, midi_buffer.dwBytesRecorded));
             }
 
             midiInPrepareHeader(midi_in_handle, &midi_buffer, sizeof(MIDIHDR));
@@ -126,7 +109,7 @@ void CALLBACK MIDIIN_Callback(
             break;
         }
         default:
-            fprintf(stderr, "hmm");
+            common::Printf("hmm");
             break;
     }
 }
@@ -138,37 +121,37 @@ void MIDI_PrintDevices()
 
     if (num_devices_in == 0)
     {
-        fprintf(stderr, "No midi input devices found.\n");
+        common::Printf("No midi input devices found.\n");
     }
 
     if (num_devices_out == 0)
     {
-        fprintf(stderr, "No midi output devices found.\n");
+        common::Printf("No midi output devices found.\n");
     }
 
     MMRESULT     result;
     MIDIINCAPSA  device_in_caps;
     MIDIOUTCAPSA device_out_caps;
 
-    fprintf(stderr, "Known midi input devices:\n\n");
+    common::Printf("Known midi input devices:\n\n");
 
     for (UINT i = 0; i < num_devices_in; ++i)
     {
         result = midiInGetDevCapsA(i, &device_in_caps, sizeof(MIDIINCAPSA));
         if (result == MMSYSERR_NOERROR)
         {
-            fprintf(stderr, "  %d: %s\n", i, device_in_caps.szPname);
+            common::Printf("  %d: %s\n", i, device_in_caps.szPname);
         }
     }
 
-    fprintf(stderr, "\nKnown midi output devices:\n\n");
+    common::Printf("\nKnown midi output devices:\n\n");
 
     for (UINT i = 0; i < num_devices_out; ++i)
     {
         result = midiOutGetDevCapsA(i, &device_out_caps, sizeof(MIDIOUTCAPSA));
         if (result == MMSYSERR_NOERROR)
         {
-            fprintf(stderr, "  %d: %s\n", i, device_out_caps.szPname);
+            common::Printf("  %d: %s\n", i, device_out_caps.szPname);
         }
     }
 }
@@ -188,7 +171,7 @@ bool MIDI_PickDevice(std::string_view preferred_in_name, std::string_view prefer
 
     if (num_in_devices == 0)
     {
-        fprintf(stderr, "No midi input\n");
+        common::Printf("No midi input\n");
         return false;
     }
 
@@ -200,7 +183,7 @@ bool MIDI_PickDevice(std::string_view preferred_in_name, std::string_view prefer
         result = midiOutGetDevCapsA(0, &out_picked.device_out_caps, sizeof(MIDIOUTCAPSA));
         if (result != MMSYSERR_NOERROR)
         {
-            fprintf(stderr, "midiOutGetDevCapsA failed\n");
+            common::Printf("midiOutGetDevCapsA failed\n");
             return false;
         }
         out_picked.device_out_id = 0;
@@ -209,7 +192,7 @@ bool MIDI_PickDevice(std::string_view preferred_in_name, std::string_view prefer
     {
         if (num_out_devices == 0)
         {
-            fprintf(stderr, "No midi output\n");
+            common::Printf("No midi output\n");
         }
     }
 
@@ -219,7 +202,7 @@ bool MIDI_PickDevice(std::string_view preferred_in_name, std::string_view prefer
         result = midiInGetDevCapsA(0, &out_picked.device_in_caps, sizeof(MIDIINCAPSA));
         if (result != MMSYSERR_NOERROR)
         {
-            fprintf(stderr, "midiInGetDevCapsA failed\n");
+            common::Printf("midiInGetDevCapsA failed\n");
             return false;
         }
         out_picked.device_in_id = 0;
@@ -232,7 +215,7 @@ bool MIDI_PickDevice(std::string_view preferred_in_name, std::string_view prefer
         result = midiInGetDevCapsA(i, &out_picked.device_in_caps, sizeof(MIDIINCAPSA));
         if (result != MMSYSERR_NOERROR)
         {
-            fprintf(stderr, "midiInGetDevCapsA failed\n");
+            common::Printf("midiInGetDevCapsA failed\n");
             return false;
         }
         if (std::string_view(out_picked.device_in_caps.szPname) == preferred_in_name)
@@ -246,7 +229,7 @@ bool MIDI_PickDevice(std::string_view preferred_in_name, std::string_view prefer
         result = midiOutGetDevCapsA(j, &out_picked.device_out_caps, sizeof(MIDIOUTCAPSA));
         if (result != MMSYSERR_NOERROR)
         {
-            fprintf(stderr, "midiOutGetDevCapsA failed\n");
+            common::Printf("midiOutGetDevCapsA failed\n");
             return false;
         }
         if (std::string_view(out_picked.device_out_caps.szPname) == preferred_out_name)
@@ -264,7 +247,7 @@ bool MIDI_PickDevice(std::string_view preferred_in_name, std::string_view prefer
             result = midiInGetDevCaps(device_in_id, &out_picked.device_in_caps, sizeof(MIDIINCAPSA));
             if (result != MMSYSERR_NOERROR)
             {
-                fprintf(stderr, "midiInGetDevCapsA failed\n");
+                common::Printf("midiInGetDevCapsA failed\n");
                 return false;
             }
             out_picked.device_in_id = device_in_id;
@@ -277,7 +260,7 @@ bool MIDI_PickDevice(std::string_view preferred_in_name, std::string_view prefer
             result = midiOutGetDevCaps(device_out_id, &out_picked.device_out_caps, sizeof(MIDIOUTCAPSA));
             if (result != MMSYSERR_NOERROR)
             {
-                fprintf(stderr, "midiOutGetDevCapsA failed\n");
+                common::Printf("midiOutGetDevCapsA failed\n");
                 return false;
             }
             out_picked.device_out_id = device_out_id;
@@ -287,21 +270,21 @@ bool MIDI_PickDevice(std::string_view preferred_in_name, std::string_view prefer
     
     if (out_picked.device_in_id < 0)
     {
-        fprintf(stderr, "No input device named '%s'\n", std::string(preferred_in_name).c_str());
+        common::Printf("No input device named '%s'\n", std::string(preferred_in_name).c_str());
     }
     if (out_picked.device_out_id < 0)
     {
-        fprintf(stderr, "No output device named '%s'\n", std::string(preferred_out_name).c_str());
+        common::Printf("No output device named '%s'\n", std::string(preferred_out_name).c_str());
     }
     
     return out_picked.device_in_id >= 0 || out_picked.device_out_id >= 0;
 }
 
-bool MIDI_Init(FE_Application& fe, std::string_view in_port_name_or_id, std::string_view out_port_name_or_id)
+bool MIDI_Init(MIDI_Output& output, std::string_view in_port_name_or_id, std::string_view out_port_name_or_id)
 {
-    midi_frontend = &fe;
+    midi_output = &output;
 
-    MIDI_PickedDevice picked_device;
+ MIDI_PickedDevice picked_device;
     if (!MIDI_PickDevice(in_port_name_or_id, out_port_name_or_id, picked_device))
     {
         return false;
@@ -312,11 +295,11 @@ bool MIDI_Init(FE_Application& fe, std::string_view in_port_name_or_id, std::str
         MMRESULT resultin = midiInOpen(&midi_in_handle, picked_device.device_in_id, (DWORD_PTR)MIDIIN_Callback, 0, CALLBACK_FUNCTION);
         if (resultin != MMSYSERR_NOERROR)
         {
-            fprintf(stderr, "midiInOpen failed\n");
+            common::Printf("midiInOpen failed\n");
             return false;
         }
 
-        fprintf(stderr, "Opened midi input port: %s\n", picked_device.device_in_caps.szPname);
+        common::Printf("Opened midi input port: %s\n", picked_device.device_in_caps.szPname);
 
         midi_buffer.lpData         = (LPSTR)midi_in_buffer;
         midi_buffer.dwBufferLength = sizeof(midi_in_buffer);
@@ -324,21 +307,21 @@ bool MIDI_Init(FE_Application& fe, std::string_view in_port_name_or_id, std::str
         resultin = midiInPrepareHeader(midi_in_handle, &midi_buffer, sizeof(MIDIHDR));
         if (resultin != MMSYSERR_NOERROR)
         {
-            fprintf(stderr, "midiInPrepareHeader failed\n");
+            common::Printf("midiInPrepareHeader failed\n");
             return false;
         }
 
         resultin = midiInAddBuffer(midi_in_handle, &midi_buffer, sizeof(MIDIHDR));
         if (resultin != MMSYSERR_NOERROR)
         {
-            fprintf(stderr, "midiInAddBuffer failed\n");
+            common::Printf("midiInAddBuffer failed\n");
             return false;
         }
 
         resultin = midiInStart(midi_in_handle);
         if (resultin != MMSYSERR_NOERROR)
         {
-            fprintf(stderr, "midiInStart failed\n");
+            common::Printf("midiInStart failed\n");
             return false;
         }
     }
@@ -347,7 +330,7 @@ bool MIDI_Init(FE_Application& fe, std::string_view in_port_name_or_id, std::str
     {
         MMRESULT resultout = midiOutOpen(&midi_out_handle, picked_device.device_out_id, (DWORD_PTR)NULL, 0, CALLBACK_NULL);
         if (resultout == MMSYSERR_NOERROR)
-            fprintf(stderr, "Opened midi output port: %s\n", picked_device.device_out_caps.szPname);
+            common::Printf("Opened midi output port: %s\n", picked_device.device_out_caps.szPname);
     }
 
     return true;
@@ -366,7 +349,7 @@ void MIDI_Quit()
         midiOutClose(midi_out_handle);
         midi_out_handle = 0;
     }
-    midi_frontend = nullptr;
+    midi_output = nullptr;
 }
 
 void MIDI_PostShortMessage(uint8_t *message, int len) {

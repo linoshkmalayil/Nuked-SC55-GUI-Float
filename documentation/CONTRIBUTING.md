@@ -12,38 +12,18 @@ frontend.
 
 ### Backend
 
-The backend is the emulator itself. Roughly speaking, these modules are
-considered to be part of the backend:
+The backend is the emulator itself. These are generally the source files under
+`src/backend`.
 
-- mcu and mcu_*
-- submcu
-- lcd
-- pcm
-- emu
-
-Modifications to the backend should not add, change, or remove functionality.
-These are enhancements to the emulator itself and should be first submitted
-[upstream](https://github.com/nukeykt/Nuked-SC55). When new commits are merged
-upstream, they will be cherry-picked and updated for this fork as necessary.
-
-There are a couple reasons for this:
-
-1. Most people are not using this fork, and it's best if everyone can benefit
-   from your feature.
-2. As new features are implemented upstream, they need to be integrated into
-   this fork. If there are two implementations, we need to delete ours and
-   replace it with upstream. If we add a feature and upstream implements it
-   later, it creates extra work and more complex merges.
+Currently the original [upstream](https://github.com/nukeykt/Nuked-SC55) is 
+now read only. Enhancements to the backend should be made with careful 
+consideration so as to keep the emulation faithful to original NukeYKT's 
+vision which is to be feature parity with Roland-SC55 and related devices.
 
 Optimizations to the backend are accepted as long as they can be shown to be
 equivalent to the current behavior. The integration tests are designed to help
 with this. See the [Development section of BUILDING](BUILDING.md#development)
 for more information.
-
-The only exceptions to this are cases where upstream does something
-demonstrably incorrect like accessing an array out of bounds or invoking
-undefined behavior. Fixing the bug and opening an issue or PR upstream is
-appropriate in this case.
 
 ### Frontend
 
@@ -54,13 +34,7 @@ There are currently two frontends:
 2. The renderer frontend, a command line tool for rendering MIDI files to WAVE
    files
 
-It is permissible to add quality-of-life features to both of these, however:
-
-- Changes to the standard frontend should preserve the same featureset as
-  upstream.
-- Changes to the renderer frontend must not change output in a way that causes
-  the integration tests to fail. The renderer frontend is crucially important
-  because it is used to test the backend deterministically.
+It is permissible to add quality-of-life features to both of these.
 
 ## General advice
 
@@ -69,6 +43,12 @@ extra lines or whitespace. Small "fix minor thing in the previous commit" type
 commits should be squashed. Follow the convention (naming, brace styles,
 indentation) of surrounding code.
 
-As a goal, all tests should pass for every commit on master. This is not a hard
-rule, but having only functional commits makes finding bugs easier in some
-cases.
+## LLM Contributions
+
+LLM usage must be disclosed in pull requests. Because LLM generated
+code currently has a dubious copyright status in much of the world,
+LLM authored contributions will be rejected.
+
+If you are determined to have used an LLM and have knowingly
+misrepresented the authorship of a PR or commit, you will be banned
+from the project.
