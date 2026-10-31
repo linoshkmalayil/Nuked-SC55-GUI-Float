@@ -1,6 +1,3 @@
-#==============================================================================
-# Support functions
-#==============================================================================
 function(target_disable_warnings tgt)
     if(MSVC)
         target_compile_options(${tgt} PRIVATE /W0)
@@ -34,4 +31,14 @@ function(target_enable_conversion_warnings tgt)
     else()
         target_compile_options(${tgt} PRIVATE -Wconversion)
     endif()
+endfunction()
+
+function(source_enable_conversion_warnings)
+    foreach(filename ${ARGV})
+        if(MSVC)
+            set_property(SOURCE "${filename}" APPEND PROPERTY COMPILE_FLAGS "/w44018 /w44389 /w44244 /w44267")
+        else()
+            set_property(SOURCE "${filename}" APPEND PROPERTY COMPILE_FLAGS -Wconversion)
+        endif()
+    endforeach()
 endfunction()

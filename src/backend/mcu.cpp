@@ -1,48 +1,34 @@
 /*
  * Copyright (C) 2021, 2024 nukeykt
+ * Modified by J.C. Moyer and Linosh K M
+ * Original source file: src/mcu.cpp
  *
- *  Redistribution and use of this code or any derivative works are permitted
- *  provided that the following conditions are met:
+ * This file is part of Nuked-SC55-GUI-Float (Originally Nuked-SC55).
  *
- *   - Redistributions may not be sold, nor may they be used in a commercial
- *     product or activity.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
  *
- *   - Redistributions that are modified from the original source must include the
- *     complete source code, including the source code for all components used by a
- *     binary built from the modified sources. However, as a special exception, the
- *     source code distributed need not include anything that is normally distributed
- *     (in either source or binary form) with the major components (compiler, kernel,
- *     and so on) of the operating system on which the executable runs, unless that
- *     component itself accompanies the executable.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- *   - Redistributions must reproduce the above copyright notice, this list of
- *     conditions and the following disclaimer in the documentation and/or other
- *     materials provided with the distribution.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
  */
 #include "mcu.h"
+
+#include "decoder2/dispatch.h"
+#include "diagnostics.h"
 #include "lcd.h"
 #include "mcu_opcodes.h"
 #include "mcu_timer.h"
 #include "pcm.h"
 #include "submcu.h"
-#include <cstdio>
-#include <string>
 
 void MCU_ErrorTrap(mcu_t& mcu)
 {
-    fprintf(stderr, "%.2x %.4x\n", mcu.cp, mcu.pc);
+    Diag_Printf(Diag_Category::Debug, "%.2x %.4x\n", mcu.cp, mcu.pc);
 }
 
 uint8_t RCU_Read(mcu_t& mcu)
@@ -132,15 +118,15 @@ READ_RCU:
             case 2: // SW
                 switch (mcu.sw_pos)
                 {
-                    case Computerswitch::RS422:
-                        return ANALOG_LEVEL_SW_0; // Mac (RS422)
-                    case Computerswitch::RS232C_1:
-                        return ANALOG_LEVEL_SW_1; // PC-1 (RS232C-1)
-                    case Computerswitch::RS232C_2:
-                        return ANALOG_LEVEL_SW_2; // PC-2 (RS232C-2)
-                    default:
-                    case Computerswitch::MIDI:    // MIDI
-                        return ANALOG_LEVEL_SW_3;
+                case Computerswitch::RS422:
+                    return ANALOG_LEVEL_SW_0; // Mac (RS422)
+                case Computerswitch::RS232C_1:
+                    return ANALOG_LEVEL_SW_1; // PC-1 (RS232C-1)
+                case Computerswitch::RS232C_2:
+                    return ANALOG_LEVEL_SW_2; // PC-2 (RS232C-2)
+                default:
+                case Computerswitch::MIDI:    // MIDI
+                    return ANALOG_LEVEL_SW_3;
                 }
             case 3: // RCU
                 goto READ_RCU;
@@ -150,16 +136,16 @@ READ_RCU:
             goto READ_RCU;
     }
     // TODO: really unreachable? maybe addressed upstream later?
-    fprintf(stderr, "PANIC: reached end of MCU_AnalogReadPin\n");
+    Diag_Printf(Diag_Category::Error, "reached end of MCU_AnalogReadPin\n");
     exit(1);
 }
 
-void MCU_AnalogSample(mcu_t& mcu, int channel)
+void MCU_AnalogSample(mcu_t& mcu, uint8_t channel)
 {
-    int value = MCU_AnalogReadPin(mcu, channel);
-    int dest = (channel << 1) & 6;
-    mcu.dev_register[DEV_ADDRAH + dest] = value >> 2;
-    mcu.dev_register[DEV_ADDRAL + dest] = (value << 6) & 0xc0;
+    uint16_t value = MCU_AnalogReadPin(mcu, channel);
+    uint16_t dest = (channel << 1) & 6;
+    mcu.dev_register[DEV_ADDRAH + dest] = (uint8_t)(value >> 2);
+    mcu.dev_register[DEV_ADDRAL + dest] = (uint8_t)((value << 6) & 0xc0);
 }
 
 void MCU_DeviceWrite(mcu_t& mcu, uint32_t address, uint8_t data)
@@ -167,12 +153,12 @@ void MCU_DeviceWrite(mcu_t& mcu, uint32_t address, uint8_t data)
     address &= 0x7f;
     if (address >= 0x10 && address < 0x40)
     {
-        TIMER_Write(*mcu.timer, address, data);
+        TIMER_WriteFRT(*mcu.timer, address, data);
         return;
     }
     if (address >= 0x50 && address < 0x55)
     {
-        TIMER2_Write(*mcu.timer, address, data);
+        TIMER_WriteTMR(*mcu.timer, address, data);
         return;
     }
     switch (address)
@@ -186,13 +172,12 @@ void MCU_DeviceWrite(mcu_t& mcu, uint32_t address, uint8_t data)
     case DEV_P7DDR:
         break;
     case DEV_SCR:
-        MCU_Interrupt_SetRequest(mcu, INTERRUPT_SOURCE_UART_TX, (data & 0x80) != 0 && (mcu.dev_register[DEV_SSR] & 0x80) != 0);
         break;
     case DEV_WCR:
         break;
     case DEV_P9DDR:
         break;
-    case DEV_RAME: // RAME
+    case DEV_RAMCR:
         break;
     case DEV_P1CR: // P1CR
         break;
@@ -317,7 +302,7 @@ void MCU_DeviceWrite(mcu_t& mcu, uint32_t address, uint8_t data)
         {
             mcu.dev_register[address] &= ~0x10;
         }
-        return;
+        break;
     }
     default:
         address += 0;
@@ -331,11 +316,11 @@ uint8_t MCU_DeviceRead(mcu_t& mcu, uint32_t address)
     address &= 0x7f;
     if (address >= 0x10 && address < 0x40)
     {
-        return TIMER_Read(*mcu.timer, address);
+        return TIMER_ReadFRT(*mcu.timer, address);
     }
     if (address >= 0x50 && address < 0x55)
     {
-        return TIMER_Read2(*mcu.timer, address);
+        return TIMER_ReadTMR(*mcu.timer, address);
     }
     switch (address)
     {
@@ -377,13 +362,13 @@ uint8_t MCU_DeviceRead(mcu_t& mcu, uint32_t address)
     }
     case DEV_P9DR:
     {
-        int cfg = 0;
+        uint8_t cfg = 0;
         if (!mcu.is_mk1)
             cfg = mcu.is_sc155 ? 0 : 2; // bit 1: 0 - SC-155mk2 (???), 1 - SC-55mk2
 
-        int dir = mcu.dev_register[DEV_P9DDR];
+        uint8_t dir = mcu.dev_register[DEV_P9DDR];
 
-        int val = cfg & (dir ^ 0xff);
+        uint8_t val = cfg & (dir ^ 0xff);
         val |= mcu.dev_register[DEV_P9DR] & dir;
         return val;
     }
@@ -410,16 +395,71 @@ uint8_t MCU_DeviceRead(mcu_t& mcu, uint32_t address)
 
 void MCU_DeviceReset(mcu_t& mcu)
 {
-    // mcu.dev_register[0x00] = 0x03;
-    // mcu.dev_register[0x7c] = 0x87;
-    mcu.dev_register[DEV_RAME] = 0x80;
+    mcu.dev_register[DEV_P1DDR] = 0x03;
+    mcu.dev_register[DEV_P1DR]  = 0;
+    mcu.dev_register[DEV_P1CR]  = 0x87;
+
+    mcu.dev_register[DEV_P2DDR] = 0xE0;
+    mcu.dev_register[DEV_P2DR]  = 0xE0;
+
+    mcu.dev_register[DEV_P3DDR] = 0;
+    mcu.dev_register[DEV_P3DR]  = 0;
+
+    mcu.dev_register[DEV_P4DDR] = 0;
+    mcu.dev_register[DEV_P4DR]  = 0;
+
+    mcu.dev_register[DEV_P5DDR] = 0;
+    mcu.dev_register[DEV_P5DR]  = 0;
+
+    mcu.dev_register[DEV_P6DDR] = 0xF0;
+    mcu.dev_register[DEV_P6DR]  = 0xF0;
+
+    mcu.dev_register[DEV_P7DDR] = 0;
+    mcu.dev_register[DEV_P7DR]  = 0;
+
+    mcu.dev_register[DEV_P8DR] = 0;
+
+    mcu.dev_register[DEV_P9DDR] = 0;
+    mcu.dev_register[DEV_P9DR]  = 0;
+
+    // dev_register bypassed for timers
+    TIMER_Reset(*mcu.timer);
+
+    mcu.dev_register[DEV_RDR] = 0;
+    mcu.dev_register[DEV_TDR] = 0xFF;
+    mcu.dev_register[DEV_SMR] = 0x04;
+    mcu.dev_register[DEV_SCR] = 0x0C;
     mcu.dev_register[DEV_SSR] = 0x87;
+    mcu.dev_register[DEV_BRR] = 0xFF;
+
+    mcu.dev_register[DEV_ADDRAH] = 0;
+    mcu.dev_register[DEV_ADDRAL] = 0;
+    mcu.dev_register[DEV_ADDRBH] = 0;
+    mcu.dev_register[DEV_ADDRBL] = 0;
+    mcu.dev_register[DEV_ADDRCH] = 0;
+    mcu.dev_register[DEV_ADDRCL] = 0;
+    mcu.dev_register[DEV_ADDRDH] = 0;
+    mcu.dev_register[DEV_ADDRDL] = 0;
+    mcu.dev_register[DEV_ADCSR]  = 0;
+
+    mcu.dev_register[DEV_IPRA] = 0;
+    mcu.dev_register[DEV_IPRB] = 0;
+    mcu.dev_register[DEV_IPRC] = 0;
+    mcu.dev_register[DEV_IPRD] = 0;
+    mcu.dev_register[DEV_DTEA] = 0;
+    mcu.dev_register[DEV_DTEB] = 0;
+    mcu.dev_register[DEV_DTEC] = 0;
+    mcu.dev_register[DEV_DTED] = 0;
+
+    mcu.dev_register[DEV_WCR] = 0xF3;
+
+    mcu.dev_register[DEV_RAMCR] = 0x80;
 }
 
 void MCU_UpdateAnalog(mcu_t& mcu, uint64_t cycles)
 {
-    int ctrl = mcu.dev_register[DEV_ADCSR];
-    int isscan = (ctrl & 16) != 0;
+    const uint8_t ctrl = mcu.dev_register[DEV_ADCSR];
+    const bool isscan = (ctrl & 16) != 0;
 
     if (ctrl & 0x20)
     {
@@ -429,8 +469,8 @@ void MCU_UpdateAnalog(mcu_t& mcu, uint64_t cycles)
         {
             if (isscan)
             {
-                int base = ctrl & 4;
-                for (int i = 0; i <= (ctrl & 3); i++)
+                uint8_t base = ctrl & 4;
+                for (uint8_t i = 0; i <= (ctrl & 3); i++)
                     MCU_AnalogSample(mcu, base + i);
                 mcu.analog_end_time = cycles + 200;
             }
@@ -467,11 +507,11 @@ uint8_t MCU_Read(mcu_t& mcu, uint32_t address)
             if (!mcu.is_mk1)
             {
                 uint16_t base = mcu.is_jv880 ? 0xf000 : 0xe000;
-                if (address >= base && address < (base | 0x400))
+                if (address >= base && address < (base | 0x400u))
                 {
                     ret = PCM_Read(*mcu.pcm, address & 0x3f);
                 }
-                else if (!mcu.is_scb55 && address >= 0xec00 && address < 0xf000)
+                else if (!mcu.is_scb55 && address >= 0xec00u && address < 0xf000u)
                 {
                     ret = SM_SysRead(*mcu.sm, address & 0xff);
                 }
@@ -479,22 +519,22 @@ uint8_t MCU_Read(mcu_t& mcu, uint32_t address)
                 {
                     ret = MCU_DeviceRead(mcu, address & 0x7f);
                 }
-                else if (address >= 0xfb80 && address < 0xff80
-                    && (mcu.dev_register[DEV_RAME] & 0x80) != 0)
+                else if (address >= 0xfb80u && address < 0xff80u
+                    && (mcu.dev_register[DEV_RAMCR] & 0x80) != 0)
                     ret = mcu.ram[(address - 0xfb80) & 0x3ff];
-                else if (address >= 0x8000 && address < 0xe000)
+                else if (address >= 0x8000u && address < 0xe000u)
                 {
                     ret = mcu.sram[address & 0x7fff];
                 }
-                else if (address == (base | 0x402))
+                else if (address == (base | 0x402u))
                 {
-                    ret = mcu.ga_int_trigger;
+                    ret = (uint8_t)mcu.ga_int_trigger;
                     mcu.ga_int_trigger = 0;
                     MCU_Interrupt_SetRequest(mcu, mcu.is_jv880 ? INTERRUPT_SOURCE_IRQ0 : INTERRUPT_SOURCE_IRQ1, 0);
                 }
                 else
                 {
-                    fprintf(stderr, "Unknown read %x\n", address);
+                    Diag_Printf(Diag_Category::Debug, "Unknown read %x\n", address);
                     ret = 0xff;
                 }
                 //
@@ -512,7 +552,7 @@ uint8_t MCU_Read(mcu_t& mcu, uint32_t address)
                     ret = MCU_DeviceRead(mcu, address & 0x7f);
                 }
                 else if (address >= 0xfb80 && address < 0xff80
-                    && (mcu.dev_register[DEV_RAME] & 0x80) != 0)
+                    && (mcu.dev_register[DEV_RAMCR] & 0x80) != 0)
                 {
                     ret = mcu.ram[(address - 0xfb80) & 0x3ff];
                 }
@@ -526,7 +566,7 @@ uint8_t MCU_Read(mcu_t& mcu, uint32_t address)
 
                     if (mcu.is_cm300)
                         return 0xff;
-
+                    
                     if (mcu.is_mk1)
                     {
                         uint32_t state = 0;
@@ -554,18 +594,18 @@ uint8_t MCU_Read(mcu_t& mcu, uint32_t address)
                     if ((mcu.io_sd & 4) == 0)
                         data &= ((button_pressed >> 16) & 255) ^ 255;
                     if ((mcu.io_sd & 8) == 0)
-                        data &= ((button_pressed >> 24) & 255) ^ 255;
+                        data &= (uint8_t)(((button_pressed >> 24) & 255) ^ 255);
                     return data;
                 }
                 else if (address == 0xf106)
                 {
-                    ret = mcu.ga_int_trigger;
+                    ret = (uint8_t)mcu.ga_int_trigger;
                     mcu.ga_int_trigger = 0;
                     MCU_Interrupt_SetRequest(mcu, INTERRUPT_SOURCE_IRQ1, 0);
                 }
                 else
                 {
-                    fprintf(stderr, "Unknown read %x\n", address);
+                    Diag_Printf(Diag_Category::Debug, "Unknown read %x\n", address);
                     ret = 0xff;
                 }
                 //
@@ -648,22 +688,22 @@ uint8_t MCU_Read(mcu_t& mcu, uint32_t address)
 
 uint16_t MCU_Read16(mcu_t& mcu, uint32_t address)
 {
-    address &= ~1;
+    address &= ~1u;
     uint8_t b0, b1;
     b0 = MCU_Read(mcu, address);
     b1 = MCU_Read(mcu, address+1);
-    return (b0 << 8) + b1;
+    return (uint16_t)((b0 << 8) + b1);
 }
 
 uint32_t MCU_Read32(mcu_t& mcu, uint32_t address)
 {
-    address &= ~3;
+    address &= ~3u;
     uint8_t b0, b1, b2, b3;
     b0 = MCU_Read(mcu, address);
     b1 = MCU_Read(mcu, address+1);
     b2 = MCU_Read(mcu, address+2);
     b3 = MCU_Read(mcu, address+3);
-    return (b0 << 24) + (b1 << 16) + (b2 << 8) + b3;
+    return (uint32_t)((b0 << 24) + (b1 << 16) + (b2 << 8) + b3);
 }
 
 void MCU_Write(mcu_t& mcu, uint32_t address, uint8_t value)
@@ -676,20 +716,20 @@ void MCU_Write(mcu_t& mcu, uint32_t address, uint8_t value)
         {
             if (!mcu.is_mk1)
             {
-                uint16_t base = mcu.is_jv880 ? 0xf000 : 0xe000;
-                if (address >= (base | 0x400) && address < (base | 0x800))
+                uint16_t base = mcu.is_jv880 ? 0xf000u : 0xe000u;
+                if (address >= (base | 0x400u) && address < (base | 0x800u))
                 {
-                    if (address == (base | 0x404) || address == (base | 0x405))
+                    if (address == (base | 0x404u) || address == (base | 0x405u))
                         LCD_Write(*mcu.lcd, address & 1, value);
-                    else if (address == (base | 0x401))
+                    else if (address == (base | 0x401u))
                     {
                         mcu.io_sd = value;
                         LCD_Enable(*mcu.lcd, (value & 1) == 0);
                     }
-                    else if (address == (base | 0x402))
-                        mcu.ga_int_enable = (value << 1);
+                    else if (address == (base | 0x402u))
+                        mcu.ga_int_enable = (uint8_t)(value << 1);
                     else
-                        fprintf(stderr, "Unknown write %x %x\n", address, value);
+                        Diag_Printf(Diag_Category::Debug, "Unknown write %x %x\n", address, value);
                     //
                     // e400: always 4?
                     // e401: SC0-6?
@@ -701,7 +741,7 @@ void MCU_Write(mcu_t& mcu, uint32_t address, uint8_t value)
                     // e407: 0, e406 continuation?
                     //
                 }
-                else if (address >= (base | 0x000) && address < (base | 0x400))
+                else if (address >= (base | 0x000u) && address < (base | 0x400u))
                 {
                     PCM_Write(*mcu.pcm, address & 0x3f, value);
                 }
@@ -714,7 +754,7 @@ void MCU_Write(mcu_t& mcu, uint32_t address, uint8_t value)
                     MCU_DeviceWrite(mcu, address & 0x7f, value);
                 }
                 else if (address >= 0xfb80 && address < 0xff80
-                    && (mcu.dev_register[DEV_RAME] & 0x80) != 0)
+                    && (mcu.dev_register[DEV_RAMCR] & 0x80) != 0)
                 {
                     mcu.ram[(address - 0xfb80) & 0x3ff] = value;
                 }
@@ -724,7 +764,7 @@ void MCU_Write(mcu_t& mcu, uint32_t address, uint8_t value)
                 }
                 else
                 {
-                    fprintf(stderr, "Unknown write %x %x\n", address, value);
+                    Diag_Printf(Diag_Category::Debug, "Unknown write %x %x\n", address, value);
                 }
             }
             else
@@ -738,7 +778,7 @@ void MCU_Write(mcu_t& mcu, uint32_t address, uint8_t value)
                     MCU_DeviceWrite(mcu, address & 0x7f, value);
                 }
                 else if (address >= 0xfb80 && address < 0xff80
-                    && (mcu.dev_register[DEV_RAME] & 0x80) != 0)
+                    && (mcu.dev_register[DEV_RAMCR] & 0x80) != 0)
                 {
                     mcu.ram[(address - 0xfb80) & 0x3ff] = value;
                 }
@@ -767,7 +807,7 @@ void MCU_Write(mcu_t& mcu, uint32_t address, uint8_t value)
                 }
                 else
                 {
-                    fprintf(stderr, "Unknown write %x %x\n", address, value);
+                    Diag_Printf(Diag_Category::Debug, "Unknown write %x %x\n", address, value);
                 }
             }
         }
@@ -777,7 +817,7 @@ void MCU_Write(mcu_t& mcu, uint32_t address, uint8_t value)
         }
         else
         {
-            fprintf(stderr, "Unknown write %x %x\n", address, value);
+            Diag_Printf(Diag_Category::Debug, "Unknown write %x %x\n", address, value);
         }
     }
     else if (page == 5 && mcu.is_mk1)
@@ -798,22 +838,25 @@ void MCU_Write(mcu_t& mcu, uint32_t address, uint8_t value)
     }
     else
     {
-        fprintf(stderr, "Unknown write %x %x\n", (page << 16) | address, value);
+        Diag_Printf(Diag_Category::Debug, "Unknown write %x %x\n", (uint32_t)(page << 16) | address, value);
     }
 }
 
 void MCU_Write16(mcu_t& mcu, uint32_t address, uint16_t value)
 {
-    address &= ~1;
-    MCU_Write(mcu, address, value >> 8);
-    MCU_Write(mcu, address + 1, value & 0xff);
+    address &= ~1u;
+    MCU_Write(mcu, address, (uint8_t)(value >> 8));
+    MCU_Write(mcu, address + 1, (uint8_t)(value & 0xff));
 }
 
 void MCU_ReadInstruction(mcu_t& mcu)
 {
+#if NUKED_ENABLE_DECODER2
+    decoder2::FetchDecodeExecuteNext(mcu);
+#else
     uint8_t operand = MCU_ReadCodeAdvance(mcu);
-
     MCU_Operand_Table[operand](mcu, operand);
+#endif
 
     if (mcu.sr & STATUS_T)
     {
@@ -834,7 +877,7 @@ void MCU_DefaultMidiOutCallback(void* userdata, uint8_t* message, int len)
     (void)len;
 }
 
-void MCU_Init(mcu_t& mcu, submcu_t& sm, pcm_t& pcm, mcu_timer_t& timer, lcd_t& lcd, Computerswitch sw)
+void MCU_Init(mcu_t& mcu, submcu_t& sm, pcm_t& pcm, mcu_timer_t& timer, lcd_t& lcd, Computerswitch sw=Computerswitch::MIDI)
 {
     mcu.sm = &sm;
     mcu.pcm = &pcm;
@@ -873,7 +916,7 @@ void MCU_Reset(mcu_t& mcu)
     mcu.cp = (reset_address >> 16) & 0xff;
     mcu.pc = reset_address & 0xffff;
 
-    mcu.exception_pending = -1;
+    mcu.exception_pending = (MCU_Exception_Source)-1;
 
     MCU_DeviceReset(mcu);
 
@@ -922,7 +965,7 @@ void MCU_UpdateUART_TX(mcu_t& mcu)
 
     mcu.dev_register[DEV_SSR] |= 0x80;
     MCU_Interrupt_SetRequest(mcu, INTERRUPT_SOURCE_UART_TX, (mcu.dev_register[DEV_SCR] & 0x80) != 0);
-
+    
     if (mcu.uart_tx_ptr - mcu.uart_tx_buffer >= uart_buffer_size)   {
         printf("MIDI TX OVERFLOW, THIS IS A BUG\n");
         return;
@@ -951,12 +994,12 @@ void MCU_UpdateUART(mcu_t& mcu)
     if (mcu.uart_tx_ptr == tx_buffer)
         return;
 
-    int len;
+    int32_t len;
     uint8_t status = *tx_buffer;
     if (status == 0xF0) {
         if (*(mcu.uart_tx_ptr - 1) == 0xF7) 
         {
-            len = mcu.uart_tx_ptr - tx_buffer;
+            len = (int32_t)(mcu.uart_tx_ptr - tx_buffer);
             mcu.midiout_callback(mcu.callback_userdata, tx_buffer, len);
             mcu.uart_tx_ptr = mcu.uart_tx_buffer;
         }
@@ -1058,7 +1101,7 @@ uint8_t MCU_ReadP1(mcu_t& mcu)
     if ((mcu.p0_data & 4) == 0)
         data &= ((button_pressed >> 16) & 255) ^ 255;
     if ((mcu.p0_data & 8) == 0)
-        data &= ((button_pressed >> 24) & 255) ^ 255;
+        data &= (uint8_t)(((button_pressed >> 24) & 255) ^ 255);
 
     return data;
 }
@@ -1134,7 +1177,7 @@ void MCU_PostSample(mcu_t& mcu, const AudioFrame<int32_t>& frame)
     mcu.sample_callback(mcu.callback_userdata, frame);
 }
 
-void MCU_GA_SetGAInt(mcu_t& mcu, int line, int value)
+void MCU_GA_SetGAInt(mcu_t& mcu, uint8_t line, bool value)
 {
     // guesswork
     if (value && !mcu.ga_int[line] && (mcu.ga_int_enable & (1 << line)) != 0)
@@ -1145,18 +1188,6 @@ void MCU_GA_SetGAInt(mcu_t& mcu, int line, int value)
         MCU_Interrupt_SetRequest(mcu, INTERRUPT_SOURCE_IRQ0, mcu.ga_int_trigger != 0);
     else
         MCU_Interrupt_SetRequest(mcu, INTERRUPT_SOURCE_IRQ1, mcu.ga_int_trigger != 0);
-}
-
-void MCU_RemoteControlTrigger(mcu_t& mcu, uint8_t data)
-{
-    if (mcu.is_jv880) 
-    {
-        return;
-    }
-
-    mcu.rcu = data;
-    MCU_GA_SetGAInt(mcu, 2, 0);
-    MCU_GA_SetGAInt(mcu, 2, 1);
 }
 
 void MCU_EncoderTrigger(mcu_t& mcu, int dir)
@@ -1179,30 +1210,44 @@ void MCU_SetRomset(mcu_t& mcu, Romset romset)
     switch (romset)
     {
     case Romset::MK2:
+        break;
     case Romset::SC155MK2:
-        if (romset == Romset::SC155MK2)
-            mcu.is_sc155 = true;
+        mcu.is_sc155 = true;
         break;
     case Romset::ST:
         mcu.is_st = true;
         break;
     case Romset::MK1:
-    case Romset::SC155:
         mcu.is_mk1 = true;
-        mcu.is_st  = false;
-        if (romset == Romset::SC155)
-            mcu.is_sc155 = true;
+        break;
+    case Romset::SC155:
+        mcu.is_mk1   = true;
+        mcu.is_sc155 = true;
         break;
     case Romset::CM300:
         mcu.is_mk1   = true;
         mcu.is_cm300 = true;
         break;
     case Romset::JV880:
-        mcu.is_jv880   = true;
+        mcu.is_jv880 = true;
         break;
     case Romset::SCB55:
     case Romset::RLP3237:
         mcu.is_scb55 = true;
         break;
     }
+
+    TIMER_NotifyRomsetChange(*mcu.timer);
+}
+
+void MCU_RemoteControlTrigger(mcu_t& mcu, uint8_t data)
+{
+    if (mcu.is_jv880) 
+    {
+        return;
+    }
+
+    mcu.rcu = data;
+    MCU_GA_SetGAInt(mcu, 2, 0);
+    MCU_GA_SetGAInt(mcu, 2, 1);
 }

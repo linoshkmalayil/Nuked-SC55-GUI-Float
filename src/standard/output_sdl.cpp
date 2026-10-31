@@ -1,12 +1,29 @@
+/*
+ * Copyright (C) 2024-2026 J.C. Moyer
+ *
+ * This file is part of Nuked-SC55-GUI-Float (Originally Nuked-SC55).
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ */
+
 #include "output_sdl.h"
 
 #include "audio_sdl.h"
+#include "bounded_vector.h"
 #include "cast.h"
 #include <SDL.h>
 
 // one per instance
 const size_t MAX_STREAMS = 16;
-
 
 struct SDLOutput
 {
@@ -15,8 +32,7 @@ struct SDLOutput
 
     SDL_AudioDeviceID device = 0;
 
-    RingbufferView* views[MAX_STREAMS]{};
-    size_t          stream_count = 0;
+    BoundedVector<RingbufferView*, MAX_STREAMS> views;
 
     // Parameters requested by the user
     AudioOutputParameters create_params;
@@ -33,16 +49,16 @@ void AudioCallback(void* userdata, Uint8* stream, int len)
 
     memset(stream, 0, (size_t)len);
 
-    for (size_t i = 0; i < g_output.stream_count; ++i)
+    for (RingbufferView* view : g_output.views)
     {
-        if (g_output.views[i]->GetReadableElements<Frame>() >= g_output.create_params.buffer_size)
+        if (view->GetReadableElements<Frame>() >= g_output.create_params.buffer_size)
         {
-            auto span = g_output.views[i]->UncheckedPrepareRead<Frame>(g_output.create_params.buffer_size);
+            auto span = view->UncheckedPrepareRead<Frame>(g_output.create_params.buffer_size);
             for (size_t samp = 0; samp < span.size(); ++samp)
             {
                 MixFrame(*((Frame*)stream + samp), span[samp]);
             }
-            g_output.views[i]->UncheckedFinishRead<Frame>(g_output.create_params.buffer_size);
+            view->UncheckedFinishRead<Frame>(g_output.create_params.buffer_size);
         }
     }
 }
@@ -70,7 +86,7 @@ bool Out_SDL_Create(const char* device_name, const AudioOutputParameters& params
 {
     if (SDL_InitSubSystem(SDL_INIT_AUDIO) != 0)
     {
-        fprintf(stderr, "Failed to initialize audio: %s\n", SDL_GetError());
+        common::Printf("Failed to initialize audio: %s\n", SDL_GetError());
         return false;
     }
 
@@ -102,25 +118,23 @@ bool Out_SDL_Create(const char* device_name, const AudioOutputParameters& params
 
     if (!g_output.device)
     {
-        fprintf(stderr, "Failed to open audio device: %s\n", SDL_GetError());
+        common::Printf("Failed to open audio device: %s\n", SDL_GetError());
         return false;
     }
 
-    fprintf(stderr, "Audio device: %s\n", device_name ? device_name : "Default device (SDL)");
+    common::Printf("Audio device: %s\n", device_name ? device_name : "Default device (SDL)");
 
-    fprintf(stderr,
-            "Audio requested: format=%s, channels=%d, frequency=%d, frames=%d\n",
-            SDLAudioFormatToString(spec.format),
-            spec.channels,
-            spec.freq,
-            spec.samples);
+    common::Printf("Audio requested: format=%s, channels=%d, frequency=%d, frames=%d\n",
+                   SDLAudioFormatToString(spec.format),
+                   spec.channels,
+                   spec.freq,
+                   spec.samples);
 
-    fprintf(stderr,
-            "Audio actual: format=%s, channels=%d, frequency=%d, frames=%d\n",
-            SDLAudioFormatToString(spec_actual.format),
-            spec_actual.channels,
-            spec_actual.freq,
-            spec_actual.samples);
+    common::Printf("Audio actual: format=%s, channels=%d, frequency=%d, frames=%d\n",
+                   SDLAudioFormatToString(spec_actual.format),
+                   spec_actual.channels,
+                   spec_actual.freq,
+                   spec_actual.samples);
 
     g_output.create_params  = params;
     g_output.requested_spec = spec;
@@ -150,25 +164,5 @@ void Out_SDL_Stop()
 
 void Out_SDL_AddSource(RingbufferView& view)
 {
-    if (g_output.stream_count == MAX_STREAMS)
-    {
-        fprintf(stderr, "PANIC: attempted to add more than %zu SDL streams\n", MAX_STREAMS);
-        exit(1);
-    }
-
-    g_output.views[g_output.stream_count] = &view;
-
-    ++g_output.stream_count;
-}
-
-void Out_SDL_SetVolume(float vol, AudioVolume &volume_control)
-{
-    if (vol > 2.0f) {
-        vol = 2.0f;
-    }
-    if (vol < 0.0f) {
-        vol = 0.0f;
-    }
-    volume_control.volume = vol;
-    volume_control.volume_fp = (uint32_t)(vol * UINT16_MAX);
+    g_output.views.EmplaceBack(&view);
 }

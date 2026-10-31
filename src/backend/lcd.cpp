@@ -1,35 +1,20 @@
 /*
  * Copyright (C) 2021, 2024 nukeykt
+ * Modified by J.C. Moyer and Linosh K M
+ * Original source file: src/lcd.cpp
  *
- *  Redistribution and use of this code or any derivative works are permitted
- *  provided that the following conditions are met:
+ * This file is part of Nuked-SC55-GUI-Float (Originally Nuked-SC55).
  *
- *   - Redistributions may not be sold, nor may they be used in a commercial
- *     product or activity.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
  *
- *   - Redistributions that are modified from the original source must include the
- *     complete source code, including the source code for all components used by a
- *     binary built from the modified sources. However, as a special exception, the
- *     source code distributed need not include anything that is normally distributed
- *     (in either source or binary form) with the major components (compiler, kernel,
- *     and so on) of the operating system on which the executable runs, unless that
- *     component itself accompanies the executable.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- *   - Redistributions must reproduce the above copyright notice, this list of
- *     conditions and the following disclaimer in the documentation and/or other
- *     materials provided with the distribution.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
  */
 #include "lcd.h"
 #include "emu.h"
@@ -42,14 +27,14 @@ uint32_t inline LCD_MixColor(uint32_t color, uint8_t contrast) {
     uint8_t g = (color >>  8) & 0xFF;
     uint8_t r = color & 0xFF;
 
-    b = (b * contrast) >> 8;
-    g = (g * contrast) >> 8;
-    r = (r * contrast) >> 8;
+    b = (uint8_t)((b * contrast) >> 8);
+    g = (uint8_t)((g * contrast) >> 8);
+    r = (uint8_t)((r * contrast) >> 8);
 
     return (color & 0xFF000000) | ((b & 0xFF) << 16) | ((g & 0xFF) << 8) | (r & 0xFF);
 }
 
-void LCD_Enable(lcd_t& lcd, uint32_t enable)
+void LCD_Enable(lcd_t& lcd, bool enable)
 {
     lcd.enable = enable;
 }
@@ -251,11 +236,11 @@ uint32_t LCD_Fade(lcd_t& lcd, uint32_t color1, uint32_t color2) {
 
     if (color != lcd.color1 && color != lcd.color2) {
         if (r == sr)
-            r += NONZERO((dr - sr) / 2, dr - sr);
+            r += (uint8_t)NONZERO((dr - sr) / 2, dr - sr);
         if (g == sg)
-            g += NONZERO((dg - sg) / 2, dg - sg);
+            g += (uint8_t)NONZERO((dg - sg) / 2, dg - sg);
         if (b == sb)
-            b += NONZERO((db - sb) / 2, db - sb);
+            b += (uint8_t)NONZERO((db - sb) / 2, db - sb);
     }
     color = ((b & 0xFF) << 16) | ((g & 0xFF) << 8) | (r & 0xFF);
     return color;
@@ -481,19 +466,19 @@ void LCD_Render(lcd_t& lcd)
                 uint32_t con = contrast + 1;
                 con = (con * con * con);
                 con = (con * 104) / 1331;
-                lcd.color2 = LCD_MixColor(lcd.buffer[0][0], 0xFF - con);
+                lcd.color2 = LCD_MixColor(lcd.buffer[0][0], (uint8_t)(0xFF - con));
                 con = contrast;
                 if (con > 4)
                     con = 4;
                 con = con * con;
-                lcd.color1 = LCD_MixColor(lcd.color2, 255 - (con * 8));
+                lcd.color1 = LCD_MixColor(lcd.color2, (uint8_t)(255 - (con * 8)));
             }
             else
             {
                 uint32_t con = 0x11 * (contrast - 1);
                 con = (con * con) >> 8;
-                lcd.color2 = LCD_MixColor(lcd.buffer[0][0], 0xFF - (con / 4 + 4));
-                lcd.color1 = LCD_MixColor(lcd.color2, 0x11 * (16 - (((contrast + 1) >> 1) + 4)));
+                lcd.color2 = LCD_MixColor(lcd.buffer[0][0], (uint8_t)(0xFF - (con / 4 + 4)));
+                lcd.color1 = LCD_MixColor(lcd.color2, (uint8_t)(0x11 * (16 - (((contrast + 1) >> 1) + 4))));
             }
 
             if (lcd.mcu->is_jv880)

@@ -1,7 +1,17 @@
 # IMPORTANT NOTE
 
-This fork is dependent on the changes on the fork [jcmoyer/Nuked-SC55](https://github.com/jcmoyer/Nuked-SC55)
+This fork is dependent on the changes on the fork [jcmoyer/Nuked-SC55](https://github.com/jcmoyer/Nuked-SC55) \
 For **FULL CHANGELOG** from please check [jcmoyer/Nuked-SC55/CHANGELOG.md](https://github.com/jcmoyer/Nuked-SC55/blob/master/CHANGELOG.md)
+
+# Version 0.7.1 (2026-10-31)
+
+Jist of changes are follows
+- License now has changed to GPL-2.0 or later ([License change commit](https://github.com/nukeykt/Nuked-SC55/commit/f6e50220d5de4241080e1811a30d29f7113a0929))
+- Added instruction caching
+- Improved timer and interrupt handling
+- Updated to reduce ROM reads
+- Improved ROM handling routine
+- Fixed JV880 rendering issues, especially using the renderer
 
 # Version 0.6.3 (2026-01-23)
 

@@ -1,8 +1,27 @@
-#include "lcd_sdl.h"
+/*
+ * Copyright (C) 2021, 2024 nukeykt
+ * Modified by J.C. Moyer and Linosh K M
+ * Original source file: src/lcd.cpp
+ *
+ * This file is part of Nuked-SC55-GUI-Float (Originally Nuked-SC55).
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ */
+
+#include "audio_sdl.h"
 #include "common/path_util.h"
+#include "lcd_sdl.h"
 #include "emu.h"
 #include "mcu.h"
-#include "output_sdl.h"
 #include <string>
 
 const SDL_Rect lcd_button_regions_sc55[32] = {

@@ -1,35 +1,20 @@
 /*
  * Copyright (C) 2021, 2024 nukeykt
+ * Modified by J.C. Moyer
+ * Original source file: src/mcu_interrupt.cpp
  *
- *  Redistribution and use of this code or any derivative works are permitted
- *  provided that the following conditions are met:
+ * This file is part of Nuked-SC55-GUI-Float (Originally Nuked-SC55).
  *
- *   - Redistributions may not be sold, nor may they be used in a commercial
- *     product or activity.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
  *
- *   - Redistributions that are modified from the original source must include the
- *     complete source code, including the source code for all components used by a
- *     binary built from the modified sources. However, as a special exception, the
- *     source code distributed need not include anything that is normally distributed
- *     (in either source or binary form) with the major components (compiler, kernel,
- *     and so on) of the operating system on which the executable runs, unless that
- *     component itself accompanies the executable.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- *   - Redistributions must reproduce the above copyright notice, this list of
- *     conditions and the following disclaimer in the documentation and/or other
- *     materials provided with the distribution.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
  */
 #include "mcu_interrupt.h"
 #include "mcu.h"
@@ -43,17 +28,24 @@ void MCU_Interrupt_Start(mcu_t& mcu, int32_t mask)
     if (mask >= 0)
     {
         mcu.sr &= ~STATUS_INT_MASK;
-        mcu.sr |= mask << 8;
+        mcu.sr |= (uint16_t)(mask << 8);
     }
     mcu.sleep = 0;
 }
 
-void MCU_Interrupt_SetRequest(mcu_t& mcu, uint32_t interrupt, uint32_t value)
+void MCU_Interrupt_SetRequest(mcu_t& mcu, MCU_Interrupt_Source interrupt, bool value)
 {
-    mcu.interrupt_pending[interrupt] = value;
+    if (value)
+    {
+        mcu.interrupt_pending.Include(interrupt);
+    }
+    else
+    {
+        mcu.interrupt_pending.Exclude(interrupt);
+    }
 }
 
-void MCU_Interrupt_Exception(mcu_t& mcu, uint32_t exception)
+void MCU_Interrupt_Exception(mcu_t& mcu, MCU_Exception_Source exception)
 {
 #if 0
     if (interrupt == INTERRUPT_SOURCE_IRQ0 && (mcu.dev_register[DEV_P1CR] & 0x20) == 0)
@@ -64,17 +56,98 @@ void MCU_Interrupt_Exception(mcu_t& mcu, uint32_t exception)
     mcu.exception_pending = exception;
 }
 
-void MCU_Interrupt_TRAPA(mcu_t& mcu, uint32_t vector)
+void MCU_Interrupt_TRAPA(mcu_t& mcu, uint8_t vector)
 {
-    mcu.trapa_pending[vector] = 1;
+    mcu.trapa_pending.Include(vector);
 }
 
 void MCU_Interrupt_StartVector(mcu_t& mcu, uint32_t vector, int32_t mask)
 {
     uint32_t address = MCU_GetVectorAddress(mcu, vector);
     MCU_Interrupt_Start(mcu, mask);
-    mcu.cp = address >> 16;
-    mcu.pc = address;
+    mcu.cp = (uint8_t)(address >> 16);
+    mcu.pc = (uint16_t)address;
+}
+
+static void MCU_Interrupt_GetVL(const mcu_t& mcu, uint32_t source, int32_t& vector, int32_t& level)
+{
+    switch (source)
+    {
+    case INTERRUPT_SOURCE_IRQ0:
+        if ((mcu.dev_register[DEV_P1CR] & 0x20) == 0)
+            break;
+        vector = VECTOR_IRQ0;
+        level  = (mcu.dev_register[DEV_IPRA] >> 4) & 7;
+        break;
+    case INTERRUPT_SOURCE_IRQ1:
+        if ((mcu.dev_register[DEV_P1CR] & 0x40) == 0)
+            break;
+        vector = VECTOR_IRQ1;
+        level  = (mcu.dev_register[DEV_IPRA] >> 0) & 7;
+        break;
+    case INTERRUPT_SOURCE_FRT0_OCIA:
+        vector = VECTOR_INTERNAL_INTERRUPT_94;
+        level  = (mcu.dev_register[DEV_IPRB] >> 4) & 7;
+        break;
+    case INTERRUPT_SOURCE_FRT0_OCIB:
+        vector = VECTOR_INTERNAL_INTERRUPT_98;
+        level  = (mcu.dev_register[DEV_IPRB] >> 4) & 7;
+        break;
+    case INTERRUPT_SOURCE_FRT0_FOVI:
+        vector = VECTOR_INTERNAL_INTERRUPT_9C;
+        level  = (mcu.dev_register[DEV_IPRB] >> 4) & 7;
+        break;
+    case INTERRUPT_SOURCE_FRT1_OCIA:
+        vector = VECTOR_INTERNAL_INTERRUPT_A4;
+        level  = (mcu.dev_register[DEV_IPRB] >> 0) & 7;
+        break;
+    case INTERRUPT_SOURCE_FRT1_OCIB:
+        vector = VECTOR_INTERNAL_INTERRUPT_A8;
+        level  = (mcu.dev_register[DEV_IPRB] >> 0) & 7;
+        break;
+    case INTERRUPT_SOURCE_FRT1_FOVI:
+        vector = VECTOR_INTERNAL_INTERRUPT_AC;
+        level  = (mcu.dev_register[DEV_IPRB] >> 0) & 7;
+        break;
+    case INTERRUPT_SOURCE_FRT2_OCIA:
+        vector = VECTOR_INTERNAL_INTERRUPT_B4;
+        level  = (mcu.dev_register[DEV_IPRC] >> 4) & 7;
+        break;
+    case INTERRUPT_SOURCE_FRT2_OCIB:
+        vector = VECTOR_INTERNAL_INTERRUPT_B8;
+        level  = (mcu.dev_register[DEV_IPRC] >> 4) & 7;
+        break;
+    case INTERRUPT_SOURCE_FRT2_FOVI:
+        vector = VECTOR_INTERNAL_INTERRUPT_BC;
+        level  = (mcu.dev_register[DEV_IPRC] >> 4) & 7;
+        break;
+    case INTERRUPT_SOURCE_TIMER_CMIA:
+        vector = VECTOR_INTERNAL_INTERRUPT_C0;
+        level  = (mcu.dev_register[DEV_IPRC] >> 0) & 7;
+        break;
+    case INTERRUPT_SOURCE_TIMER_CMIB:
+        vector = VECTOR_INTERNAL_INTERRUPT_C4;
+        level  = (mcu.dev_register[DEV_IPRC] >> 0) & 7;
+        break;
+    case INTERRUPT_SOURCE_TIMER_OVI:
+        vector = VECTOR_INTERNAL_INTERRUPT_C8;
+        level  = (mcu.dev_register[DEV_IPRC] >> 0) & 7;
+        break;
+    case INTERRUPT_SOURCE_ANALOG:
+        vector = VECTOR_INTERNAL_INTERRUPT_E0;
+        level  = (mcu.dev_register[DEV_IPRD] >> 0) & 7;
+        break;
+    case INTERRUPT_SOURCE_UART_RX:
+        vector = VECTOR_INTERNAL_INTERRUPT_D4;
+        level  = (mcu.dev_register[DEV_IPRD] >> 4) & 7;
+        break;
+    case INTERRUPT_SOURCE_UART_TX:
+        vector = VECTOR_INTERNAL_INTERRUPT_D8;
+        level  = (mcu.dev_register[DEV_IPRD] >> 4) & 7;
+        break;
+    default:
+        break;
+    }
 }
 
 void MCU_Interrupt_Handle(mcu_t& mcu)
@@ -96,15 +169,11 @@ void MCU_Interrupt_Handle(mcu_t& mcu)
         return;
     }
 #endif
-    uint32_t i;
-    for (i = 0; i < 16; i++)
+    if (auto it = mcu.trapa_pending.begin(); it != mcu.trapa_pending.end())
     {
-        if (mcu.trapa_pending[i])
-        {
-            mcu.trapa_pending[i] = 0;
-            MCU_Interrupt_StartVector(mcu, VECTOR_TRAPA_0 + i, -1);
-            return;
-        }
+        mcu.trapa_pending.Exclude(*it);
+        MCU_Interrupt_StartVector(mcu, VECTOR_TRAPA_0 + (*it), -1);
+        return;
     }
     if (mcu.exception_pending >= 0)
     {
@@ -121,104 +190,25 @@ void MCU_Interrupt_Handle(mcu_t& mcu)
                 break;
 
         }
-        mcu.exception_pending = -1;
+        mcu.exception_pending = (MCU_Exception_Source)-1;
         return;
     }
-    if (mcu.interrupt_pending[INTERRUPT_SOURCE_NMI])
+    if (mcu.interrupt_pending.Contains(INTERRUPT_SOURCE_NMI))
     {
         // mcu.interrupt_pending[INTERRUPT_SOURCE_NMI] = 0;
         MCU_Interrupt_StartVector(mcu, VECTOR_NMI, 7);
         return;
     }
     uint32_t mask = (mcu.sr >> 8) & 7;
-    for (i = INTERRUPT_SOURCE_NMI + 1; i < INTERRUPT_SOURCE_MAX; i++)
+    for (MCU_Interrupt_Source source : mcu.interrupt_pending)
     {
         int32_t vector = -1;
-        int32_t level  = 0;
-        if (!mcu.interrupt_pending[i])
-            continue;
-        switch (i)
-        {
-            case INTERRUPT_SOURCE_IRQ0:
-                if ((mcu.dev_register[DEV_P1CR] & 0x20) == 0)
-                    continue;
-                vector = VECTOR_IRQ0;
-                level  = (mcu.dev_register[DEV_IPRA] >> 4) & 7;
-                break;
-            case INTERRUPT_SOURCE_IRQ1:
-                if ((mcu.dev_register[DEV_P1CR] & 0x40) == 0)
-                    continue;
-                vector = VECTOR_IRQ1;
-                level  = (mcu.dev_register[DEV_IPRA] >> 0) & 7;
-                break;
-            case INTERRUPT_SOURCE_FRT0_OCIA:
-                vector = VECTOR_INTERNAL_INTERRUPT_94;
-                level  = (mcu.dev_register[DEV_IPRB] >> 4) & 7;
-                break;
-            case INTERRUPT_SOURCE_FRT0_OCIB:
-                vector = VECTOR_INTERNAL_INTERRUPT_98;
-                level  = (mcu.dev_register[DEV_IPRB] >> 4) & 7;
-                break;
-            case INTERRUPT_SOURCE_FRT0_FOVI:
-                vector = VECTOR_INTERNAL_INTERRUPT_9C;
-                level  = (mcu.dev_register[DEV_IPRB] >> 4) & 7;
-                break;
-            case INTERRUPT_SOURCE_FRT1_OCIA:
-                vector = VECTOR_INTERNAL_INTERRUPT_A4;
-                level  = (mcu.dev_register[DEV_IPRB] >> 0) & 7;
-                break;
-            case INTERRUPT_SOURCE_FRT1_OCIB:
-                vector = VECTOR_INTERNAL_INTERRUPT_A8;
-                level  = (mcu.dev_register[DEV_IPRB] >> 0) & 7;
-                break;
-            case INTERRUPT_SOURCE_FRT1_FOVI:
-                vector = VECTOR_INTERNAL_INTERRUPT_AC;
-                level  = (mcu.dev_register[DEV_IPRB] >> 0) & 7;
-                break;
-            case INTERRUPT_SOURCE_FRT2_OCIA:
-                vector = VECTOR_INTERNAL_INTERRUPT_B4;
-                level  = (mcu.dev_register[DEV_IPRC] >> 4) & 7;
-                break;
-            case INTERRUPT_SOURCE_FRT2_OCIB:
-                vector = VECTOR_INTERNAL_INTERRUPT_B8;
-                level  = (mcu.dev_register[DEV_IPRC] >> 4) & 7;
-                break;
-            case INTERRUPT_SOURCE_FRT2_FOVI:
-                vector = VECTOR_INTERNAL_INTERRUPT_BC;
-                level  = (mcu.dev_register[DEV_IPRC] >> 4) & 7;
-                break;
-            case INTERRUPT_SOURCE_TIMER_CMIA:
-                vector = VECTOR_INTERNAL_INTERRUPT_C0;
-                level  = (mcu.dev_register[DEV_IPRC] >> 0) & 7;
-                break;
-            case INTERRUPT_SOURCE_TIMER_CMIB:
-                vector = VECTOR_INTERNAL_INTERRUPT_C4;
-                level  = (mcu.dev_register[DEV_IPRC] >> 0) & 7;
-                break;
-            case INTERRUPT_SOURCE_TIMER_OVI:
-                vector = VECTOR_INTERNAL_INTERRUPT_C8;
-                level  = (mcu.dev_register[DEV_IPRC] >> 0) & 7;
-                break;
-            case INTERRUPT_SOURCE_ANALOG:
-                vector = VECTOR_INTERNAL_INTERRUPT_E0;
-                level  = (mcu.dev_register[DEV_IPRD] >> 0) & 7;
-                break;
-            case INTERRUPT_SOURCE_UART_RX:
-                vector = VECTOR_INTERNAL_INTERRUPT_D4;
-                level  = (mcu.dev_register[DEV_IPRD] >> 4) & 7;
-                break;
-            case INTERRUPT_SOURCE_UART_TX:
-                vector = VECTOR_INTERNAL_INTERRUPT_D8;
-                level  = (mcu.dev_register[DEV_IPRD] >> 4) & 7;
-                break;
-            default:
-                break;
-        }
-
+        int32_t level = 0;
+        MCU_Interrupt_GetVL(mcu, source, vector, level);
         if ((int32_t)mask < level)
         {
             // mcu.interrupt_pending[INTERRUPT_SOURCE_NMI] = 0;
-            MCU_Interrupt_StartVector(mcu, vector, level);
+            MCU_Interrupt_StartVector(mcu, (uint32_t)vector, level);
             return;
         }
     }
